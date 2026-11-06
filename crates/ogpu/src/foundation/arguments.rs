@@ -836,7 +836,7 @@ mod tests {
             };
             let requirements = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-                features: 0,
+                features: Features::default(),
                 local_size: [64, 1, 1],
                 shared_memory: 0,
             };

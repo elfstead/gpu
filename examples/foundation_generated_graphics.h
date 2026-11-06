@@ -13,7 +13,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); TRY(ogpu_next_device_query(device,&q));
     q = query(OGPU_NEXT_QUERY_GENERATED_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
     const uint64_t stages = OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT;
-    if (!(features.enabled & OGPU_NEXT_FEATURE_GENERATED_COMMANDS) || (limits.stages & stages) != stages) {
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_GENERATED_COMMANDS)) || (limits.stages & stages) != stages) {
         printf("GENERATED_GRAPHICS_UNVERIFIED native graphics unavailable stages=%llu binding_stages=%llu; no fallback.\n",
             (unsigned long long)limits.stages,(unsigned long long)limits.pipeline_binding_stages); return EXIT_SUCCESS;
     }
@@ -42,7 +42,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
         REQUIRE(fread(code[i],1,(size_t)size,file) == (size_t)size); fclose(file); file = NULL;
         shaders[i] = (ogpu_next_shader){shader_stages[i],OGPU_NEXT_SHADER_SPIRV,{code[i],(size_t)size},entries[i],NULL,NULL};
     }
-    ogpu_next_shader_requirements shader_req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{1,1,1},0};
+    ogpu_next_shader_requirements shader_req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(0),{1,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
         1,shaders,NULL,0,&shader_req.header,NULL,0,0};
     TRY(ogpu_next_executable_create(device,&ed,producer_arguments,&producer));
@@ -57,7 +57,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
     ogpu_next_specialization_entry entry = {9,0,4};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization,OGPU_NEXT_SPECIALIZATION),1,0,&entry,{&variant,4}};
     shaders[1].specialization = &spec.header;
-    ogpu_next_shader_requirements graphics_req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),OGPU_NEXT_FEATURE_RASTER,{0,0,0},0};
+    ogpu_next_shader_requirements graphics_req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER)),{0,0,0},0};
     ed = (ogpu_next_executable_desc){HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         2,shaders+1,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR | (state_tokens ? OGPU_NEXT_DYNAMIC_VERTEX_STRIDE : 0),&graphics_req.header,NULL,selections == 2 ? OGPU_NEXT_COMPILE_INDIRECT_BINDABLE : 0,0};
     for (variant = 0; variant < 2; ++variant) TRY(ogpu_next_executable_create(device,&ed,draw_arguments,&pipelines[variant]));

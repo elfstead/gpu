@@ -54,7 +54,7 @@ static int compressed_formats(ogpu_next_device *device, uint32_t domain, const c
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,32,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)code_size},"compressedMain",NULL,NULL};
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{64,1,1},0};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(0),{64,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
     TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline)); free(code); code = NULL;
     for (uint32_t i = 0; i < q.count; ++i) {

@@ -213,6 +213,16 @@ def foundation_layout(name, size, stage):
             f"    {execution}, {size}, ({size}) != 0, 0, ({size}) ? &{name}_argument_field : NULL}};"]
 
 
+def foundation_features(name, ids, count):
+    # A zero-count artifact still has a legal C array; its placeholder is never
+    # included in a request. Graphics pairs always have at least RASTER per stage.
+    return [f"#define {name}_feature_ids {ids}",
+            f"#define {name}_feature_count ({count})",
+            f"static const ogpu_next_feature {name}_feature_storage[] = {{{name}_feature_ids}};",
+            f"#define {name}_feature_list {{{name}_feature_count ? {name}_feature_storage : NULL, {name}_feature_count, 0}}",
+            f"static const ogpu_next_features {name}_required_features = {name}_feature_list;"]
+
+
 def foundation_records(name, size, local, requirements, stage="compute"):
     """Same inspected artifact/layout, different host records; no runtime policy.
 
@@ -226,7 +236,7 @@ def foundation_records(name, size, local, requirements, stage="compute"):
     optional = {"shader_float16": "OGPU_NEXT_FEATURE_FLOAT16", "graphics_queue": "OGPU_NEXT_FEATURE_RASTER",
                 "shader_draw_parameters": "OGPU_NEXT_FEATURE_RASTER"}
     require(set(requirements) <= baseline | optional.keys(), "unmapped foundation requirement")
-    required = " | ".join(sorted({optional[r] for r in requirements if r in optional})) or "UINT64_C(0)"
+    required = sorted({optional[r] for r in requirements if r in optional})
     require(stage in ("compute", "vertex", "fragment"), "unsupported foundation stage")
     require(bool(local) == (stage == "compute"), "foundation stage/local mismatch")
     dimensions = local or [0, 0, 0]
@@ -239,18 +249,23 @@ def foundation_records(name, size, local, requirements, stage="compute"):
     return ["};", "/* Source-only foundation revision; not installed ABI 20.",
             " * Inline bytes contain addresses, not pointee copies or retained owners.",
             f" * The caller selects a {'compute' if stage == 'compute' else 'graphics'} queue and proves pointer bounds/lifetimes. */",
-            f"#define {name}_required_features ({required})",
+            *foundation_features(name, ", ".join(required) or "0", str(len(required))),
             *foundation_layout(name, size, stage),
             f"static const ogpu_next_shader_requirements {name}_requirements = {{",
             f"    .header = {record('ogpu_next_shader_requirements', 'OGPU_NEXT_SHADER_REQUIREMENTS')},",
-            f"    .features = {name}_required_features, .local_size = {{{', '.join(map(str, dimensions))}}}, .shared_memory = 0}};",
+            f"    .features = {name}_feature_list, .local_size = {{{', '.join(map(str, dimensions))}}}, .shared_memory = 0}};",
             f"static inline ogpu_next_shader {name}_shader(void) {{",
             f"    return (ogpu_next_shader){{.stage = OGPU_NEXT_STAGE_{stage.upper()}, .format = OGPU_NEXT_SHADER_SPIRV,",
             f"        .code = {{{name}_code, sizeof({name}_code)}}, .entry = \"main\",",
             f"        .specialization = NULL, .subgroup = NULL}};", "}",
             f"static inline int {name}_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {{",
             *([] if checks else ["    (void)l;"]),
-            f"    return c->baseline_supported && (c->enabled & {name}_required_features) == {name}_required_features" +
+            f"    const ogpu_next_features need = {name}_required_features;",
+            "    for (uint32_t i=0; i<need.count; ++i) {",
+            "        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;",
+            "        if (j==c->enabled.count) return 0;",
+            "    }",
+            f"    return c->baseline_supported" +
             ("\n        && " + " && ".join(checks) if checks else "") + ";",
             "}", "#endif", ""]
 

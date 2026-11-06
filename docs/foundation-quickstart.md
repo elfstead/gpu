@@ -17,11 +17,19 @@ export PKG_CONFIG_PATH=/absolute/path/to/new-preview/lib/pkgconfig
 ```
 
 The manifest records both the source commit and foundation revision. Match the
-header, library and generated artifacts from that **exact commit**: revision 8
+header, library and generated artifacts from that **exact commit**: revision 9
 alone does not promise compatibility across commits. New prefixes are mandatory;
 the installer never overwrites or merges an existing installation. ABI-20 headers,
 examples and `ogpu.pc` require explicit `--legacy` installation. Foundation consumers use
 `ogpu-foundation.pc`. There is no runtime policy wrapper or fallback to ABI 20.
+
+Revision 9 replaces feature masks with counted `ogpu_next_feature` ID lists in
+queries, device requests and shader requirements. IDs are not flags; do not OR
+them. Discovery lists borrow immutable snapshot storage. Native Rust uses
+`types::feature_ids` and passes a slice to `rust::device_create`; shader records
+use `Features::from_slice` with backing storage kept alive through preparation.
+See [feature selection](feature-selection.md) for lifetimes, errors and migration.
+Rebuild generated interfaces and all consumers together.
 
 Revision 7 replaces index-only presentation with borrowed `frame` values and explicit
 batch/per-item effects. Use the versioned presentation table or direct Rust operations

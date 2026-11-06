@@ -47,14 +47,18 @@ static const uint32_t pattern_vertex_code[] = {
 /* Source-only foundation revision; not installed ABI 20.
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
-#define pattern_vertex_required_features (OGPU_NEXT_FEATURE_RASTER)
+#define pattern_vertex_feature_ids OGPU_NEXT_FEATURE_RASTER
+#define pattern_vertex_feature_count (1)
+static const ogpu_next_feature pattern_vertex_feature_storage[] = {pattern_vertex_feature_ids};
+#define pattern_vertex_feature_list {pattern_vertex_feature_count ? pattern_vertex_feature_storage : NULL, pattern_vertex_feature_count, 0}
+static const ogpu_next_features pattern_vertex_required_features = pattern_vertex_feature_list;
 static const ogpu_next_argument_field pattern_vertex_argument_field = {
     0, 0, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc pattern_vertex_arguments = {
     OGPU_NEXT_ARGUMENT_GRAPHICS, 0, (0) != 0, 0, (0) ? &pattern_vertex_argument_field : NULL};
 static const ogpu_next_shader_requirements pattern_vertex_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = pattern_vertex_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
+    .features = pattern_vertex_feature_list, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader pattern_vertex_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_VERTEX, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {pattern_vertex_code, sizeof(pattern_vertex_code)}, .entry = "main",
@@ -62,7 +66,12 @@ static inline ogpu_next_shader pattern_vertex_shader(void) {
 }
 static inline int pattern_vertex_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     (void)l;
-    return c->baseline_supported && (c->enabled & pattern_vertex_required_features) == pattern_vertex_required_features;
+    const ogpu_next_features need = pattern_vertex_required_features;
+    for (uint32_t i=0; i<need.count; ++i) {
+        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;
+        if (j==c->enabled.count) return 0;
+    }
+    return c->baseline_supported;
 }
 #endif
 
@@ -149,21 +158,30 @@ static const uint32_t pattern_fragment_code[] = {
 /* Source-only foundation revision; not installed ABI 20.
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
-#define pattern_fragment_required_features (OGPU_NEXT_FEATURE_RASTER)
+#define pattern_fragment_feature_ids OGPU_NEXT_FEATURE_RASTER
+#define pattern_fragment_feature_count (1)
+static const ogpu_next_feature pattern_fragment_feature_storage[] = {pattern_fragment_feature_ids};
+#define pattern_fragment_feature_list {pattern_fragment_feature_count ? pattern_fragment_feature_storage : NULL, pattern_fragment_feature_count, 0}
+static const ogpu_next_features pattern_fragment_required_features = pattern_fragment_feature_list;
 static const ogpu_next_argument_field pattern_fragment_argument_field = {
     0, 8, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc pattern_fragment_arguments = {
     OGPU_NEXT_ARGUMENT_GRAPHICS, 8, (8) != 0, 0, (8) ? &pattern_fragment_argument_field : NULL};
 static const ogpu_next_shader_requirements pattern_fragment_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = pattern_fragment_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
+    .features = pattern_fragment_feature_list, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader pattern_fragment_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_FRAGMENT, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {pattern_fragment_code, sizeof(pattern_fragment_code)}, .entry = "main",
         .specialization = NULL, .subgroup = NULL};
 }
 static inline int pattern_fragment_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
-    return c->baseline_supported && (c->enabled & pattern_fragment_required_features) == pattern_fragment_required_features
+    const ogpu_next_features need = pattern_fragment_required_features;
+    for (uint32_t i=0; i<need.count; ++i) {
+        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;
+        if (j==c->enabled.count) return 0;
+    }
+    return c->baseline_supported
         && l->max_inline_bytes >= 8;
 }
 #endif
@@ -172,14 +190,18 @@ enum { pattern_push_size = 8 };
 /* One shared native inline bank, not independently snapshotted stage banks.
  * Stage structs are views of these SAME bytes. The caller must supply
  * simultaneously valid values; this linker never relocates or packs roots. */
-#define pattern_required_features (pattern_vertex_required_features | pattern_fragment_required_features)
+#define pattern_feature_ids pattern_vertex_feature_ids, pattern_fragment_feature_ids
+#define pattern_feature_count (pattern_vertex_feature_count + pattern_fragment_feature_count)
+static const ogpu_next_feature pattern_feature_storage[] = {pattern_feature_ids};
+#define pattern_feature_list {pattern_feature_count ? pattern_feature_storage : NULL, pattern_feature_count, 0}
+static const ogpu_next_features pattern_required_features = pattern_feature_list;
 static const ogpu_next_argument_field pattern_argument_field = {
     0, pattern_push_size, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc pattern_arguments = {
     OGPU_NEXT_ARGUMENT_GRAPHICS, pattern_push_size, (pattern_push_size) != 0, 0, (pattern_push_size) ? &pattern_argument_field : NULL};
 static const ogpu_next_shader_requirements pattern_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = pattern_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
+    .features = pattern_feature_list, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline void pattern_shaders(ogpu_next_shader out[2]) {
     out[0] = pattern_vertex_shader(); out[1] = pattern_fragment_shader();
 }

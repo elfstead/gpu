@@ -1,6 +1,7 @@
 /* Matched indexed/depth scene; public foundation API only. No runtime retention,
  * implicit placement, layout tracking or completion-receipt policy. */
 #include "ogpu_next.h"
+#include "feature_selection.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,14 +159,19 @@ static int context(Scene *s,const char *directory) {
     }
     NEED(s->domain!=UINT32_MAX);
     ogpu_next_queue_request request={s->domain,1,0.5f};
-    uint64_t required=OGPU_NEXT_FEATURE_RASTER;
+    ogpu_next_feature feature_storage[32] = {OGPU_NEXT_FEATURE_RASTER};
+    ogpu_next_features required = {feature_storage,1,0};
 #ifdef SCENE_GENERATED
 #ifdef SCENE_FOUNDATION_FRONTIER
-    required=scene_identity_pair_required_features | scene_range_prepare_required_features;
-#elif defined(SCENE_REUSE_CONSUMER)
-    required=scene_pair_required_features | (s->index_bytes==2 ? scene_reuse_prepare16_required_features : scene_reuse_prepare_required_features);
+    NEED(example_features_merge(&required,feature_storage,32,scene_identity_pair_required_features));
+    NEED(example_features_merge(&required,feature_storage,32,scene_range_prepare_required_features));
 #else
-    required=scene_pair_required_features | (s->index_bytes==2 ? scene_prepare16_required_features : scene_prepare_required_features);
+    NEED(example_features_merge(&required,feature_storage,32,scene_pair_required_features));
+#ifdef SCENE_REUSE_CONSUMER
+    NEED(example_features_merge(&required,feature_storage,32,s->index_bytes==2 ? scene_reuse_prepare16_required_features : scene_reuse_prepare_required_features));
+#else
+    NEED(example_features_merge(&required,feature_storage,32,s->index_bytes==2 ? scene_prepare16_required_features : scene_prepare_required_features));
+#endif
 #endif
 #endif
     ogpu_next_device_desc dd={HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,required};
@@ -227,7 +233,7 @@ static int context(Scene *s,const char *directory) {
         {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{s->code[0],s->code_size[0]},"main",NULL,NULL},
         {OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,{s->code[1],s->code_size[1]},"main",NULL,NULL},
         {OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_SHADER_SPIRV,{s->code[2],s->code_size[2]},"main",NULL,NULL}};
-    ogpu_next_shader_requirements req={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{8,1,1},0};
+    ogpu_next_shader_requirements req={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),{0},{8,1,1},0};
     ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,shaders,NULL,0,&req.header,NULL,0,0};
 #endif
 #ifdef SCENE_GENERATED
@@ -260,7 +266,7 @@ static int context(Scene *s,const char *directory) {
     ed.requirements=&scene_pair_requirements.header;
 #endif
 #else
-    req.features=OGPU_NEXT_FEATURE_RASTER; memset(req.local_size,0,sizeof(req.local_size));
+    req.features=(ogpu_next_features){feature_storage,1,0}; memset(req.local_size,0,sizeof(req.local_size));
 #endif
     ed.kind=OGPU_NEXT_EXECUTABLE_GRAPHICS; ed.shader_count=2; ed.shaders=&shaders[1]; ed.static_state=&gs.header;
     ed.dynamic_state=OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR;

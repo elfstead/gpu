@@ -38,14 +38,18 @@ static const uint32_t fullscreen_code[] = {
 /* Source-only foundation revision; not installed ABI 20.
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
-#define fullscreen_required_features (OGPU_NEXT_FEATURE_RASTER)
+#define fullscreen_feature_ids OGPU_NEXT_FEATURE_RASTER
+#define fullscreen_feature_count (1)
+static const ogpu_next_feature fullscreen_feature_storage[] = {fullscreen_feature_ids};
+#define fullscreen_feature_list {fullscreen_feature_count ? fullscreen_feature_storage : NULL, fullscreen_feature_count, 0}
+static const ogpu_next_features fullscreen_required_features = fullscreen_feature_list;
 static const ogpu_next_argument_field fullscreen_argument_field = {
     0, 0, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc fullscreen_arguments = {
     OGPU_NEXT_ARGUMENT_GRAPHICS, 0, (0) != 0, 0, (0) ? &fullscreen_argument_field : NULL};
 static const ogpu_next_shader_requirements fullscreen_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = fullscreen_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
+    .features = fullscreen_feature_list, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader fullscreen_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_VERTEX, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {fullscreen_code, sizeof(fullscreen_code)}, .entry = "main",
@@ -53,6 +57,11 @@ static inline ogpu_next_shader fullscreen_shader(void) {
 }
 static inline int fullscreen_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     (void)l;
-    return c->baseline_supported && (c->enabled & fullscreen_required_features) == fullscreen_required_features;
+    const ogpu_next_features need = fullscreen_required_features;
+    for (uint32_t i=0; i<need.count; ++i) {
+        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;
+        if (j==c->enabled.count) return 0;
+    }
+    return c->baseline_supported;
 }
 #endif

@@ -213,6 +213,7 @@ def install(prefix, *, legacy=False):
               for n in ("application","hidden","denoise","process","poison","fullscreen","display")],
             ("tools/sdk/foundation/run.py","run.py")],
     }.items():
+        copy(ROOT / "examples/feature_selection.h",f"share/ogpu/examples/{label}/feature_selection.h")
         for source,destination in files:
             copy(ROOT / source,f"share/ogpu/examples/{label}/{destination}")
         builder="tools/sdk/foundation-scene/build.py" if label=="foundation-indexed-scene" else "tools/sdk/foundation/build.py"

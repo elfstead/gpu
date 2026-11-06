@@ -538,7 +538,7 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
     struct shader_metadata metadata = {0};
     if (compute) REQUIRE(reflect_compute_native(&p->primary, values, count, &metadata), "shader metadata failed");
     const ogpu_next_shader_requirements requirements = {RECORD(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS),
-        0, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
+        {0}, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
     const ogpu_next_specialization specialization = {RECORD(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION),
         count, 0, entries, {bits, count * 4}};
     ogpu_next_shader shaders[2] = {
@@ -861,8 +861,9 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
             (OGPU_NEXT_QUEUE_COMPUTE | OGPU_NEXT_QUEUE_GRAPHICS)) { domain = queues[i].domain; break; }
     REQUIRE(domain != UINT32_MAX, "combined compute/graphics queue required");
     const ogpu_next_queue_request request = {domain, 1, .5f};
+    const ogpu_next_feature feature_ids[] = {OGPU_NEXT_FEATURE_RASTER};
     const ogpu_next_device_desc dd = {RECORD(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC),
-        &request, 1, 0, OGPU_NEXT_FEATURE_RASTER};
+        &request, 1, 0, {feature_ids,1,0}};
     TRY(ogpu_next_device_create(adapter, &dd, &b->device));
     b->queue = ogpu_next_device_queue(b->device, domain, 0);
     q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS, &limits, 1, sizeof(limits));

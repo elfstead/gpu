@@ -39,7 +39,7 @@ def main():
     require(bool(args.libplacebo_source) == bool(args.vulkan_registry),"--libplacebo-source and --vulkan-registry belong together")
     installed = args.prefix.resolve()
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
-    require(manifest["foundation"]["revision"] == 8,"not a foundation revision-8 preview")
+    require(manifest["foundation"]["revision"] == 9,"not a foundation revision-9 preview")
     if manifest.get('default_api')=='foundation':
         legacy=manifest['legacy_sdk']
         require(('abi' in manifest)==legacy,'incorrect manifest profile')
@@ -71,7 +71,7 @@ def main():
     env["CARGO"] = "/no-consumer-cargo-required"; env["SLANGC"] = "/no-consumer-slang-required"
     pkg = os.getenv("PKG_CONFIG","pkg-config")
     require(run([pkg,"--variable=ogpu_revision","ogpu-foundation"],env=env).strip() == manifest["revision"],"wrong revision")
-    require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "8","wrong foundation version")
+    require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "9","wrong foundation version")
     if manifest.get('default_api')=='foundation' and not manifest['legacy_sdk']:
         absent=subprocess.run([pkg,'--exists','ogpu'],env=env,capture_output=True,text=True,timeout=30)
         require(absent.returncode!=0,'foundation-only package exposed legacy pkg-config name')

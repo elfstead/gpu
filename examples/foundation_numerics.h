@@ -1,6 +1,6 @@
-#define NUMERIC_FEATURES (OGPU_NEXT_FEATURE_FLOAT16 | OGPU_NEXT_FEATURE_INT8 | OGPU_NEXT_FEATURE_INT16 | OGPU_NEXT_FEATURE_INT64 | OGPU_NEXT_FEATURE_FLOAT64 | OGPU_NEXT_FEATURE_STORAGE8)
-#define ATOMIC_FEATURES (OGPU_NEXT_FEATURE_INT64 | OGPU_NEXT_FEATURE_BUFFER_ATOMIC64 | OGPU_NEXT_FEATURE_SHARED_ATOMIC64)
-#define SUBGROUP_FEATURES (OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL | OGPU_NEXT_FEATURE_FULL_SUBGROUPS | OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES)
+#define NUMERIC_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_FLOAT16) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INT8) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INT16) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INT64) | FIXTURE_BIT(OGPU_NEXT_FEATURE_FLOAT64) | FIXTURE_BIT(OGPU_NEXT_FEATURE_STORAGE8))
+#define ATOMIC_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_INT64) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_ATOMIC64) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_ATOMIC64))
+#define SUBGROUP_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL) | FIXTURE_BIT(OGPU_NEXT_FEATURE_FULL_SUBGROUPS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES))
 /* Scalar-width proof, not a tensor runtime or a numerical-throughput benchmark. */
 static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc desc, uint32_t domain, const char *path, uint32_t mode, uint32_t subgroup_size, uint32_t subgroup_flags) {
     uint32_t atomics = mode == 1, subgroups = mode == 2, dot = mode == 3;
@@ -20,10 +20,10 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
         q = query(OGPU_NEXT_QUERY_SUBGROUP_LIMITS,&subgroup_limits,1,sizeof(subgroup_limits));
         TRY(ogpu_next_device_query(device,&q));
     }
-    uint64_t required = subgroups ? ((subgroup_size || (subgroup_flags & OGPU_NEXT_SUBGROUP_ALLOW_VARYING) ? OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL : 0)
-        | (subgroup_flags & OGPU_NEXT_SUBGROUP_REQUIRE_FULL ? OGPU_NEXT_FEATURE_FULL_SUBGROUPS : 0)) : atomics ? ATOMIC_FEATURES : dot ? OGPU_NEXT_FEATURE_INTEGER_DOT : NUMERIC_FEATURES;
-    if ((features.enabled & required) != required) {
-        printf("%s fixture NOT exercised: missing feature mask 0x%llx.\n",dot ? "Integer dot" : atomics ? "Atomic" : "Combined numerical",(unsigned long long)(required & ~features.enabled));
+    uint64_t required = subgroups ? ((subgroup_size || (subgroup_flags & OGPU_NEXT_SUBGROUP_ALLOW_VARYING) ? FIXTURE_BIT(OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL) : 0)
+        | (subgroup_flags & OGPU_NEXT_SUBGROUP_REQUIRE_FULL ? FIXTURE_BIT(OGPU_NEXT_FEATURE_FULL_SUBGROUPS) : 0)) : atomics ? ATOMIC_FEATURES : dot ? FIXTURE_BIT(OGPU_NEXT_FEATURE_INTEGER_DOT) : NUMERIC_FEATURES;
+    if ((fixture_mask(features.enabled) & required) != required) {
+        printf("%s fixture NOT exercised: missing feature mask 0x%llx.\n",dot ? "Integer dot" : atomics ? "Atomic" : "Combined numerical",(unsigned long long)(required & ~fixture_mask(features.enabled)));
         return EXIT_SUCCESS;
     }
     file = fopen(path,"rb"); REQUIRE(file != NULL);
@@ -36,7 +36,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,8,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{64,1,1},atomics ? 8u : 0u};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(required),{64,1,1},atomics ? 8u : 0u};
     ogpu_next_subgroup_state subgroup = {HEADER(ogpu_next_subgroup_state,OGPU_NEXT_SUBGROUP_STATE),
         OGPU_NEXT_SUBGROUP_BASIC | OGPU_NEXT_SUBGROUP_ARITHMETIC | OGPU_NEXT_SUBGROUP_BALLOT,subgroup_size,subgroup_flags,0};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},subgroups ? "subgroupMain" : atomics ? "atomicMain" : dot ? "dotMain" : "numericMain",NULL,subgroups ? &subgroup.header : NULL};

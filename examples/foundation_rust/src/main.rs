@@ -55,8 +55,8 @@ pub fn run() -> gpu::Result<()> {
         count: 1,
         priority: 1.0,
     }];
-    assert_eq!(gpu::device_create(adapter, &[], 0), Err(INVALID));
-    let device = gpu::device_create(adapter, &requests, 0)?;
+    assert_eq!(gpu::device_create(adapter, &[], &[]), Err(INVALID));
+    let device = gpu::device_create(adapter, &requests, &[])?;
 
     // SAFETY: this single-threaded consumer owns every handle, keeps all parents
     // live, and retains every resource/list until an ALL-stage timeline wait.

@@ -242,7 +242,7 @@ pub fn run() {
     // Feature enabling is ordinary device creation, before any native window.
     // No presentation queue is implicitly selected; this setup-only device runs
     // no GPU work and can be destroyed immediately.
-    assert_ne!(gpu::adapter_features(adapter).available & PRESENTATION, 0);
+    assert!(gpu::adapter_features(adapter).available.contains(&feature_ids::PRESENTATION));
     let queue = gpu::adapter_queues(adapter)
         .iter()
         .find(|q| q.flags & 2 != 0)
@@ -252,7 +252,7 @@ pub fn run() {
         count: 1,
         priority: 1.0,
     }];
-    for features in [0, PRESENTATION] {
+    for features in [&[][..], &[feature_ids::PRESENTATION][..]] {
         let device = Device(gpu::device_create(adapter, &requests, features).unwrap());
         let mut info = FeatureInfo::default();
         let mut q = Query {
@@ -264,8 +264,8 @@ pub fn run() {
             reserved: 0,
         };
         unsafe { gpu::device_query(device.0, &mut q) }.unwrap();
-        assert_eq!(info.enabled, features);
-        assert_ne!(info.available & PRESENTATION, 0);
+        assert_eq!(unsafe { info.enabled.as_slice() }.unwrap(), features);
+        assert!(unsafe { info.available.as_slice() }.unwrap().contains(&feature_ids::PRESENTATION));
         drop(device);
     }
     let window = Window::create();
@@ -378,7 +378,7 @@ pub fn run() {
     assert_eq!(q.count, 91);
     let headless = gpu::discover().unwrap();
     let other = &gpu::adapters(&headless)[0];
-    assert_eq!(gpu::adapter_features(other).available & PRESENTATION, 0);
+    assert!(!gpu::adapter_features(other).available.contains(&feature_ids::PRESENTATION));
     let headless_queue = gpu::adapter_queues(other)
         .iter()
         .find(|q| q.flags & 2 != 0)
@@ -389,7 +389,7 @@ pub fn run() {
         priority: 1.0,
     }];
     assert_eq!(
-        gpu::device_create(other, &requests, PRESENTATION),
+        gpu::device_create(other, &requests, &[feature_ids::PRESENTATION]),
         Err(UNSUPPORTED)
     );
     let _ = gpu::presentation_support(other).unwrap(); // No window/WSI opt-in needed.

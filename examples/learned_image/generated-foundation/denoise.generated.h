@@ -101,21 +101,30 @@ static const uint32_t denoise_code[] = {
 /* Source-only foundation revision; not installed ABI 20.
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a compute queue and proves pointer bounds/lifetimes. */
-#define denoise_required_features (UINT64_C(0))
+#define denoise_feature_ids 0
+#define denoise_feature_count (0)
+static const ogpu_next_feature denoise_feature_storage[] = {denoise_feature_ids};
+#define denoise_feature_list {denoise_feature_count ? denoise_feature_storage : NULL, denoise_feature_count, 0}
+static const ogpu_next_features denoise_required_features = denoise_feature_list;
 static const ogpu_next_argument_field denoise_argument_field = {
     0, 40, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc denoise_arguments = {
     OGPU_NEXT_ARGUMENT_COMPUTE, 40, (40) != 0, 0, (40) ? &denoise_argument_field : NULL};
 static const ogpu_next_shader_requirements denoise_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = denoise_required_features, .local_size = {64, 1, 1}, .shared_memory = 0};
+    .features = denoise_feature_list, .local_size = {64, 1, 1}, .shared_memory = 0};
 static inline ogpu_next_shader denoise_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_COMPUTE, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {denoise_code, sizeof(denoise_code)}, .entry = "main",
         .specialization = NULL, .subgroup = NULL};
 }
 static inline int denoise_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
-    return c->baseline_supported && (c->enabled & denoise_required_features) == denoise_required_features
+    const ogpu_next_features need = denoise_required_features;
+    for (uint32_t i=0; i<need.count; ++i) {
+        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;
+        if (j==c->enabled.count) return 0;
+    }
+    return c->baseline_supported
         && l->max_inline_bytes >= 40 && l->max_local_invocations >= 64 && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
 }
 #endif

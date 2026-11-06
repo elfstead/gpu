@@ -75,7 +75,7 @@ struct Runtime {
         for (const auto &candidate : queues) if (candidate.count && (candidate.flags & OGPU_NEXT_QUEUE_COMPUTE)) { domain = candidate.domain; break; }
         if (domain == UINT32_MAX) throw std::runtime_error("compute queue required");
         const ogpu_next_queue_request request{domain,1,.5f};
-        const ogpu_next_device_desc desc{GGML_RECORD(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,0};
+        const ogpu_next_device_desc desc{GGML_RECORD(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,{0}};
         ogpu_next_device *d = nullptr; check(ogpu_next_device_create(adapter,&desc,&d)); device.reset(d);
         queue = ogpu_next_device_queue(d,domain,0);
         q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); check(ogpu_next_device_query(d,&q));
@@ -113,7 +113,7 @@ struct Runtime {
         const ogpu_next_argument_layout_desc layout{OGPU_NEXT_ARGUMENT_COMPUTE,root_size,root_size ? 1u : 0u,0,root_size ? &field : nullptr};
         ogpu_next_argument_layout *arguments = nullptr; check(ogpu_next_argument_layout_create(device.get(),&layout,&arguments)); result.arguments.reset(arguments);
         const ogpu_next_shader shader{OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,bytes},"main",nullptr,nullptr};
-        const ogpu_next_shader_requirements requirements{GGML_RECORD(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{64,1,1},shared};
+        const ogpu_next_shader_requirements requirements{GGML_RECORD(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),{0},{64,1,1},shared};
         const ogpu_next_executable_desc desc{GGML_RECORD(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),
             OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,nullptr,0,&requirements.header,nullptr,0,0};
         ogpu_next_executable *raw = nullptr; check(ogpu_next_executable_create(device.get(),&desc,arguments,&raw)); result.executable.reset(raw); return result;

@@ -1,11 +1,16 @@
 # Current support boundary
 
-Updated 2026-11-06. The default SDK is foundation revision 8; ABI20 packaging is
+Updated 2026-11-06. The default SDK is foundation revision 9; ABI20 packaging is
 explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
-Current revision 8 adds [generated vertex/index state and explicit vertex stride](results/m8-generated-buffer-state-2026-11-06.md), verified locally under Vulkan validation. The [clean revision-8 SDK](results/m8-revision8-sdk-2026-11-06.md) passes relocated C/GGML/libplacebo and isolated native Rust/Wayland checks at `b5414e5`. Revision-7 evidence below remains identified by its historical commit.
+Revision 9 implements [counted feature selection](feature-selection.md) across
+C, native Rust and generated artifacts. Its local source/ABI and Vulkan checks
+pass; clean SDK acceptance is recorded separately once run. It does not add
+multiview or broaden native hardware acceptance.
+
+Revision 8 added [generated vertex/index state and explicit vertex stride](results/m8-generated-buffer-state-2026-11-06.md), verified locally under Vulkan validation. The [clean revision-8 SDK](results/m8-revision8-sdk-2026-11-06.md) passes relocated C/GGML/libplacebo and isolated native Rust/Wayland checks at `b5414e5`. Revision-7 evidence below remains identified by its historical commit.
 
 ## Default Linux/Vulkan foundation
 

@@ -1,3 +1,4 @@
+#include "feature_selection.h"
 /* Same public-only caller for all compiler-linked stage/argument variants. */
 #include <foundation-pattern.generated.h>
 #include <inttypes.h>
@@ -124,7 +125,7 @@ int main(void) {
     for (uint32_t index = 0; index < ogpu_next_discovery_count(discovery); ++index) {
         const ogpu_next_adapter *adapter = ogpu_next_discovery_adapter(discovery,index);
         ogpu_next_feature_info f = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&f,1,sizeof(f)); TRY(ogpu_next_adapter_query(adapter,&q));
-        if (!f.baseline_supported || (f.available & pattern_required_features) != pattern_required_features) continue;
+        if (!f.baseline_supported || !example_features_include(f.available,pattern_required_features)) continue;
         ogpu_next_queue_info queues[32]; q = query(OGPU_NEXT_QUERY_QUEUES,queues,32,sizeof(queues[0])); TRY(ogpu_next_adapter_query(adapter,&q));
         for (uint32_t i = 0; i < q.count; ++i) if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { domain = queues[i].domain; break; }
         if (domain == UINT32_MAX) continue;
@@ -137,7 +138,7 @@ int main(void) {
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&f,1,sizeof(f)); TRY(ogpu_next_device_query(device,&q));
     q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
     REQUIRE(pattern_compatible(&f,&limits));
-    ogpu_next_feature_info missing = f; missing.enabled &= ~OGPU_NEXT_FEATURE_RASTER; REQUIRE(!pattern_compatible(&missing,&limits));
+    ogpu_next_feature_info missing = f; missing.enabled = (ogpu_next_features){0}; REQUIRE(!pattern_compatible(&missing,&limits));
     ogpu_next_execution_limits small = limits; small.max_inline_bytes = pattern_push_size-1; REQUIRE(!pattern_compatible(&f,&small));
     ogpu_next_shader shaders[2]; pattern_shaders(shaders);
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};

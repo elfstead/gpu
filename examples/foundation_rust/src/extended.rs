@@ -149,7 +149,7 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
         )?;
         let mut requirements = ShaderRequirements {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-            features: 0,
+            features: Features::default(),
             local_size: [64, 1, 1],
             shared_memory: 0,
         };

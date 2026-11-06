@@ -30,14 +30,14 @@ class FoundationTests(unittest.TestCase):
         self.assertIn('#include "ogpu_next.h"', foundation)
         self.assertIn('.local_size = {64, 1, 1}', foundation)
         self.assertIn('OGPU_NEXT_ARGUMENT_COMPUTE, 16, (16) != 0', foundation)
-        self.assertIn('transform_required_features (UINT64_C(0))', foundation)
+        self.assertIn('transform_feature_count (0)', foundation)
         self.assertNotIn('OgpuShaderDesc', foundation)
 
-    def test_optional_feature_uses_enabled_mask(self):
+    def test_optional_feature_uses_enabled_ids(self):
         # Synthetic capability metadata, not an FP16 shader execution claim.
         text = self.header(self.assembly+'\nOpCapability Float16\n')
-        self.assertIn('transform_required_features (OGPU_NEXT_FEATURE_FLOAT16)', text)
-        self.assertIn('c->enabled & transform_required_features', text)
+        self.assertIn('transform_feature_ids OGPU_NEXT_FEATURE_FLOAT16', text)
+        self.assertIn('c->enabled.ids[j]==need.ids[i]', text)
         self.assertNotIn('c->available', text)
 
     def test_existing_rejection_is_not_bypassed(self):
@@ -53,7 +53,7 @@ class FoundationTests(unittest.TestCase):
         reflected, assembly, binary = generate.compile_source(source,
             generate.ROOT / "target/foundation-compiler/vertex-rejection", os.getenv("SLANGC", "slangc"), "vertex")
         text = generate.header(reflected, assembly, binary, source.read_bytes(), api="foundation")
-        for expected in ("OGPU_NEXT_STAGE_VERTEX", "transform_required_features (OGPU_NEXT_FEATURE_RASTER)",
+        for expected in ("OGPU_NEXT_STAGE_VERTEX", "transform_feature_ids OGPU_NEXT_FEATURE_RASTER",
                          ".local_size = {0, 0, 0}", "OGPU_NEXT_ARGUMENT_GRAPHICS, 0, (0) != 0", "(void)l;"):
             self.assertIn(expected, text)
         self.assertNotIn("max_local_invocations", text)

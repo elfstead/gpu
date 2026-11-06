@@ -7,7 +7,7 @@
 //! Records reuse `types`, including trusted nested metadata and address pointers.
 //! Rust and C share backend validation/execution and recording-error state.
 use super::types::*;
-use super::{native, Adapter, Discovery, Instance};
+use super::{features, native, Adapter, Discovery, Instance};
 use std::{ptr::NonNull, sync::Arc};
 
 pub type Result<T> = std::result::Result<T, Status>;
@@ -103,8 +103,23 @@ pub fn adapter_info(adapter: &Adapter) -> &AdapterInfo {
 pub fn adapter_queues(adapter: &Adapter) -> &[QueueInfo] {
     &adapter.snapshot.queues
 }
-pub fn adapter_features(adapter: &Adapter) -> &FeatureInfo {
-    &adapter.snapshot.features
+/// Safe borrowed view of the immutable feature snapshot.
+pub struct FeatureSupport<'a> {
+    pub available: &'a [u32],
+    pub enabled: &'a [u32],
+    pub max_timeline_difference: u64,
+    pub baseline_supported: u32,
+    pub device_scope: u32,
+}
+pub fn adapter_features(adapter: &Adapter) -> FeatureSupport<'_> {
+    let s = &adapter.snapshot;
+    FeatureSupport {
+        available: &s.available_ids,
+        enabled: &s.enabled_ids,
+        max_timeline_difference: s.features.max_timeline_difference,
+        baseline_supported: s.features.baseline_supported,
+        device_scope: s.features.device_scope,
+    }
 }
 pub fn adapter_memory_types(adapter: &Adapter) -> &[MemoryTypeInfo] {
     &adapter.snapshot.memory_types
@@ -122,12 +137,13 @@ pub unsafe fn adapter_query(adapter: &Adapter, query: *mut Query) -> Result<()> 
 pub fn device_create(
     adapter: &Adapter,
     requests: &[QueueRequest],
-    features: u64,
+    features: &[u32],
 ) -> Result<DeviceHandle> {
     if requests.is_empty() || requests.len() > adapter.snapshot.queues.len() {
         return Err(INVALID);
     }
     validate_requests(&adapter.snapshot.queues, requests)?;
+    let features = features::encode(features)?;
     validate_feature_dependencies(features)?;
     if adapter.snapshot.features.baseline_supported == 0
         || features & !adapter.snapshot.features.available != 0
@@ -423,7 +439,7 @@ mod tests {
                 count: 1,
                 priority: 1.0,
             }],
-            0,
+            &[],
         )
         .unwrap();
         // SAFETY: no submission; one thread owns the live device/pool and every slot.

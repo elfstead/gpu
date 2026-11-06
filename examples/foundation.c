@@ -1,4 +1,5 @@
 #include "ogpu_next.h"
+#include "foundation_features.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,14 +33,14 @@ static inline void common_barrier(ogpu_next_encoder *e, ogpu_next_dependency *d,
 _Static_assert(sizeof(ogpu_next_record) == 24, "record ABI");
 _Static_assert(sizeof(ogpu_next_query) == 48, "query ABI");
 _Static_assert(offsetof(ogpu_next_query, data) == 24, "query data ABI");
-_Static_assert(sizeof(ogpu_next_device_desc) == 48, "device ABI");
+_Static_assert(sizeof(ogpu_next_device_desc) == 56, "device ABI");
 _Static_assert(offsetof(ogpu_next_device_desc, required_features) == 40, "features ABI");
 _Static_assert(sizeof(ogpu_next_queue_request) == 12, "queue request ABI");
 _Static_assert(sizeof(ogpu_next_adapter_info) == 276, "adapter ABI");
 _Static_assert(sizeof(ogpu_next_queue_info) == 32, "queue ABI");
 _Static_assert(sizeof(ogpu_next_memory_type_info) == 16, "memory type ABI");
 _Static_assert(sizeof(ogpu_next_memory_heap_info) == 16, "heap ABI");
-_Static_assert(sizeof(ogpu_next_feature_info) == 32, "feature ABI");
+_Static_assert(sizeof(ogpu_next_feature_info) == 48, "feature ABI");
 _Static_assert(sizeof(ogpu_next_point) == 16, "point ABI");
 _Static_assert(sizeof(ogpu_next_memory_desc) == 72, "memory description ABI");
 _Static_assert(sizeof(ogpu_next_span) == 24, "span ABI");
@@ -74,7 +75,7 @@ _Static_assert(sizeof(ogpu_next_sampler_desc) == 80, "sampler ABI");
 _Static_assert(sizeof(ogpu_next_execution_limits) == 48, "execution limits ABI");
 _Static_assert(sizeof(ogpu_next_argument_layout_desc) == 24, "argument interface ABI");
 _Static_assert(sizeof(ogpu_next_argument_field) == 32, "root slot ABI");
-_Static_assert(sizeof(ogpu_next_shader_requirements) == 48, "shader requirements ABI");
+_Static_assert(sizeof(ogpu_next_shader_requirements) == 56, "shader requirements ABI");
 _Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
 _Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
 _Static_assert(sizeof(ogpu_next_subgroup_limits) == 40, "subgroup limits ABI");
@@ -139,16 +140,16 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_float_atomics.h"
 #include "foundation_matrices.h"
 
-#define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
-#define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE | OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS | OGPU_NEXT_FEATURE_LOGIC_OP | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND | OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER)
-#define FOUNDATION_FEATURES (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | FLOAT64_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES | MATRIX_FEATURES | OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE)
+#define QUERY_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_PIPELINE_STATISTICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_PRECISE_OCCLUSION) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INHERITED_QUERIES))
+#define RASTER_OPTION_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INDEPENDENT_BLEND) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_CLAMP) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP) | FIXTURE_BIT(OGPU_NEXT_FEATURE_NON_SOLID_FILL) | FIXTURE_BIT(OGPU_NEXT_FEATURE_WIDE_LINES) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_BOUNDS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SAMPLE_SHADING) | FIXTURE_BIT(OGPU_NEXT_FEATURE_ALPHA_TO_ONE) | FIXTURE_BIT(OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_LOGIC_OP) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER))
+#define FOUNDATION_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_CACHE_CONTROL) | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | FLOAT64_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES | MATRIX_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE))
 static uint64_t foundation_features(uint64_t available) {
-uint64_t enabled = OGPU_NEXT_FEATURE_RASTER | (available & (FOUNDATION_FEATURES | OGPU_NEXT_FEATURE_INTEGER_DOT | FLOAT16_ATOMIC_FEATURES | OGPU_NEXT_FEATURE_CUBE_ARRAY | OGPU_NEXT_FEATURE_MESH_SHADER | OGPU_NEXT_FEATURE_TASK_SHADER | OGPU_NEXT_FEATURE_GENERATED_COMMANDS));
+uint64_t enabled = FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | (available & (FOUNDATION_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_INTEGER_DOT) | FLOAT16_ATOMIC_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_CUBE_ARRAY) | FIXTURE_BIT(OGPU_NEXT_FEATURE_MESH_SHADER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_TASK_SHADER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_GENERATED_COMMANDS)));
     /* Existing fixture atomics use Device scope. Do not enable the stricter
      * memory model without its separate Device-scope capability. This is test
      * selection, not runtime policy or a matrix-API dependency. */
-    if (!(available & OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE))
-        enabled &= ~OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL;
+    if (!(available & FIXTURE_BIT(OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE)))
+        enabled &= ~FIXTURE_BIT(OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL);
     return enabled;
 }
 
@@ -178,7 +179,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_argument_field argument_field = {0,24,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,24,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), 0, {64, 1, 1}, 0};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), FIXTURE_FEATURES(0), {64, 1, 1}, 0};
     uint32_t extra = 13;
     ogpu_next_specialization_entry entry = {7, 0, sizeof(extra)};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION), 1, 0, &entry, {&extra, sizeof(extra)}};
@@ -221,7 +222,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_feature_info features = {0};
     q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    if (features.enabled & OGPU_NEXT_FEATURE_PIPELINE_STATISTICS) {
+    if (fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PIPELINE_STATISTICS)) {
         ogpu_next_query_pool_desc qd = {HEADER(ogpu_next_query_pool_desc, OGPU_NEXT_QUERY_POOL_DESC),
             OGPU_NEXT_QUERY_PIPELINE_STATISTICS, 2, OGPU_NEXT_STATISTIC_COMPUTE_INVOCATIONS};
         TRY(ogpu_next_query_pool_create(device, &qd, &statistics));
@@ -985,8 +986,8 @@ int main(int argc, char **argv) {
         ogpu_next_feature_info features = {0};
         ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
         TRY(ogpu_next_adapter_query(adapter, &q));
-        REQUIRE(features.enabled == 0 && features.device_scope == 0);
-        if (!features.baseline_supported || !(features.available & OGPU_NEXT_FEATURE_RASTER)) continue;
+        REQUIRE(fixture_mask(features.enabled) == 0 && features.device_scope == 0);
+        if (!features.baseline_supported || !(fixture_mask(features.available) & FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER))) continue;
         q = query(OGPU_NEXT_QUERY_INFO, &info, 1, sizeof(info));
         TRY(ogpu_next_adapter_query(adapter, &q));
         q = query(OGPU_NEXT_QUERY_QUEUES, NULL, 0, sizeof(*queues));
@@ -1005,7 +1006,7 @@ int main(int argc, char **argv) {
         }
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
-            foundation_features(features.available) };
+            FIXTURE_FEATURES(foundation_features(fixture_mask(features.available))) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
         for (uint32_t j = 0; j < count; ++j) {
@@ -1021,7 +1022,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == foundation_features(features.available));
+    REQUIRE(features.device_scope == 1 && fixture_mask(features.enabled) == foundation_features(fixture_mask(features.available)));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);
@@ -1128,7 +1129,7 @@ int main(int argc, char **argv) {
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 0, 1, 0) == EXIT_SUCCESS);
-    if (features.enabled & OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE)
+    if (fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE))
         REQUIRE(graphics_execution(device,memory_desc,graphics_domain,argv[5],argv[4],1,0,2,0) == EXIT_SUCCESS);
     else printf("Indirect first-instance NOT exercised: feature unavailable.\n");
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 1) == EXIT_SUCCESS);
@@ -1142,7 +1143,7 @@ int main(int argc, char **argv) {
         REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,secondary,512) == EXIT_SUCCESS);
         REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,secondary,798) == EXIT_SUCCESS);
     }
-    if (features.enabled & OGPU_NEXT_FEATURE_INHERITED_QUERIES)
+    if (fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_INHERITED_QUERIES))
         REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 3) == EXIT_SUCCESS);
     else printf("Inherited query execution not exercised: feature unavailable.\n");
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0, 0, 0) == EXIT_SUCCESS);
@@ -1165,16 +1166,16 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_device_query(device,&q));
     if ((subgroup.stages & OGPU_NEXT_STAGE_COMPUTE) && (subgroup.operations & 13) == 13) {
         REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,0,0) == EXIT_SUCCESS);
-        if ((features.enabled & OGPU_NEXT_FEATURE_FULL_SUBGROUPS) && subgroup.default_size && 64 % subgroup.default_size == 0)
+        if ((fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_FULL_SUBGROUPS)) && subgroup.default_size && 64 % subgroup.default_size == 0)
             REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,0,OGPU_NEXT_SUBGROUP_REQUIRE_FULL) == EXIT_SUCCESS);
-        if ((features.enabled & OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL) && (subgroup.required_size_stages & OGPU_NEXT_STAGE_COMPUTE)) {
+        if ((fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL)) && (subgroup.required_size_stages & OGPU_NEXT_STAGE_COMPUTE)) {
             for (uint32_t width = subgroup.min_size; width && width <= subgroup.max_size && width <= 64; width *= 2) {
                 if (64 > (uint64_t)width*subgroup.max_compute_workgroup_subgroups) continue;
-                uint32_t flags = features.enabled & OGPU_NEXT_FEATURE_FULL_SUBGROUPS ? OGPU_NEXT_SUBGROUP_REQUIRE_FULL : 0;
+                uint32_t flags = fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_FULL_SUBGROUPS) ? OGPU_NEXT_SUBGROUP_REQUIRE_FULL : 0;
                 REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,width,flags) == EXIT_SUCCESS);
             }
             uint32_t flags = OGPU_NEXT_SUBGROUP_ALLOW_VARYING;
-            if ((features.enabled & OGPU_NEXT_FEATURE_FULL_SUBGROUPS) && subgroup.max_size <= 64) flags |= OGPU_NEXT_SUBGROUP_REQUIRE_FULL;
+            if ((fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_FULL_SUBGROUPS)) && subgroup.max_size <= 64) flags |= OGPU_NEXT_SUBGROUP_REQUIRE_FULL;
             REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,0,flags) == EXIT_SUCCESS);
         }
     } else printf("Subgroup arithmetic/ballot fixture NOT exercised: unsupported compute operation profile.\n");

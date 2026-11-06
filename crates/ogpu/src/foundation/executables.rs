@@ -43,8 +43,8 @@ unsafe fn array<'a, T>(p: *const T, count: u32) -> Result<&'a [T], Status> {
     }
     Ok(unsafe { std::slice::from_raw_parts(p, count as usize) })
 }
-fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Status> {
-    if req.features & !d.snapshot.features.enabled != 0 {
+unsafe fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Status> {
+    if unsafe { features::required(req.features)? } & !d.snapshot.features.enabled != 0 {
         return Err(UNSUPPORTED);
     }
     let limits = &d.snapshot.execution_limits;
@@ -153,7 +153,7 @@ impl Executable {
             return Err(INVALID);
         }
         let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
-        requirements(d, req)?;
+        unsafe { requirements(d, req)? };
         let (subgroup_flags, subgroup) = unsafe { subgroups::prepare(d, shader, req.local_size)? };
         let mut entries = Vec::new();
         let mut spec = vk::VkSpecializationInfo::default();
@@ -388,9 +388,10 @@ mod tests {
             .chunks_exact(4)
             .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
             .collect();
+        let required_ids = features::decode(all);
         let requirements = ShaderRequirements {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-            features: all,
+            features: Features::from_slice(&required_ids),
             local_size: [64, 1, 1],
             shared_memory,
         };
@@ -727,9 +728,10 @@ mod tests {
                 logic_op_enable: 0,
                 logic_op: 0,
             };
+            let required_ids = features::decode(RASTER);
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-                features: RASTER,
+                features: Features::from_slice(&required_ids),
                 local_size: [0; 3],
                 shared_memory: 0,
             };
@@ -902,9 +904,10 @@ mod tests {
                 profile_device.f.vkCreateGraphicsPipelines = Some(graphics_pipeline);
                 assert_eq!(profile_device.snapshot.features.enabled, RASTER | enabled);
                 for required in profiles {
+                    let required_ids = features::decode(RASTER | required);
                     let requirements = ShaderRequirements {
                         header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-                        features: RASTER | required,
+                        features: Features::from_slice(&required_ids),
                         local_size: [0; 3],
                         shared_memory: 0,
                     };
@@ -1091,8 +1094,9 @@ mod tests {
                     },
                     ..shaders[0]
                 };
+                let required_ids = features::decode(RASTER | SHADER_OUTPUT_LAYER);
                 let layer_req = ShaderRequirements {
-                    features: RASTER | SHADER_OUTPUT_LAYER,
+                    features: Features::from_slice(&required_ids),
                     ..req
                 };
                 let layer_desc = ExecutableDesc {
@@ -1307,7 +1311,7 @@ mod tests {
             let layout = test_layout(&device, 24, 4);
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-                features: 0,
+                features: Features::default(),
                 local_size: [64, 1, 1],
                 shared_memory: 0,
             };

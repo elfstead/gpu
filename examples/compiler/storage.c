@@ -114,7 +114,7 @@ int main(void) {
             if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { domain = queues[i].domain; break; }
         if (domain == UINT32_MAX) continue;
         ogpu_next_queue_request request = {domain,1,0.5f};
-        ogpu_next_device_desc desc = {HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,0};
+        ogpu_next_device_desc desc = {HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,{0}};
         TRY(ogpu_next_device_create(adapter,&desc,&device)); break;
     }
     REQUIRE(device != NULL);
@@ -142,7 +142,7 @@ int main(void) {
     ogpu_next_feature_info features = {0}; ogpu_next_execution_limits execution = {0};
     q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); TRY(ogpu_next_device_query(device,&q));
     q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&execution,1,sizeof(execution)); TRY(ogpu_next_device_query(device,&q));
-    REQUIRE(storage_compatible(&features,&execution) && features.enabled == 0);
+    REQUIRE(storage_compatible(&features,&execution) && features.enabled.count == 0);
     ogpu_next_subresources all = {OGPU_NEXT_ASPECT_COLOR,0,1,0,1};
     for (uint32_t i = 0; i < 2; ++i) {
         ogpu_next_image_desc desc = {HEADER(ogpu_next_image_desc,OGPU_NEXT_IMAGE_DESC),

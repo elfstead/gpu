@@ -140,7 +140,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_argument_field argument_field = {0,24,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,24,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), 0, {64, 1, 1}, 0};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), FIXTURE_FEATURES(0), {64, 1, 1}, 0};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
         {code, (size_t)code_size}, "consume",  NULL, NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),

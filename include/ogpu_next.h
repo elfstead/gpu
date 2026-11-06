@@ -1,6 +1,6 @@
 #ifndef OGPU_NEXT_H
 #define OGPU_NEXT_H
-/* Experimental foundation revision 8, not ABI 20; the default Linux SDK surface.
+/* Experimental foundation revision 9, not ABI 20; the default Linux SDK surface.
  * Only declarations in THIS header are implemented (Linux Vulkan for now).
  * The remaining design lives in docs/drafts/ogpu_next.h.
  *
@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 8u
+#define OGPU_NEXT_VERSION 9u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -48,7 +48,21 @@ enum {
 typedef uint64_t ogpu_next_address;
 typedef uint64_t ogpu_next_stages;
 typedef uint64_t ogpu_next_access;
-typedef uint64_t ogpu_next_features;
+typedef uint32_t ogpu_next_feature;
+typedef struct ogpu_next_features {
+    const ogpu_next_feature *ids;
+    uint32_t count, reserved;
+} ogpu_next_features;
+/* Feature IDs are opaque nonzero identifiers, not flags. Lists have no fixed
+ * capacity; reserved=0. Input IDs may appear in any order; duplicates are
+ * idempotent. Unknown IDs return UNSUPPORTED, zero returns INVALID. count=0
+ * ignores ids. Inputs are borrowed for the host call only.
+ * Discovery returns sorted, unique available/enabled lists in immutable storage
+ * owned by the queried adapter/device. These pointers stay valid until discovery
+ * (adapter query) or device (device query) destruction. Copy IDs to retain them
+ * beyond that lifetime. Do not modify or free output ID storage. A zero-length output list has ids=NULL.
+ * Selection/requirement checks are cold; command recording does not search lists.
+ */
 typedef uint32_t ogpu_next_format;
 typedef uint32_t ogpu_next_image_state;
 typedef uint32_t ogpu_next_queue_domain;
@@ -205,71 +219,71 @@ typedef struct ogpu_next_image_limits {
  * used simultaneously, or that memory of that size is currently available.
  */
 ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const ogpu_next_image_profile *, ogpu_next_image_limits *);
-#define OGPU_NEXT_FEATURE_RASTER UINT64_C(1)
-#define OGPU_NEXT_FEATURE_FLOAT16 UINT64_C(2)
-#define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT64_C(4)
-#define OGPU_NEXT_FEATURE_SAMPLER_ANISOTROPY UINT64_C(8)
-#define OGPU_NEXT_FEATURE_CACHE_CONTROL UINT64_C(16)
-#define OGPU_NEXT_FEATURE_INT8 UINT64_C(32)
-#define OGPU_NEXT_FEATURE_INT16 UINT64_C(64)
-#define OGPU_NEXT_FEATURE_INT64 UINT64_C(128)
-#define OGPU_NEXT_FEATURE_FLOAT64 UINT64_C(256)
-#define OGPU_NEXT_FEATURE_STORAGE8 UINT64_C(512)
-#define OGPU_NEXT_FEATURE_BUFFER_ATOMIC64 UINT64_C(1024)
-#define OGPU_NEXT_FEATURE_SHARED_ATOMIC64 UINT64_C(2048)
-#define OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL UINT64_C(4096)
-#define OGPU_NEXT_FEATURE_FULL_SUBGROUPS UINT64_C(8192)
-#define OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES UINT64_C(16384)
-#define OGPU_NEXT_FEATURE_PIPELINE_STATISTICS UINT64_C(32768)
-#define OGPU_NEXT_FEATURE_PRECISE_OCCLUSION UINT64_C(65536)
-#define OGPU_NEXT_FEATURE_INHERITED_QUERIES UINT64_C(131072)
-#define OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS UINT64_C(262144)
-#define OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS UINT64_C(524288)
-#define OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE UINT64_C(1048576)
-#define OGPU_NEXT_FEATURE_INDEPENDENT_BLEND UINT64_C(2097152)
-#define OGPU_NEXT_FEATURE_DEPTH_CLAMP UINT64_C(4194304)
-#define OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP UINT64_C(8388608)
-#define OGPU_NEXT_FEATURE_NON_SOLID_FILL UINT64_C(16777216)
-#define OGPU_NEXT_FEATURE_WIDE_LINES UINT64_C(33554432)
-#define OGPU_NEXT_FEATURE_DEPTH_BOUNDS UINT64_C(67108864)
-#define OGPU_NEXT_FEATURE_SAMPLE_SHADING UINT64_C(134217728)
-#define OGPU_NEXT_FEATURE_ALPHA_TO_ONE UINT64_C(268435456)
-#define OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS UINT64_C(536870912)
-#define OGPU_NEXT_FEATURE_LOGIC_OP UINT64_C(1073741824)
-#define OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND UINT64_C(2147483648)
-#define OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER UINT64_C(4294967296)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS UINT64_C(8589934592)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD UINT64_C(17179869184)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX UINT64_C(34359738368)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS UINT64_C(68719476736)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD UINT64_C(137438953472)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX UINT64_C(274877906944)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMICS UINT64_C(549755813888)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_ADD UINT64_C(1099511627776)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_MIN_MAX UINT64_C(2199023255552)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS UINT64_C(4398046511104)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD UINT64_C(8796093022208)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX UINT64_C(17592186044416)
-#define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT64_C(35184372088832)
-#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT64_C(70368744177664)
-#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT64_C(140737488355328)
-#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_CHAINS UINT64_C(36028797018963968)
+#define OGPU_NEXT_FEATURE_RASTER UINT32_C(1)
+#define OGPU_NEXT_FEATURE_FLOAT16 UINT32_C(2)
+#define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT32_C(3)
+#define OGPU_NEXT_FEATURE_SAMPLER_ANISOTROPY UINT32_C(4)
+#define OGPU_NEXT_FEATURE_CACHE_CONTROL UINT32_C(5)
+#define OGPU_NEXT_FEATURE_INT8 UINT32_C(6)
+#define OGPU_NEXT_FEATURE_INT16 UINT32_C(7)
+#define OGPU_NEXT_FEATURE_INT64 UINT32_C(8)
+#define OGPU_NEXT_FEATURE_FLOAT64 UINT32_C(9)
+#define OGPU_NEXT_FEATURE_STORAGE8 UINT32_C(10)
+#define OGPU_NEXT_FEATURE_BUFFER_ATOMIC64 UINT32_C(11)
+#define OGPU_NEXT_FEATURE_SHARED_ATOMIC64 UINT32_C(12)
+#define OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL UINT32_C(13)
+#define OGPU_NEXT_FEATURE_FULL_SUBGROUPS UINT32_C(14)
+#define OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES UINT32_C(15)
+#define OGPU_NEXT_FEATURE_PIPELINE_STATISTICS UINT32_C(16)
+#define OGPU_NEXT_FEATURE_PRECISE_OCCLUSION UINT32_C(17)
+#define OGPU_NEXT_FEATURE_INHERITED_QUERIES UINT32_C(18)
+#define OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS UINT32_C(19)
+#define OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS UINT32_C(20)
+#define OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE UINT32_C(21)
+#define OGPU_NEXT_FEATURE_INDEPENDENT_BLEND UINT32_C(22)
+#define OGPU_NEXT_FEATURE_DEPTH_CLAMP UINT32_C(23)
+#define OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP UINT32_C(24)
+#define OGPU_NEXT_FEATURE_NON_SOLID_FILL UINT32_C(25)
+#define OGPU_NEXT_FEATURE_WIDE_LINES UINT32_C(26)
+#define OGPU_NEXT_FEATURE_DEPTH_BOUNDS UINT32_C(27)
+#define OGPU_NEXT_FEATURE_SAMPLE_SHADING UINT32_C(28)
+#define OGPU_NEXT_FEATURE_ALPHA_TO_ONE UINT32_C(29)
+#define OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS UINT32_C(30)
+#define OGPU_NEXT_FEATURE_LOGIC_OP UINT32_C(31)
+#define OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND UINT32_C(32)
+#define OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER UINT32_C(33)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS UINT32_C(34)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD UINT32_C(35)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX UINT32_C(36)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS UINT32_C(37)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD UINT32_C(38)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX UINT32_C(39)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMICS UINT32_C(40)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_ADD UINT32_C(41)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_MIN_MAX UINT32_C(42)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS UINT32_C(43)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD UINT32_C(44)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX UINT32_C(45)
+#define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT32_C(46)
+#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT32_C(47)
+#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT32_C(48)
+#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_CHAINS UINT32_C(56)
 /* Cube-array views and shader sampling; independent of raster-stage support. */
-#define OGPU_NEXT_FEATURE_CUBE_ARRAY UINT64_C(72057594037927936)
-#define OGPU_NEXT_FEATURE_INTEGER_DOT UINT64_C(281474976710656)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS UINT64_C(562949953421312)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD UINT64_C(1125899906842624)
-#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_MIN_MAX UINT64_C(2251799813685248)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMICS UINT64_C(4503599627370496)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_ADD UINT64_C(9007199254740992)
-#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_MIN_MAX UINT64_C(18014398509481984)
+#define OGPU_NEXT_FEATURE_CUBE_ARRAY UINT32_C(57)
+#define OGPU_NEXT_FEATURE_INTEGER_DOT UINT32_C(49)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS UINT32_C(50)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD UINT32_C(51)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_MIN_MAX UINT32_C(52)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMICS UINT32_C(53)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_ADD UINT32_C(54)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_MIN_MAX UINT32_C(55)
 /* VULKAN_MEMORY_MODEL enables SPIR-V VulkanMemoryModel independently of matrix/scalar
- * features. DEVICE_SCOPE and CHAINS are independent and require the base bit
+ * features. DEVICE_SCOPE and CHAINS are independent and require the base feature
  * (otherwise device creation returns INVALID). Enabling the base without DEVICE_SCOPE
  * forbids Device memory scope in ALL shaders on that device, including GLSL450
  * artifacts. CHAINS permits native availability/visibility chains with more than
  * one element; it does not implicitly enable Device scope. Artifacts declare
- * every required bit. Scope/order/semantics and converged participation remain
+ * every required feature. Scope/order/semantics and converged participation remain
  * shader contracts, not implied device-wide execution or forward-progress guarantees.
  * Memory ordering remains explicit in shader code;
  * no shader translation or inserted host/GPU barriers. */
@@ -281,7 +295,7 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
  * order, cross-workgroup barrier or throughput guarantee is provided. NaN, signed
  * zero, denormal and rounding behavior follow the native artifact contract; the
  * ordinary floating-point-controls query does not establish atomic arithmetic
- * policy. FLOAT16/FLOAT64 operation/domain bits have the same independence; their
+ * policy. FLOAT16/FLOAT64 operation/domain features have the same independence; their
  * arithmetic/type enabling must also be requested by artifacts using half/double.
  * Image, sparse-image and vector floating atomic profiles remain work.
  */
@@ -294,7 +308,8 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
  * view duplication, CPU readback of indices or hidden attachment transitions.
  */
 typedef struct ogpu_next_feature_info {
-    uint64_t available, enabled, max_timeline_difference;
+    ogpu_next_features available, enabled;
+    uint64_t max_timeline_difference;
     uint32_t baseline_supported, device_scope;
 } ogpu_next_feature_info;
 enum {
@@ -329,7 +344,7 @@ typedef struct ogpu_next_float_controls {
  */
 /* Feature records describe native enabling, not availability of future OGPU
  * draw/dispatch commands. Adapter queries: enabled=0, device_scope=0. Device
- * queries: only explicitly requested optional bits enabled, device_scope=1.
+ * queries: only explicitly requested optional features enabled, device_scope=1.
  * Queue flags and memory properties describe physical facilities, not enabled
  * sparse/protected functionality. Domain/type IDs belong to this adapter only.
  * FLOAT16/INT8/INT16/INT64/FLOAT64 enable the corresponding shader arithmetic
@@ -348,7 +363,7 @@ typedef struct ogpu_next_float_controls {
  * VERTEX_STORES_ATOMICS and FRAGMENT_STORES_ATOMICS independently enable storage
  * writes/atomics in their shader stages; they do not enable RASTER, additional
  * stages, 64-bit/floating atomics or a storage-image format. Artifacts declare the
- * required bits; OGPU does not scan/rewrite shaders. Caller owns address validity,
+ * required features; OGPU does not scan/rewrite shaders. Caller owns address validity,
  * synchronization and native invocation semantics (including duplicated vertex
  * work, fragment helper invocations and early/late tests). A draw is not an
  * exactly-once general compute dispatch. Attachmentless rasterization may use
@@ -1102,8 +1117,8 @@ typedef struct ogpu_next_execution_limits {
 /* Optional mesh shading: explicitly enable MESH with RASTER; TASK additionally
  * requires MESH. No vertex-stage fallback. QUERY_MESH_LIMITS returns physical
  * limits (zero if the native extension is absent), not implicit enabling. */
-#define OGPU_NEXT_FEATURE_MESH_SHADER UINT64_C(288230376151711744)
-#define OGPU_NEXT_FEATURE_TASK_SHADER UINT64_C(576460752303423488)
+#define OGPU_NEXT_FEATURE_MESH_SHADER UINT32_C(59)
+#define OGPU_NEXT_FEATURE_TASK_SHADER UINT32_C(60)
 #define OGPU_NEXT_STAGE_MESH UINT64_C(1048576)
 #define OGPU_NEXT_STAGE_TASK UINT64_C(2097152)
 enum { OGPU_NEXT_QUERY_MESH_LIMITS = 17, OGPU_NEXT_MESH_REQUIREMENTS = 129 };
@@ -1669,7 +1684,7 @@ typedef struct ogpu_next_vertex_input {
  * Additional static raster/sample controls use raster_options. Custom
  * sample locations and independent depth clipping remain unimplemented profiles.
  * Both vertex pulling and native vertex fetch are available. Points require shader
- * PointSize=1; vertex/fragment storage writes require their independent feature bits.
+ * PointSize=1; vertex/fragment storage writes require their independent features.
  * Missing profiles are UNSUPPORTED, not emulated.
  * Omitting FRAGMENT still rasterizes and runs fixed depth/stencil tests and writes.
  * It is useful for depth-only passes and occlusion, not equivalent to discard.
@@ -1742,7 +1757,7 @@ typedef struct ogpu_next_draw_desc {
  * Depth/stencil resolves select one supported bit from graphics_limits'
  * depth_resolve_modes/stencil_resolve_modes, with identical source/target format,
  * DEPTH_STENCIL_ATTACHMENT usage and GENERAL/DEPTH_STENCIL_ATTACHMENT target state.
- * No feature bit is needed. With both depth and stencil views active, differing
+ * No feature enable is needed. With both depth and stencil views active, differing
  * modes require independent_resolve when neither is NONE, or independent_resolve_none
  * when one is NONE. When both resolve, they use the same target view/state.
  * Absent depth/stencil records do not impose paired-mode constraints. Source discard
@@ -1846,7 +1861,7 @@ void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect 
  * must also be enabled and supported by GENERATED_LIMITS. The Vulkan generated
  * mesh-token profile requires both MESH_SHADER and TASK_SHADER enabled, even for
  * mesh-only executables; ordinary mesh draws do not have this extra requirement. */
-#define OGPU_NEXT_FEATURE_GENERATED_COMMANDS UINT64_C(1152921504606846976)
+#define OGPU_NEXT_FEATURE_GENERATED_COMMANDS UINT32_C(61)
 #define OGPU_NEXT_USAGE_PREPROCESS UINT64_C(256)
 #define OGPU_NEXT_STAGE_PREPROCESS UINT64_C(4194304)
 #define OGPU_NEXT_ACCESS_PREPROCESS_READ UINT64_C(2097152)
@@ -2323,7 +2338,7 @@ void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_nex
 void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_image_state, const ogpu_next_subresources *, const ogpu_next_clear_value *);
 
 /* Optional presentation setup (mutable revision 1; no swapchain runtime yet).
- * PRESENTATION is an optional ordinary device_create feature bit. It is available
+ * PRESENTATION is an optional ordinary device_create feature. It is available
  * only through an opt-in presentation discovery AND a supporting physical adapter.
  * Requesting it enables VK_KHR_swapchain and KHR swapchainMaintenance1, but creates
  * no surface, picks no queue and acquires no images. It is independent of RASTER.
@@ -2383,7 +2398,7 @@ void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_ima
  * Scaling ONE_TO_ONE=1, ASPECT_RATIO_STRETCH=2, STRETCH=4; gravity MIN=1, MAX=2,
  * CENTERED=4. No implicit image scaling, extent clamping or fallback policy.
  */
-#define OGPU_NEXT_FEATURE_PRESENTATION UINT64_C(144115188075855872)
+#define OGPU_NEXT_FEATURE_PRESENTATION UINT32_C(58)
 typedef struct ogpu_next_surface ogpu_next_surface;
 typedef struct ogpu_next_binary ogpu_next_binary;
 typedef struct ogpu_next_fence ogpu_next_fence;

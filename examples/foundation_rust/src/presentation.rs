@@ -109,7 +109,8 @@ pub unsafe fn run() -> gpu::Result<()> {
         })
         .ok_or(UNSUPPORTED)?
         .domain;
-    let unified = gpu::adapter_features(adapter).available & UNIFIED_IMAGES;
+    let mut required = vec![feature_ids::PRESENTATION];
+    if gpu::adapter_features(adapter).available.contains(&feature_ids::UNIFIED_IMAGES) { required.push(feature_ids::UNIFIED_IMAGES); }
     let device = gpu::device_create(
         adapter,
         &[QueueRequest {
@@ -117,7 +118,7 @@ pub unsafe fn run() -> gpu::Result<()> {
             count: 1,
             priority: 1.0,
         }],
-        PRESENTATION | unified,
+        &required,
     )?;
     let queue = unsafe { gpu::device_queue(device, domain, 0).ok_or(INVALID)? };
     let timeline = unsafe { gpu::timeline_create(device, 0)? };

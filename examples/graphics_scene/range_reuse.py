@@ -22,7 +22,7 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     require(backend.title()+' scene reuse drained and checked' in stdout,'missing drain marker')
     require(f.rows(stdout,'DEVICE ')==[device],'wrong device')
     if backend=='public':
-        profile={'foundation':8} if foundation else {'abi':20}
+        profile={'foundation':9} if foundation else {'abi':20}
         require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**profile,index_bytes=4,gpu_generated=True)],'wrong public profile')
     else:
         require(f.rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'native identity not enabled')

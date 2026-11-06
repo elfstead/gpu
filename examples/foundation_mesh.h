@@ -10,10 +10,10 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
     ogpu_next_feature_info features = {0}; ogpu_next_mesh_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); TRY(ogpu_next_device_query(device,&q));
     q = query(OGPU_NEXT_QUERY_MESH_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
-    if (!(features.enabled & OGPU_NEXT_FEATURE_MESH_SHADER)) {
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_MESH_SHADER))) {
         printf("MESH_UNVERIFIED native mesh/task execution unavailable; no fallback.\n"); return EXIT_SUCCESS;
     }
-    uint32_t variants = features.enabled & OGPU_NEXT_FEATURE_TASK_SHADER ? 2 : 1;
+    uint32_t variants = fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_TASK_SHADER) ? 2 : 1;
     ogpu_next_argument_field argument_field = {0,16,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_MESH | OGPU_NEXT_STAGE_FRAGMENT | (variants == 2 ? OGPU_NEXT_STAGE_TASK : 0),OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_GRAPHICS,16,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
@@ -34,7 +34,7 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
     REQUIRE(limits.output_vertex_granularity > 0);
     uint32_t padded_vertices = ((3+limits.output_vertex_granularity-1)/limits.output_vertex_granularity)*limits.output_vertex_granularity;
     ogpu_next_mesh_requirements req = {HEADER(ogpu_next_mesh_requirements,OGPU_NEXT_MESH_REQUIREMENTS),
-        OGPU_NEXT_FEATURE_MESH_SHADER,{0,0,0},0,{1,1,1},0,0,32*padded_vertices,3,1,8,1};
+        FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_MESH_SHADER)),{0,0,0},0,{1,1,1},0,0,32*padded_vertices,3,1,8,1};
     for (uint32_t variant = 0; variant < variants; ++variant) {
         ogpu_next_shader selected[3] = {variant ? shaders[1] : shaders[0],variant ? shaders[2] : shaders[3],shaders[3]};
         req.task_local[0] = req.task_local[1] = req.task_local[2] = variant;

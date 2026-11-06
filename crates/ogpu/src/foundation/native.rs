@@ -1,5 +1,6 @@
 //! Vulkan foundation: immutable device state, externally synchronized queues,
 //! independent timelines. No implicit queue, completion counter or resource cache.
+use super::features::{self, *};
 use super::types::*;
 #[path = "float_atomics.rs"]
 mod float_atomics;
@@ -290,7 +291,7 @@ pub(super) fn snapshot(
         }
         (f.vkGetPhysicalDeviceMemoryProperties.unwrap())(physical, &mut memory);
     }
-    let mut features = FeatureInfo::default();
+    let mut features = FeatureState::default();
     let mut memory_limits = MemoryLimits::default();
     let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
@@ -668,6 +669,8 @@ pub(super) fn snapshot(
                 device_local: m.flags & 1,
             })
             .collect(),
+        available_ids: features::decode(features.available),
+        enabled_ids: Vec::new(),
         features,
         memory_limits,
         descriptor_properties,
@@ -733,6 +736,7 @@ impl Device {
         }
         let mut snapshot = adapter.snapshot.clone();
         snapshot.features.enabled = enabled;
+        snapshot.enabled_ids = features::decode(enabled);
         snapshot.features.device_scope = 1;
         // Device queries report created queue counts, not physical capacity.
         for q in &mut snapshot.queues {

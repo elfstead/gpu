@@ -2,6 +2,7 @@
  * Allocation, synchronization and replay belong to this caller. */
 #define _POSIX_C_SOURCE 200809L
 #include "ogpu_next.h"
+#include "feature_selection.h"
 #include "extent.h"
 #include "foundation_timing.h"
 #include <application.generated.h>
@@ -127,13 +128,18 @@ int main(int argc, char **argv) {
     uint64_t addresses[BUFFER_COUNT] = {0};
     for (uint32_t i = 0; i < BUFFER_COUNT; ++i) { sizes[i] = payloads[i]+2*GUARD; offsets[i] = total; REQUIRE(add_size(total,sizes[i],&total)); }
     size_t upload_size = sizes[INPUT] > sizes[WEIGHTS] ? sizes[INPUT] : sizes[WEIGHTS];
-    uint64_t required = hidden_required_features | denoise_required_features | process_required_features | poison_required_features | application_required_features;
+    ogpu_next_feature feature_storage[32];
+    ogpu_next_features required = {feature_storage,0,0};
+    const ogpu_next_features artifact_features[] = {hidden_required_features,denoise_required_features,
+        process_required_features,poison_required_features,application_required_features};
+    for (uint32_t i=0; i<sizeof(artifact_features)/sizeof(artifact_features[0]); ++i)
+        REQUIRE(example_features_merge(&required,feature_storage,32,artifact_features[i]));
     uint32_t domain = UINT32_MAX, timestamp_bits = 0;
     TRY(ogpu_next_discovery_create(OGPU_NEXT_VERSION,&discovery));
     for (uint32_t index = 0; index < ogpu_next_discovery_count(discovery); ++index) {
         const ogpu_next_adapter *adapter = ogpu_next_discovery_adapter(discovery,index);
         ogpu_next_feature_info f = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&f,1,sizeof(f)); TRY(ogpu_next_adapter_query(adapter,&q));
-        if (!f.baseline_supported || (f.available & required) != required) continue;
+        if (!f.baseline_supported || !example_features_include(f.available,required)) continue;
         ogpu_next_queue_info queues[32]; q = query(OGPU_NEXT_QUERY_QUEUES,queues,32,sizeof(queues[0])); TRY(ogpu_next_adapter_query(adapter,&q));
         for (uint32_t i = 0; i < q.count; ++i) if (queues[i].count && (queues[i].flags & (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) == (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) {
             domain = queues[i].domain; timestamp_bits = queues[i].timestamp_bits; break;

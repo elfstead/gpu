@@ -1574,3 +1574,14 @@ The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal
 timeline, command cache or resource-retention policy is reused by the new handles.
+
+
+## Revision 9: extensible feature selection
+
+[Feature selection](feature-selection.md) replaces the fixed 64-bit optional
+feature ABI. Query availability/enabling, device requests and shader/mesh
+requirements all use counted IDs. Native Rust accepts slices for device creation;
+C query lists borrow immutable snapshot storage. Generated artifacts emit exact
+ID lists and check enabled IDs. This changes preparation and discovery only;
+resource/command/submission mechanisms and native feature enables are unchanged.
+Earlier bit-mask descriptions above record the implementation at those checkpoints.

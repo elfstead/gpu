@@ -11,7 +11,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); TRY(ogpu_next_device_query(device,&q));
-    if (!(features.enabled & OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND)) {
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND))) {
         printf("Dual-source execution NOT exercised: feature unavailable.\n"); return EXIT_SUCCESS;
     }
     ogpu_next_graphics_limits limits = {0}; q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS,&limits,1,sizeof(limits));
@@ -32,7 +32,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),
-        OGPU_NEXT_FEATURE_RASTER | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND,{0,0,0},0};
+        FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND)),{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         2,shaders,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
     for (uint32_t i = 0; i < 16; ++i) {

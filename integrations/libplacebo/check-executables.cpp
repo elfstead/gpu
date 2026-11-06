@@ -74,7 +74,8 @@ int main(int argc, char **argv) {
                 (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) { domain = queue.domain; break; }
         if (domain == UINT32_MAX) throw std::runtime_error("combined graphics/compute queue required");
         const ogpu_next_queue_request request{domain, 1, .5f};
-        const ogpu_next_device_desc dd{RECORD(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), &request, 1, 0, OGPU_NEXT_FEATURE_RASTER};
+        const ogpu_next_feature required_ids[] = {OGPU_NEXT_FEATURE_RASTER};
+        const ogpu_next_device_desc dd{RECORD(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), &request, 1, 0, {required_ids,1,0}};
         ogpu_next_device *raw_device = nullptr;
         check(ogpu_next_device_create(adapter, &dd, &raw_device));
         Owner<ogpu_next_device, ogpu_next_device_destroy> device(raw_device, ogpu_next_device_destroy);
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
             auto primary = read_words(stem.string() + (pass.compute ? ".comp.spv" : ".frag.spv"));
             const auto metadata = pass.compute ? compute_metadata(primary.data(), primary.size(), pass.values) : shader_metadata{};
             ogpu_next_shader_requirements requirements{RECORD(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS),
-                0, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
+                {0}, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
             const uint32_t bytes = pass.compute ? pass.push : 8;
             const ogpu_next_argument_field field{0,bytes,OGPU_NEXT_ARGUMENT_INLINE,0,
                 pass.compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};

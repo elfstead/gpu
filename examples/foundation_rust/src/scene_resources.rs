@@ -273,7 +273,7 @@ pub unsafe fn raster(
         });
     let req = ShaderRequirements {
         header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-        features: RASTER,
+        features: Features::from_slice(&[feature_ids::RASTER]),
         local_size: [0; 3],
         shared_memory: 0,
     };

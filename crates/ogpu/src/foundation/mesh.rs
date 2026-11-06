@@ -131,14 +131,14 @@ pub(super) fn groups(limits: &MeshWorkgroupLimits, groups: [u32; 3]) -> Result<(
     Ok(())
 }
 
-pub(super) fn requirements(
+pub(super) unsafe fn requirements(
     p: &MeshLimits,
     enabled: u64,
     stages: u64,
     r: &MeshRequirements,
 ) -> Result<(), Status> {
     if enabled & MESH_SHADER == 0
-        || r.features & !enabled != 0
+        || unsafe { features::required(r.features)? } & !enabled != 0
         || stages & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
     {
         return Err(UNSUPPORTED);
@@ -257,7 +257,7 @@ mod tests {
         };
         let mut r = MeshRequirements {
             header: Record::new::<MeshRequirements>(MESH_REQUIREMENTS),
-            features: 0,
+            features: Features::default(),
             task_local: [0; 3],
             task_shared: 0,
             mesh_local: [32, 1, 1],
@@ -270,49 +270,55 @@ mod tests {
             output_layers: 1,
         };
         let enabled = MESH_SHADER | TASK_SHADER | RASTER;
-        assert_eq!(requirements(&p, enabled, MESH_STAGE, &r), Ok(()));
-        assert_eq!(requirements(&p, RASTER, MESH_STAGE, &r), Err(UNSUPPORTED));
-        r.task_local = [1; 3];
-        assert_eq!(requirements(&p, enabled, MESH_STAGE, &r), Err(INVALID));
+        assert_eq!(unsafe { requirements(&p, enabled, MESH_STAGE, &r) }, Ok(()));
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, RASTER, MESH_STAGE, &r) },
+            Err(UNSUPPORTED)
+        );
+        r.task_local = [1; 3];
+        assert_eq!(
+            unsafe { requirements(&p, enabled, MESH_STAGE, &r) },
+            Err(INVALID)
+        );
+        assert_eq!(
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Ok(())
         );
         assert_eq!(
-            requirements(&p, MESH_SHADER | RASTER, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, MESH_SHADER | RASTER, MESH_STAGE | TASK_STAGE, &r) },
             Err(UNSUPPORTED)
         );
         r.payload_size = 512;
         r.task_shared = 513;
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Err(UNSUPPORTED)
         );
         r.task_shared = 512;
         r.mesh_shared = 513;
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Err(UNSUPPORTED)
         );
         r.mesh_shared = 512;
         r.output_memory = 1537;
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Err(UNSUPPORTED)
         );
         r.output_memory = 1536;
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Ok(())
         );
         r.mesh_local = [32, 2, 1];
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Err(UNSUPPORTED)
         );
         r.mesh_local = [0, 1, 1];
         assert_eq!(
-            requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r),
+            unsafe { requirements(&p, enabled, MESH_STAGE | TASK_STAGE, &r) },
             Err(INVALID)
         );
     }
@@ -350,12 +356,13 @@ mod tests {
                 priority: 0.5,
             }];
             for required_features in [MESH_SHADER, RASTER | TASK_SHADER] {
+                let required_ids = features::decode(required_features);
                 let desc = DeviceDesc {
                     header: Record::new::<DeviceDesc>(DEVICE_DESC),
                     queues: requests.as_ptr(),
                     queue_request_count: 1,
                     reserved: 0,
-                    required_features,
+                    required_features: Features::from_slice(&required_ids),
                 };
                 let mut output = ptr::dangling_mut();
                 assert_eq!(
@@ -366,13 +373,19 @@ mod tests {
             }
             if available == 0 {
                 assert!(matches!(
-                    rust::device_create(&adapter, &requests, RASTER | MESH_SHADER),
+                    rust::device_create(
+                        &adapter,
+                        &requests,
+                        &features::decode(RASTER | MESH_SHADER)
+                    ),
                     Err(UNSUPPORTED)
                 ));
             } else {
                 assert!(adapter.snapshot.mesh_limits.mesh.max_invocations > 0);
                 for enabled in [RASTER, RASTER | MESH_SHADER, RASTER | available] {
-                    let handle = rust::device_create(&adapter, &requests, enabled).unwrap();
+                    let handle =
+                        rust::device_create(&adapter, &requests, &features::decode(enabled))
+                            .unwrap();
                     let d = unsafe { &*handle.as_raw() };
                     assert_eq!(d.mesh_functions.is_some(), enabled & MESH_SHADER != 0);
                     assert_eq!(d.snapshot.features.enabled, enabled);

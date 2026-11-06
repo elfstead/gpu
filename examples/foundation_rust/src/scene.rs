@@ -604,6 +604,8 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
         })
         .ok_or(UNSUPPORTED)?
         .domain;
+    let mut required = vec![feature_ids::RASTER, feature_ids::PRESENTATION];
+    if gpu::adapter_features(adapter).available.contains(&feature_ids::UNIFIED_IMAGES) { required.push(feature_ids::UNIFIED_IMAGES); }
     let d = gpu::device_create(
         adapter,
         &[QueueRequest {
@@ -611,7 +613,7 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
             count: 1,
             priority: 1.,
         }],
-        RASTER | PRESENTATION | (gpu::adapter_features(adapter).available & UNIFIED_IMAGES),
+        &required,
     )?;
     unsafe {
         let queue = gpu::device_queue(d, domain, 0).ok_or(INVALID)?;

@@ -29,7 +29,9 @@ fn fixture() -> Snapshot {
         memory_types: vec![],
         memory_heaps: vec![],
         memory_budget_supported: false,
-        features: FeatureInfo::default(),
+        features: FeatureState::default(),
+        available_ids: vec![],
+        enabled_ids: vec![],
         memory_limits: MemoryLimits::default(),
         descriptor_properties: NativeDescriptorProperties::default(),
         execution_limits: ExecutionLimits::default(),
@@ -292,13 +294,13 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!((size_of::<Record>(), align_of::<Record>()), (24, 8));
     assert_eq!(size_of::<Query>(), 48);
     assert_eq!(std::mem::offset_of!(Query, data), 24);
-    assert_eq!(size_of::<DeviceDesc>(), 48);
+    assert_eq!(size_of::<DeviceDesc>(), 56);
     assert_eq!(std::mem::offset_of!(DeviceDesc, required_features), 40);
     assert_eq!(size_of::<AdapterInfo>(), 276);
     assert_eq!(size_of::<QueueInfo>(), 32);
     assert_eq!(size_of::<MemoryTypeInfo>(), 16);
     assert_eq!(size_of::<MemoryHeapInfo>(), 16);
-    assert_eq!(size_of::<FeatureInfo>(), 32);
+    assert_eq!(size_of::<FeatureInfo>(), 48);
     assert_eq!(size_of::<QueueRequest>(), 12);
     assert_eq!(size_of::<Point>(), 16);
     assert_eq!(size_of::<MemoryDesc>(), 72);
@@ -335,7 +337,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ExecutionLimits>(), 48);
     assert_eq!(size_of::<ArgumentLayoutDesc>(), 24);
     assert_eq!(size_of::<ArgumentField>(), 32);
-    assert_eq!(size_of::<ShaderRequirements>(), 48);
+    assert_eq!(size_of::<ShaderRequirements>(), 56);
     assert_eq!(size_of::<Specialization>(), 56);
     assert_eq!(size_of::<Shader>(), 48);
     assert_eq!(size_of::<SubgroupLimits>(), 40);
@@ -445,7 +447,7 @@ fn gpu_foundation_setup() {
                 ogpu_next_adapter_query(adapter, &mut query(MATRIX_TUPLES, &mut physical_matrices)),
                 OK
             );
-            if features[0].available & COOPERATIVE_MATRIX == 0 {
+            if features::required(features[0].available).unwrap() & COOPERATIVE_MATRIX == 0 {
                 assert!(physical_matrices.is_empty());
             }
             assert_eq!(
@@ -468,13 +470,14 @@ fn gpu_foundation_setup() {
                     priority: 0.5,
                 })
                 .collect();
-            if features[0].available & COOPERATIVE_MATRIX == 0 {
+            if features::required(features[0].available).unwrap() & COOPERATIVE_MATRIX == 0 {
+                let required_ids = features::decode(COOPERATIVE_MATRIX);
                 let desc = DeviceDesc {
                     header: Record::new::<DeviceDesc>(DEVICE_DESC),
                     queues: requests.as_ptr(),
                     queue_request_count: requests.len() as u32,
                     reserved: 0,
-                    required_features: COOPERATIVE_MATRIX,
+                    required_features: Features::from_slice(&required_ids),
                 };
                 let mut rejected = ptr::dangling_mut();
                 assert_eq!(
@@ -488,12 +491,13 @@ fn gpu_foundation_setup() {
                 VULKAN_MEMORY_MODEL_CHAINS,
                 VULKAN_MEMORY_MODEL_DEVICE_SCOPE | VULKAN_MEMORY_MODEL_CHAINS,
             ] {
+                let required_ids = features::decode(required_features);
                 let incomplete_memory_model = DeviceDesc {
                     header: Record::new::<DeviceDesc>(DEVICE_DESC),
                     queues: requests.as_ptr(),
                     queue_request_count: requests.len() as u32,
                     reserved: 0,
-                    required_features,
+                    required_features: Features::from_slice(&required_ids),
                 };
                 let mut rejected = ptr::dangling_mut();
                 assert_eq!(
@@ -504,29 +508,35 @@ fn gpu_foundation_setup() {
             }
             eprintln!(
                 "Memory model profiles: base={} device_scope={} chains={}",
-                features[0].available & VULKAN_MEMORY_MODEL != 0,
-                features[0].available & VULKAN_MEMORY_MODEL_DEVICE_SCOPE != 0,
-                features[0].available & VULKAN_MEMORY_MODEL_CHAINS != 0
+                features::required(features[0].available).unwrap() & VULKAN_MEMORY_MODEL != 0,
+                features::required(features[0].available).unwrap()
+                    & VULKAN_MEMORY_MODEL_DEVICE_SCOPE
+                    != 0,
+                features::required(features[0].available).unwrap() & VULKAN_MEMORY_MODEL_CHAINS
+                    != 0
             );
             for enabled in [
                 0,
-                features[0].available,
-                features[0].available & COOPERATIVE_MATRIX,
-                features[0].available & CUBE_ARRAY,
-                features[0].available & VULKAN_MEMORY_MODEL,
-                features[0].available & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_CHAINS),
-                features[0].available & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_DEVICE_SCOPE),
-                features[0].available
+                features::required(features[0].available).unwrap(),
+                features::required(features[0].available).unwrap() & COOPERATIVE_MATRIX,
+                features::required(features[0].available).unwrap() & CUBE_ARRAY,
+                features::required(features[0].available).unwrap() & VULKAN_MEMORY_MODEL,
+                features::required(features[0].available).unwrap()
+                    & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_CHAINS),
+                features::required(features[0].available).unwrap()
+                    & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_DEVICE_SCOPE),
+                features::required(features[0].available).unwrap()
                     & (VULKAN_MEMORY_MODEL
                         | VULKAN_MEMORY_MODEL_DEVICE_SCOPE
                         | VULKAN_MEMORY_MODEL_CHAINS),
             ] {
+                let required_ids = features::decode(enabled);
                 let desc = DeviceDesc {
                     header: Record::new::<DeviceDesc>(DEVICE_DESC),
                     queues: requests.as_ptr(),
                     queue_request_count: requests.len() as u32,
                     reserved: 0,
-                    required_features: enabled,
+                    required_features: Features::from_slice(&required_ids),
                 };
                 let mut device = ptr::null_mut();
                 assert_eq!(ogpu_next_device_create(adapter, &desc, &mut device), OK);
@@ -535,7 +545,10 @@ fn gpu_foundation_setup() {
                     ogpu_next_device_query(device, &mut query(FEATURES, &mut enabled_info)),
                     OK
                 );
-                assert_eq!(enabled_info[0].enabled, enabled);
+                assert_eq!(
+                    features::required(enabled_info[0].enabled).unwrap(),
+                    enabled
+                );
                 let mut budget_query = query::<MemoryBudget>(MEMORY_BUDGETS, &mut []);
                 budget_query.data = ptr::null_mut();
                 assert_eq!(
@@ -660,12 +673,13 @@ fn gpu_foundation_setup() {
                 ogpu_next_device_destroy(device);
             }
             let mut device = ptr::null_mut();
+            let required_ids = vec![u32::MAX];
             let desc = DeviceDesc {
                 header: Record::new::<DeviceDesc>(DEVICE_DESC),
                 queues: requests.as_ptr(),
                 queue_request_count: requests.len() as u32,
                 reserved: 0,
-                required_features: 1 << 63,
+                required_features: Features::from_slice(&required_ids),
             };
             assert_eq!(
                 ogpu_next_device_create(adapter, &desc, &mut device),
@@ -692,4 +706,34 @@ fn previous_foundation_schema_is_rejected_before_loader_access() {
         );
         assert!(output.is_null());
     }
+}
+
+#[test]
+fn feature_queries_borrow_stable_independent_snapshot_storage() {
+    let mut snapshot = fixture();
+    snapshot.features.available = RASTER | GENERATED_COMMANDS;
+    snapshot.features.enabled = RASTER;
+    snapshot.available_ids = features::decode(snapshot.features.available);
+    snapshot.enabled_ids = features::decode(snapshot.features.enabled);
+    let cloned = snapshot.clone();
+    let mut out = [FeatureInfo::default()];
+    let mut q = query(FEATURES, &mut out);
+    unsafe { snapshot.query(&mut q) }.unwrap();
+    assert_eq!(out[0].available.ids, snapshot.available_ids.as_ptr());
+    assert_eq!(
+        unsafe { out[0].available.as_slice() }.unwrap(),
+        &[feature_ids::RASTER, feature_ids::GENERATED_COMMANDS]
+    );
+    assert_eq!(
+        unsafe { out[0].enabled.as_slice() }.unwrap(),
+        &[feature_ids::RASTER]
+    );
+    unsafe { cloned.query(&mut q) }.unwrap();
+    assert_eq!(out[0].available.ids, cloned.available_ids.as_ptr());
+    assert_ne!(out[0].available.ids, snapshot.available_ids.as_ptr());
+    drop(snapshot);
+    assert_eq!(
+        unsafe { out[0].enabled.as_slice() }.unwrap(),
+        &[feature_ids::RASTER]
+    );
 }

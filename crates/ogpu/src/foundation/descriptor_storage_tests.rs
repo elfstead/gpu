@@ -499,7 +499,7 @@ fn gpu_descriptor_storage_and_replay() {
         };
         let requirements = ShaderRequirements {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-            features: 0,
+            features: Features::default(),
             local_size: [1; 3],
             shared_memory: 0,
         };

@@ -144,7 +144,7 @@ fn gpu_mapped_argument_execution() {
         };
         let requirements = ShaderRequirements {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
-            features: 0,
+            features: Features::default(),
             local_size: [32, 1, 1],
             shared_memory: 0,
         };

@@ -1,3 +1,4 @@
+#include "feature_selection.h"
 /* Public-only foundation compiler consumer. Same host source for both layouts. */
 #include <foundation.generated.h>
 #include <inttypes.h>
@@ -44,7 +45,7 @@ int main(void) {
         const ogpu_next_adapter *adapter = ogpu_next_discovery_adapter(discovery,index);
         ogpu_next_feature_info features = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
         TRY(ogpu_next_adapter_query(adapter,&q));
-        if (!features.baseline_supported || (features.available & transform_required_features) != transform_required_features) continue;
+        if (!features.baseline_supported || !example_features_include(features.available,transform_required_features)) continue;
         ogpu_next_queue_info queues[32]; q = query(OGPU_NEXT_QUERY_QUEUES,queues,32,sizeof(queues[0]));
         TRY(ogpu_next_adapter_query(adapter,&q));
         for (uint32_t i = 0; i < q.count; ++i) if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { domain = queues[i].domain; break; }

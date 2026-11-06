@@ -13,7 +13,7 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_executable *pipeline = NULL; ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
     ogpu_next_feature_info features = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    if (!(features.enabled & OGPU_NEXT_FEATURE_CUBE_ARRAY)) { printf("Cube-array execution NOT exercised: feature unavailable.\n"); return EXIT_SUCCESS; }
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_CUBE_ARRAY))) { printf("Cube-array execution NOT exercised: feature unavailable.\n"); return EXIT_SUCCESS; }
     REQUIRE(host_desc.size >= 3168);
     ogpu_next_image_desc desc = {HEADER(ogpu_next_image_desc,OGPU_NEXT_IMAGE_DESC),OGPU_NEXT_RGBA8_UNORM,OGPU_NEXT_IMAGE_2D,
         3,18,1,{4,4,1},OGPU_NEXT_IMAGE_COPY_DST | OGPU_NEXT_IMAGE_SAMPLED,OGPU_NEXT_IMAGE_CUBE_COMPATIBLE,NULL,0,0,NULL};
@@ -79,7 +79,7 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,16,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"cubeMain",NULL,NULL};
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),OGPU_NEXT_FEATURE_CUBE_ARRAY,{32,1,1},0};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_CUBE_ARRAY)),{32,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
     TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline)); free(code); code = NULL;
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};

@@ -47,7 +47,7 @@ def main():
     args=parser.parse_args()
     base=ROOT/'target/graphics-scene';base.mkdir(parents=True,exist_ok=True)
     out=Path(tempfile.mkdtemp(prefix='ranges-',dir=base));print(f'Public range evidence: {out}',flush=True)
-    report=dict(schema=1,foundation=8,complete=False,scope=__doc__,runs=[],
+    report=dict(schema=1,foundation=9,complete=False,scope=__doc__,runs=[],
         revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True,cwd=ROOT).strip(),
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],text=True,cwd=ROOT)))
     report['api']='foundation'
@@ -126,7 +126,7 @@ def main():
                 execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
             require(execution.returncode==0,f'public execution failed: {dest}')
             stdout=(dest/'stdout').read_text();stderr=(dest/'stderr').read_text()
-            profile={'foundation':8}
+            profile={'foundation':9}
             require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**profile,index_bytes=4,gpu_generated=True)],'wrong public API/profile')
             if args.generated:require(f.rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
             checked=f.check_log(stdout,stderr,capacity,strategy,case['device'],True,True,True)

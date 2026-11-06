@@ -49,8 +49,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_feature_info features = {0};
     q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(!indirect_first || (features.enabled & OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE));
-    uint32_t synchronization = features.enabled & OGPU_NEXT_FEATURE_CACHE_CONTROL ? OGPU_NEXT_CACHE_CALLER_SYNCHRONIZATION : OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION;
+    REQUIRE(!indirect_first || (fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE)));
+    uint32_t synchronization = fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_CACHE_CONTROL) ? OGPU_NEXT_CACHE_CALLER_SYNCHRONIZATION : OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION;
     ogpu_next_executable_cache_desc cache_desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC), synchronization, 0, {NULL, 0}};
     TRY(ogpu_next_executable_cache_create(device, &cache_desc, &cache));
     ogpu_next_query_limits ql = {0};
@@ -62,11 +62,11 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     TRY(ogpu_next_query_pool_create(device, &qd, &timestamps));
     qd.type = OGPU_NEXT_QUERY_OCCLUSION;
     TRY(ogpu_next_query_pool_create(device, &qd, &occlusion));
-    uint32_t precise = features.enabled & OGPU_NEXT_FEATURE_PRECISE_OCCLUSION ? OGPU_NEXT_QUERY_PRECISE : 0;
+    uint32_t precise = fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PRECISE_OCCLUSION) ? OGPU_NEXT_QUERY_PRECISE : 0;
     qd.type = OGPU_NEXT_QUERY_PIPELINE_STATISTICS;
     qd.statistics = OGPU_NEXT_STATISTIC_INPUT_VERTICES | OGPU_NEXT_STATISTIC_INPUT_PRIMITIVES |
         OGPU_NEXT_STATISTIC_VERTEX_INVOCATIONS | OGPU_NEXT_STATISTIC_FRAGMENT_INVOCATIONS;
-    if (features.enabled & OGPU_NEXT_FEATURE_PIPELINE_STATISTICS) {
+    if (fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PIPELINE_STATISTICS)) {
         REQUIRE((ql.statistics & qd.statistics) == qd.statistics);
         TRY(ogpu_next_query_pool_create(device, &qd, &statistics));
     } else {
@@ -96,7 +96,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_vertex_attribute attributes[2] = {{0,3,OGPU_NEXT_RG32_FLOAT,4},{1,4,OGPU_NEXT_RG32_FLOAT,8}};
     ogpu_next_vertex_input input = {HEADER(ogpu_next_vertex_input, OGPU_NEXT_VERTEX_INPUT),2,2,bindings,attributes};
     gs.vertex_input = vertex_fetch ? &input.header : NULL;
-    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
+    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER)), {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR | dynamic_mask, &req.header, cache, 0, 0};
     if (vertex_fetch && secondary == 0) ed.dynamic_state |= OGPU_NEXT_DYNAMIC_VERTEX_STRIDE;

@@ -21,7 +21,7 @@ class RangeHandoffTests(unittest.TestCase):
     device=dict(vendor=4098,device=29471,api=[1,4,354])
 
     def profile(self,capacity):
-        return [('DEVICE',self.device.copy()),('PUBLIC_SCENE',dict(foundation=8,index_bytes=4,gpu_generated=True)),
+        return [('DEVICE',self.device.copy()),('PUBLIC_SCENE',dict(foundation=9,index_bytes=4,gpu_generated=True)),
                 ('GENERATED_SCENE',dict(compute_push_bytes=32,vertex_push_bytes=8)),
                 ('DRAW_IDENTITY_FEATURES',dict(shaderDrawParameters=True)),
                 ('FRONTIER_FEATURES',dict(multiDrawIndirect=True,drawIndirectCount=True,maxDrawIndirectCount=capacity+7))]

@@ -11,7 +11,7 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
     ogpu_next_feature_info features = {0}; ogpu_next_generated_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); TRY(ogpu_next_device_query(device,&q));
     q = query(OGPU_NEXT_QUERY_GENERATED_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
-    if (!(features.enabled & OGPU_NEXT_FEATURE_GENERATED_COMMANDS) || !(limits.stages & OGPU_NEXT_STAGE_COMPUTE)
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_GENERATED_COMMANDS)) || !(limits.stages & OGPU_NEXT_STAGE_COMPUTE)
         || !(limits.pipeline_binding_stages & OGPU_NEXT_STAGE_COMPUTE)) {
         printf("GENERATED_UNVERIFIED native compute/executable selection unavailable; no fallback.\n"); return EXIT_SUCCESS;
     }
@@ -30,7 +30,7 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&equivalent));
     consumer_fields[0].address_alignment = 8;
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&incompatible));
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{1,1,1},0};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(0),{1,1,1},0};
     uint32_t extra = 0;
     ogpu_next_specialization_entry entry = {9,0,4};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization,OGPU_NEXT_SPECIALIZATION),1,0,&entry,{&extra,4}};

@@ -1,8 +1,8 @@
 /* Native FP16/FP32/FP64 operations, independent memory domains. Exact binary fractions make
  * the finite-data oracle order-independent without promising arbitrary FP order. */
-#define FLOAT_ATOMIC_FEATURES (OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS | OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD | OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX | OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS | OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD | OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX)
-#define FLOAT64_ATOMIC_FEATURES (OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMICS | OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_ADD | OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_MIN_MAX | OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS | OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD | OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX)
-#define FLOAT16_ATOMIC_FEATURES (OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS | OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD | OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_MIN_MAX | OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMICS | OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_ADD | OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_MIN_MAX)
+#define FLOAT_ATOMIC_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX))
+#define FLOAT64_ATOMIC_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_ADD) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_MIN_MAX) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX))
+#define FLOAT16_ATOMIC_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD) | FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_MIN_MAX) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_ADD) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_MIN_MAX))
 /* Host fixture constants must be exactly representable, finite normal halves or
  * zero. Reject accidental oracle narrowing; this is not a runtime conversion API. */
 static uint16_t float_atomic_half(double value) {
@@ -40,9 +40,9 @@ static int float_atomic_execution(ogpu_next_device *device, ogpu_next_memory_des
     FILE *file = NULL; void *code = NULL, *scratch = NULL;
     ogpu_next_executable *executable = NULL; ogpu_next_memory *memory = NULL;
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
-    const uint64_t required[] = {OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD,OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD,
-        OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX,OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX,
-        OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS,OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS};
+    const uint64_t required[] = {FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD),FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD),
+        FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX),FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX),
+        FIXTURE_BIT(OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS),FIXTURE_BIT(OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS)};
     const char *entries[] = {"bufferAdd","sharedAdd","bufferMinMax","sharedMinMax","bufferExchange","sharedExchange"};
     const uint32_t counts[] = {1,2,2,4,256,130};
     const uint32_t shared[] = {0,4,0,8,0,4};
@@ -63,11 +63,11 @@ static int float_atomic_execution(ogpu_next_device *device, ogpu_next_memory_des
         double nan = float_atomic_read(special,7,16); REQUIRE(nan != nan);
     }
     uint32_t width = bits / 8;
-    uint64_t needed = bits == 64 ? (required[mode] << 6) | OGPU_NEXT_FEATURE_FLOAT64
-        : bits == 16 ? (required[mode] << 16) | OGPU_NEXT_FEATURE_FLOAT16 : required[mode];
+    uint64_t needed = bits == 64 ? (required[mode] << 6) | FIXTURE_BIT(OGPU_NEXT_FEATURE_FLOAT64)
+        : bits == 16 ? (required[mode] << 16) | FIXTURE_BIT(OGPU_NEXT_FEATURE_FLOAT16) : required[mode];
     ogpu_next_feature_info features = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    if ((features.enabled & needed) != needed) { printf("Float%u atomic %s NOT exercised: feature unavailable.\n",width*8,entries[mode]); return EXIT_SUCCESS; }
+    if ((fixture_mask(features.enabled) & needed) != needed) { printf("Float%u atomic %s NOT exercised: feature unavailable.\n",width*8,entries[mode]); return EXIT_SUCCESS; }
     file = fopen(path,"rb"); REQUIRE(file != NULL);
     REQUIRE(fseek(file,0,SEEK_END) == 0); long size = ftell(file); REQUIRE(size >= 20 && size % 4 == 0);
     REQUIRE(fseek(file,0,SEEK_SET) == 0); code = malloc((size_t)size); REQUIRE(code != NULL);
@@ -75,7 +75,7 @@ static int float_atomic_execution(ogpu_next_device *device, ogpu_next_memory_des
     ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
     ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,8,1,0,&argument_field};
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
-    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),needed,{64,1,1},shared[mode]*width/4};
+    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(needed),{64,1,1},shared[mode]*width/4};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},entries[mode],NULL,NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
         1,&shader,NULL,0,&req.header,NULL,0,0};

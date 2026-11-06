@@ -906,7 +906,7 @@ mod tests {
                 reserved: 0,
                 tokens: &token,
             };
-            let d = rust::device_create(a, &request, 0).unwrap();
+            let d = rust::device_create(a, &request, &features::decode(0)).unwrap();
             let mut rejected = ptr::dangling_mut();
             assert_eq!(
                 unsafe { ogpu_next_generated_layout_create(d.as_raw(), &desc, &mut rejected) },
@@ -915,7 +915,8 @@ mod tests {
             assert!(rejected.is_null());
             unsafe { rust::device_destroy(d) };
             if a.snapshot.features.available & GENERATED_COMMANDS != 0 {
-                let d = rust::device_create(a, &request, GENERATED_COMMANDS).unwrap();
+                let d = rust::device_create(a, &request, &features::decode(GENERATED_COMMANDS))
+                    .unwrap();
                 let arguments = unsafe {
                     ArgumentLayout::create(
                         &*d.as_raw(),
@@ -946,7 +947,7 @@ mod tests {
                 // distinct from execution evidence (the C consumer is compute).
                 let enabled = a.snapshot.features.available
                     & (GENERATED_COMMANDS | RASTER | MESH_SHADER | TASK_SHADER);
-                let d = rust::device_create(a, &request, enabled).unwrap();
+                let d = rust::device_create(a, &request, &features::decode(enabled)).unwrap();
                 if enabled & RASTER == 0 {
                     unsafe { rust::device_destroy(d) };
                     tested += 1;
@@ -1002,7 +1003,7 @@ mod tests {
                 unsafe { rust::device_destroy(d) };
             } else {
                 assert!(matches!(
-                    rust::device_create(a, &request, GENERATED_COMMANDS),
+                    rust::device_create(a, &request, &features::decode(GENERATED_COMMANDS)),
                     Err(UNSUPPORTED)
                 ));
             }

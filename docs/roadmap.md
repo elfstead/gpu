@@ -582,12 +582,11 @@ selection remains unavailable locally and independently gated. Generated mesh
 execution, richer scene/raster interactions and performance evidence remain open.
 The [revision-8 buffer-state token tranche](results/m8-generated-buffer-state-2026-11-06.md)
 adds GPU-selected vertex/index bindings and explicit static/dynamic vertex stride;
-96 combined graphics submissions and 196,608 pixels pass locally. Before adding
-more raster feature bits, the next batch must replace the fixed feature-selection
-ceiling: 61 of 64 public bits are assigned. The proposed direction is one counted
-feature-ID query/request representation across discovery, device enabling and
-shader requirements, with native enables independent and implementation storage
-private. This is a prerequisite, not a claim that the new representation exists.
+96 combined graphics submissions and 196,608 pixels pass locally. Foundation revision 9 replaces the exhausted public mask with
+[counted feature-ID query/request lists](feature-selection.md), including device,
+shader/compiler and native Rust consumers. Native enables stay independent;
+private encoding and list preparation are cold. Clean SDK acceptance follows the
+source/ABI and local Vulkan checks before further raster expansion.
 Then implement multiview, shading-rate, tile-local/pass-continuation and remaining
 tessellation/geometry profiles.
 

@@ -8,7 +8,7 @@ static int matrix_discovery(ogpu_next_device *device) {
     q = query(OGPU_NEXT_QUERY_MATRIX_TUPLES,NULL,0,sizeof(*tuples)); TRY(ogpu_next_device_query(device,&q));
     uint32_t count = q.count;
     if (count) {
-        REQUIRE(features.available & OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX);
+        REQUIRE(fixture_mask(features.available) & FIXTURE_BIT(OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX));
         tuples = calloc(count,sizeof(*tuples)); REQUIRE(tuples != NULL); q.data = tuples; q.capacity = count;
         TRY(ogpu_next_device_query(device,&q)); REQUIRE(q.count == count);
         for (uint32_t i = 0; i < count; ++i) {
@@ -22,13 +22,13 @@ static int matrix_discovery(ogpu_next_device *device) {
         }
     }
     printf("Cooperative matrix discovery: %u tuples, feature available=%u enabled=%u.\n",
-        count,!!(features.available & OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX),!!(features.enabled & OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX));
+        count,!!(fixture_mask(features.available) & FIXTURE_BIT(OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX)),!!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX)));
     result = EXIT_SUCCESS;
 cleanup:
     free(tuples); return result;
 }
 
-#define MATRIX_FEATURES (OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX | OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL)
+#define MATRIX_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX) | FIXTURE_BIT(OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL))
 static int matrix_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain, const char *path) {
     ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0; FILE *file = NULL; void *code = NULL, *scratch = NULL;
@@ -36,8 +36,8 @@ static int matrix_execution(ogpu_next_device *device, ogpu_next_memory_desc md, 
     ogpu_next_memory *memory = NULL; ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
     ogpu_next_feature_info features = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    uint64_t required = MATRIX_FEATURES | OGPU_NEXT_FEATURE_FLOAT16 | OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL | OGPU_NEXT_FEATURE_FULL_SUBGROUPS;
-    if ((features.enabled & required) != required) { printf("Matrix execution NOT exercised: fixture features unavailable.\n"); return EXIT_SUCCESS; }
+    uint64_t required = MATRIX_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_FLOAT16) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL) | FIXTURE_BIT(OGPU_NEXT_FEATURE_FULL_SUBGROUPS);
+    if ((fixture_mask(features.enabled) & required) != required) { printf("Matrix execution NOT exercised: fixture features unavailable.\n"); return EXIT_SUCCESS; }
     q = query(OGPU_NEXT_QUERY_MATRIX_TUPLES,NULL,0,sizeof(*tuples)); TRY(ogpu_next_device_query(device,&q));
     uint32_t count = q.count, compatible = 0;
     if (count) { tuples = calloc(count,sizeof(*tuples)); REQUIRE(tuples != NULL); q.capacity = count; q.data = tuples;
@@ -63,7 +63,7 @@ static int matrix_execution(ogpu_next_device *device, ogpu_next_memory_desc md, 
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization,OGPU_NEXT_SPECIALIZATION),1,0,&entry,{&width,4}};
     ogpu_next_subgroup_state subgroup = {HEADER(ogpu_next_subgroup_state,OGPU_NEXT_SUBGROUP_STATE),0,width,OGPU_NEXT_SUBGROUP_REQUIRE_FULL,0};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"matrixMain",&spec.header,&subgroup.header};
-    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{width,1,1},0};
+    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(required),{width,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&req.header,NULL,0,0};
     TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline)); free(code); code = NULL;
     TRY(ogpu_next_memory_create(device,&md,&memory)); ogpu_next_span all = {memory,0,md.size}; ogpu_next_mapping map = {0};

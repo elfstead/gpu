@@ -187,21 +187,30 @@ static const uint32_t scene_range_prepare_code[] = {
 /* Source-only foundation revision; not installed ABI 20.
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a compute queue and proves pointer bounds/lifetimes. */
-#define scene_range_prepare_required_features (UINT64_C(0))
+#define scene_range_prepare_feature_ids 0
+#define scene_range_prepare_feature_count (0)
+static const ogpu_next_feature scene_range_prepare_feature_storage[] = {scene_range_prepare_feature_ids};
+#define scene_range_prepare_feature_list {scene_range_prepare_feature_count ? scene_range_prepare_feature_storage : NULL, scene_range_prepare_feature_count, 0}
+static const ogpu_next_features scene_range_prepare_required_features = scene_range_prepare_feature_list;
 static const ogpu_next_argument_field scene_range_prepare_argument_field = {
     0, 32, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc scene_range_prepare_arguments = {
     OGPU_NEXT_ARGUMENT_COMPUTE, 32, (32) != 0, 0, (32) ? &scene_range_prepare_argument_field : NULL};
 static const ogpu_next_shader_requirements scene_range_prepare_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = scene_range_prepare_required_features, .local_size = {8, 1, 1}, .shared_memory = 0};
+    .features = scene_range_prepare_feature_list, .local_size = {8, 1, 1}, .shared_memory = 0};
 static inline ogpu_next_shader scene_range_prepare_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_COMPUTE, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {scene_range_prepare_code, sizeof(scene_range_prepare_code)}, .entry = "main",
         .specialization = NULL, .subgroup = NULL};
 }
 static inline int scene_range_prepare_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
-    return c->baseline_supported && (c->enabled & scene_range_prepare_required_features) == scene_range_prepare_required_features
+    const ogpu_next_features need = scene_range_prepare_required_features;
+    for (uint32_t i=0; i<need.count; ++i) {
+        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;
+        if (j==c->enabled.count) return 0;
+    }
+    return c->baseline_supported
         && l->max_inline_bytes >= 32 && l->max_local_invocations >= 8 && l->max_local_size[0] >= 8 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
 }
 #endif

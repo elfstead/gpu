@@ -56,7 +56,7 @@ def check_reuse(stdout,stderr,device,bits,mode,slots,replay,width,height):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'reuse validation failure')
     require('Public scene reuse drained and checked' in stdout,'reuse did not drain')
     require(rows(stdout,'DEVICE ')==[device],'reuse device mismatch')
-    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=8,index_bytes=bits//8,gpu_generated=True)],'wrong reuse profile')
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=9,index_bytes=bits//8,gpu_generated=True)],'wrong reuse profile')
     require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated reuse profile')
     frames=[dict(frame=f,slot=f%slots,generation=f//slots,phase=int(f//slots%4==1),empty=int(f//slots%4==2)) for f in range(8)]
     require(rows(stdout,'REUSE_FRAME ')==frames,'reuse frame/slot/generation mismatch')

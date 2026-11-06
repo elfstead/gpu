@@ -116,7 +116,7 @@ def main():
                 (dest/'stdout').write_text(p.stdout);(dest/'stderr').write_text(p.stderr)
                 result=check_fault(fault,strategy,p.returncode,p.stdout,p.stderr)
                 require(reuse.rows(p.stdout,'DEVICE ')==[ref['device']],'wrong device')
-                require(reuse.rows(p.stdout,'PUBLIC_SCENE ')==[dict(foundation=8,index_bytes=4 if args.range_report else 2,gpu_generated=True)],'wrong API profile')
+                require(reuse.rows(p.stdout,'PUBLIC_SCENE ')==[dict(foundation=9,index_bytes=4 if args.range_report else 2,gpu_generated=True)],'wrong API profile')
                 if fault=='none':
                     if args.range_report:range_reuse.check(p.stdout,p.stderr,'public',64,range_strategy,2,strategy=='replay',8,ref['device'],scopes=old['per_draw_scopes'],foundation=True)
                     else:reuse.check_run(p.stdout,p.stderr,('public',16,8,2,strategy,8,257,193),ref['device'],True)

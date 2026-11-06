@@ -269,6 +269,7 @@ next MemoryBudget ogpu_next_memory_budget budget usage heap reserved
 next MemoryLimits ogpu_next_memory_limits max_buffer_size max_allocation_size cache_atom_size map_alignment
 next ImageProfile ogpu_next_image_profile header format dimension usage image_flags reserved
 next ImageLimits ogpu_next_image_limits max_extent max_mips max_layers sample_counts max_resource_size
+next Features ogpu_next_features ids count reserved
 next FeatureInfo ogpu_next_feature_info available enabled max_timeline_difference baseline_supported device_scope
 next FloatControls ogpu_next_float_controls binary16 binary32 binary64 denorm_independence rounding_independence reserved
 next QueueRequest ogpu_next_queue_request domain count priority

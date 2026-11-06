@@ -1,4 +1,5 @@
 //! C records for include/ogpu_next.h. No backend types or implicit owners.
+use super::features::*;
 use super::{
     Adapter, Binary, Device, Discovery, Fence, Image, Queue, Surface, Swapchain, Timeline,
 };
@@ -24,7 +25,114 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 8;
+pub const VERSION: u32 = 9;
+/// Opaque optional-feature identifiers. They are not bit flags.
+pub mod feature_ids {
+    pub const RASTER: u32 = 1;
+    pub const FLOAT16: u32 = 2;
+    pub const UNIFIED_IMAGES: u32 = 3;
+    pub const SAMPLER_ANISOTROPY: u32 = 4;
+    pub const CACHE_CONTROL: u32 = 5;
+    pub const INT8: u32 = 6;
+    pub const INT16: u32 = 7;
+    pub const INT64: u32 = 8;
+    pub const FLOAT64: u32 = 9;
+    pub const STORAGE8: u32 = 10;
+    pub const BUFFER_ATOMIC64: u32 = 11;
+    pub const SHARED_ATOMIC64: u32 = 12;
+    pub const SUBGROUP_SIZE_CONTROL: u32 = 13;
+    pub const FULL_SUBGROUPS: u32 = 14;
+    pub const SUBGROUP_EXTENDED_TYPES: u32 = 15;
+    pub const PIPELINE_STATISTICS: u32 = 16;
+    pub const PRECISE_OCCLUSION: u32 = 17;
+    pub const INHERITED_QUERIES: u32 = 18;
+    pub const VERTEX_STORES_ATOMICS: u32 = 19;
+    pub const FRAGMENT_STORES_ATOMICS: u32 = 20;
+    pub const INDIRECT_FIRST_INSTANCE: u32 = 21;
+    pub const INDEPENDENT_BLEND: u32 = 22;
+    pub const DEPTH_CLAMP: u32 = 23;
+    pub const DEPTH_BIAS_CLAMP: u32 = 24;
+    pub const NON_SOLID_FILL: u32 = 25;
+    pub const WIDE_LINES: u32 = 26;
+    pub const DEPTH_BOUNDS: u32 = 27;
+    pub const SAMPLE_SHADING: u32 = 28;
+    pub const ALPHA_TO_ONE: u32 = 29;
+    pub const UNUSED_ATTACHMENTS: u32 = 30;
+    pub const LOGIC_OP: u32 = 31;
+    pub const DUAL_SOURCE_BLEND: u32 = 32;
+    pub const SHADER_OUTPUT_LAYER: u32 = 33;
+    pub const BUFFER_FLOAT32_ATOMICS: u32 = 34;
+    pub const BUFFER_FLOAT32_ATOMIC_ADD: u32 = 35;
+    pub const BUFFER_FLOAT32_ATOMIC_MIN_MAX: u32 = 36;
+    pub const SHARED_FLOAT32_ATOMICS: u32 = 37;
+    pub const SHARED_FLOAT32_ATOMIC_ADD: u32 = 38;
+    pub const SHARED_FLOAT32_ATOMIC_MIN_MAX: u32 = 39;
+    pub const BUFFER_FLOAT64_ATOMICS: u32 = 40;
+    pub const BUFFER_FLOAT64_ATOMIC_ADD: u32 = 41;
+    pub const BUFFER_FLOAT64_ATOMIC_MIN_MAX: u32 = 42;
+    pub const SHARED_FLOAT64_ATOMICS: u32 = 43;
+    pub const SHARED_FLOAT64_ATOMIC_ADD: u32 = 44;
+    pub const SHARED_FLOAT64_ATOMIC_MIN_MAX: u32 = 45;
+    pub const COOPERATIVE_MATRIX: u32 = 46;
+    pub const VULKAN_MEMORY_MODEL: u32 = 47;
+    pub const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: u32 = 48;
+    pub const INTEGER_DOT: u32 = 49;
+    pub const BUFFER_FLOAT16_ATOMICS: u32 = 50;
+    pub const BUFFER_FLOAT16_ATOMIC_ADD: u32 = 51;
+    pub const BUFFER_FLOAT16_ATOMIC_MIN_MAX: u32 = 52;
+    pub const SHARED_FLOAT16_ATOMICS: u32 = 53;
+    pub const SHARED_FLOAT16_ATOMIC_ADD: u32 = 54;
+    pub const SHARED_FLOAT16_ATOMIC_MIN_MAX: u32 = 55;
+    pub const VULKAN_MEMORY_MODEL_CHAINS: u32 = 56;
+    pub const CUBE_ARRAY: u32 = 57;
+    pub const PRESENTATION: u32 = 58;
+    pub const MESH_SHADER: u32 = 59;
+    pub const TASK_SHADER: u32 = 60;
+    pub const GENERATED_COMMANDS: u32 = 61;
+}
+/// Borrowed feature IDs. Input storage lives through its host call. Query output
+/// storage lives through the queried adapter/discovery or device lifetime.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct Features {
+    pub ids: *const u32,
+    pub count: u32,
+    pub reserved: u32,
+}
+impl Default for Features {
+    fn default() -> Self {
+        Self::from_slice(&[])
+    }
+}
+impl Features {
+    pub fn from_slice(ids: &[u32]) -> Self {
+        Self {
+            ids: if ids.is_empty() {
+                std::ptr::null()
+            } else {
+                ids.as_ptr()
+            },
+            count: u32::try_from(ids.len()).expect("feature count exceeds u32"),
+            reserved: 0,
+        }
+    }
+    /// # Safety
+    /// Nonempty storage must contain count readable IDs for the returned lifetime.
+    pub unsafe fn as_slice<'a>(&self) -> Result<&'a [u32], Status> {
+        if self.reserved != 0
+            || (self.count != 0 && self.ids.is_null())
+            || u64::from(self.count) > isize::MAX as u64 / 4
+        {
+            return Err(INVALID);
+        }
+        if self.count == 0 {
+            Ok(&[])
+        } else {
+            Ok(unsafe { std::slice::from_raw_parts(self.ids, self.count as usize) })
+        }
+    }
+}
+
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -42,14 +150,10 @@ pub const INTERNAL_ERROR: Status = -8;
 pub const SURFACE_LOST: Status = -9;
 pub const OUT_OF_DATE: Status = -10;
 pub const PRESENTATION_WAYLAND: u32 = 1;
-pub const PRESENTATION: u64 = 1 << 57;
-pub const MESH_SHADER: u64 = 1 << 58;
-pub const TASK_SHADER: u64 = 1 << 59;
 pub const MESH_STAGE: u64 = 1 << 20;
 pub const TASK_STAGE: u64 = 1 << 21;
 pub const MESH_LIMITS: u32 = 17;
 pub const MESH_REQUIREMENTS: u32 = 129;
-pub const GENERATED_COMMANDS: u64 = 1 << 60;
 pub const GENERATED_LIMITS: u32 = 18;
 pub const GENERATED_LAYOUT_DESC: u32 = 130;
 pub const GENERATED_SET_DESC: u32 = 131;
@@ -188,7 +292,7 @@ pub struct MeshLimits {
 #[repr(C)]
 pub struct MeshRequirements {
     pub header: Record,
-    pub features: u64,
+    pub features: Features,
     pub task_local: [u32; 3],
     pub task_shared: u32,
     pub mesh_local: [u32; 3],
@@ -556,7 +660,6 @@ pub const IMAGE_DESC: u32 = 106;
 pub const VIEW_DESC: u32 = 107;
 pub const SAMPLER_DESC: u32 = 108;
 pub const DESCRIPTOR_LIMITS: u32 = 7;
-pub const SAMPLER_ANISOTROPY: u64 = 8;
 pub const EXECUTION_LIMITS: u32 = 8;
 pub const EXECUTABLE_DESC: u32 = 110;
 pub const SHADER_REQUIREMENTS: u32 = 112;
@@ -569,42 +672,6 @@ pub const QUERY_LIMITS: u32 = 10;
 pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
-pub const CACHE_CONTROL: u64 = 16;
-pub const PIPELINE_STATISTICS: u64 = 32768;
-pub const PRECISE_OCCLUSION: u64 = 65536;
-pub const INHERITED_QUERIES: u64 = 131072;
-pub const VERTEX_STORES_ATOMICS: u64 = 262144;
-pub const FRAGMENT_STORES_ATOMICS: u64 = 524288;
-pub const INDIRECT_FIRST_INSTANCE: u64 = 1048576;
-pub const INDEPENDENT_BLEND: u64 = 2097152;
-pub const DEPTH_CLAMP: u64 = 4194304;
-pub const DEPTH_BIAS_CLAMP: u64 = 8388608;
-pub const NON_SOLID_FILL: u64 = 16777216;
-pub const WIDE_LINES: u64 = 33554432;
-pub const DEPTH_BOUNDS: u64 = 67108864;
-pub const SAMPLE_SHADING: u64 = 134217728;
-pub const ALPHA_TO_ONE: u64 = 268435456;
-pub const UNUSED_ATTACHMENTS: u64 = 536870912;
-pub const LOGIC_OP: u64 = 1073741824;
-pub const DUAL_SOURCE_BLEND: u64 = 2147483648;
-pub const SHADER_OUTPUT_LAYER: u64 = 4294967296;
-pub const BUFFER_FLOAT32_ATOMICS: u64 = 8589934592;
-pub const BUFFER_FLOAT32_ATOMIC_ADD: u64 = 17179869184;
-pub const BUFFER_FLOAT32_ATOMIC_MIN_MAX: u64 = 34359738368;
-pub const SHARED_FLOAT32_ATOMICS: u64 = 68719476736;
-pub const SHARED_FLOAT32_ATOMIC_ADD: u64 = 137438953472;
-pub const SHARED_FLOAT32_ATOMIC_MIN_MAX: u64 = 274877906944;
-pub const BUFFER_FLOAT64_ATOMICS: u64 = 549755813888;
-pub const BUFFER_FLOAT64_ATOMIC_ADD: u64 = 1099511627776;
-pub const BUFFER_FLOAT64_ATOMIC_MIN_MAX: u64 = 2199023255552;
-pub const SHARED_FLOAT64_ATOMICS: u64 = 4398046511104;
-pub const SHARED_FLOAT64_ATOMIC_ADD: u64 = 8796093022208;
-pub const SHARED_FLOAT64_ATOMIC_MIN_MAX: u64 = 17592186044416;
-pub const COOPERATIVE_MATRIX: u64 = 35184372088832;
-pub const VULKAN_MEMORY_MODEL: u64 = 70368744177664;
-pub const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: u64 = 140737488355328;
-pub const VULKAN_MEMORY_MODEL_CHAINS: u64 = 36028797018963968;
-pub const CUBE_ARRAY: u64 = 72057594037927936;
 pub(super) fn validate_feature_dependencies(required: u64) -> Result<(), Status> {
     if required & MESH_SHADER != 0 && required & RASTER == 0
         || required & TASK_SHADER != 0 && required & MESH_SHADER == 0
@@ -620,13 +687,6 @@ pub(super) fn validate_feature_dependencies(required: u64) -> Result<(), Status>
     }
 }
 pub const MATRIX_TUPLES: u32 = 14;
-pub const INTEGER_DOT: u64 = 281474976710656;
-pub const BUFFER_FLOAT16_ATOMICS: u64 = 562949953421312;
-pub const BUFFER_FLOAT16_ATOMIC_ADD: u64 = 1125899906842624;
-pub const BUFFER_FLOAT16_ATOMIC_MIN_MAX: u64 = 2251799813685248;
-pub const SHARED_FLOAT16_ATOMICS: u64 = 4503599627370496;
-pub const SHARED_FLOAT16_ATOMIC_ADD: u64 = 9007199254740992;
-pub const SHARED_FLOAT16_ATOMIC_MIN_MAX: u64 = 18014398509481984;
 pub const INTEGER_DOT_INFO: u32 = 15;
 pub const MEMORY_BUDGETS: u32 = 16;
 #[repr(C)]
@@ -661,16 +721,6 @@ pub struct MatrixTuple {
 pub const INHERITANCE: u32 = 121;
 pub const RENDER_INHERITANCE: u32 = 122;
 pub const STATISTICS_MASK: u64 = 2047;
-pub const INT8: u64 = 32;
-pub const INT16: u64 = 64;
-pub const INT64: u64 = 128;
-pub const FLOAT64: u64 = 256;
-pub const STORAGE8: u64 = 512;
-pub const BUFFER_ATOMIC64: u64 = 1024;
-pub const SHARED_ATOMIC64: u64 = 2048;
-pub const SUBGROUP_SIZE_CONTROL: u64 = 4096;
-pub const FULL_SUBGROUPS: u64 = 8192;
-pub const SUBGROUP_EXTENDED_TYPES: u64 = 16384;
 pub const SUBGROUP_LIMITS: u32 = 11;
 pub const SUBGROUP_STATE: u32 = 120;
 pub const FORMATS: u32 = 12;
@@ -1032,7 +1082,7 @@ pub struct ArgumentStateInfo {
 #[repr(C)]
 pub struct ShaderRequirements {
     pub header: Record,
-    pub features: u64,
+    pub features: Features,
     pub local_size: [u32; 3],
     pub shared_memory: u32,
 }
@@ -1230,9 +1280,6 @@ pub union ClearValue {
 }
 
 pub const MEMORY_LIMITS: u32 = 6;
-pub const RASTER: u64 = 1;
-pub const FLOAT16: u64 = 2;
-pub const UNIFIED_IMAGES: u64 = 4;
 pub const GRAPHICS: u32 = 1;
 pub const COMPUTE: u32 = 2;
 pub const TRANSFER: u32 = 4;
@@ -1313,8 +1360,8 @@ pub struct MemoryHeapInfo {
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug)]
 pub struct FeatureInfo {
-    pub available: u64,
-    pub enabled: u64,
+    pub available: Features,
+    pub enabled: Features,
     pub max_timeline_difference: u64,
     pub baseline_supported: u32,
     pub device_scope: u32,
@@ -1332,7 +1379,7 @@ pub struct DeviceDesc {
     pub queues: *const QueueRequest,
     pub queue_request_count: u32,
     pub reserved: u32,
-    pub required_features: u64,
+    pub required_features: Features,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]

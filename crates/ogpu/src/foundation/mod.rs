@@ -4,7 +4,9 @@
 mod commands_api;
 mod descriptors_api;
 mod executables_api;
+mod features;
 mod format_catalog;
+use features::*;
 mod generated_api;
 mod images_api;
 mod memory_api;
@@ -63,7 +65,9 @@ struct Snapshot {
     mesh_limits: MeshLimits,
     generated_limits: GeneratedLimits,
     formats: Vec<FormatInfo>,
-    features: FeatureInfo,
+    features: FeatureState,
+    available_ids: Vec<u32>,
+    enabled_ids: Vec<u32>,
 }
 pub struct Adapter {
     instance: Arc<Instance>,
@@ -90,6 +94,15 @@ fn loader_error(error: crate::Error) -> Status {
 }
 
 impl Snapshot {
+    fn feature_info(&self) -> FeatureInfo {
+        FeatureInfo {
+            available: Features::from_slice(&self.available_ids),
+            enabled: Features::from_slice(&self.enabled_ids),
+            max_timeline_difference: self.features.max_timeline_difference,
+            baseline_supported: self.features.baseline_supported,
+            device_scope: self.features.device_scope,
+        }
+    }
     /// Caller guarantees the complete header and, once validated, query storage.
     unsafe fn query(&self, query: *mut Query) -> Result<(), Status> {
         if query.is_null() {
@@ -111,7 +124,7 @@ impl Snapshot {
                 QUEUES => copy_out(query, &self.queues),
                 MEMORY_TYPES => copy_out(query, &self.memory_types),
                 MEMORY_HEAPS => copy_out(query, &self.memory_heaps),
-                FEATURES => copy_out(query, std::slice::from_ref(&self.features)),
+                FEATURES => copy_out(query, std::slice::from_ref(&self.feature_info())),
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
                 DESCRIPTOR_LIMITS => copy_out(
                     query,
@@ -246,7 +259,9 @@ pub unsafe extern "C" fn ogpu_next_device_create(
         }
         let requests =
             unsafe { std::slice::from_raw_parts(desc.queues, desc.queue_request_count as usize) };
-        let device = rust::device_create(adapter, requests, desc.required_features)?;
+        let device = rust::device_create(adapter, requests, unsafe {
+            desc.required_features.as_slice()?
+        })?;
         unsafe {
             out.write(device.as_raw());
         }

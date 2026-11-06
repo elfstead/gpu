@@ -1,4 +1,4 @@
-#define RASTER_STORAGE_FEATURES (OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS | OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS)
+#define RASTER_STORAGE_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS))
 /* No attachment allocation, descriptor heap, readback staging or retained resource list. */
 static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                                     const char *const paths[4], uint32_t writers, uint32_t secondary, uint32_t discard) {
@@ -13,11 +13,11 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    uint64_t required = OGPU_NEXT_FEATURE_RASTER
-        | (writers & 1 ? OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS : 0)
-        | (writers & 2 ? OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS : 0);
-    if (required & ~features.enabled) {
-        printf("Raster storage NOT exercised: missing feature mask 0x%llx.\n",(unsigned long long)(required & ~features.enabled));
+    uint64_t required = FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER)
+        | (writers & 1 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS) : 0)
+        | (writers & 2 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS) : 0);
+    if (required & ~fixture_mask(features.enabled)) {
+        printf("Raster storage NOT exercised: missing feature mask 0x%llx.\n",(unsigned long long)(required & ~fixture_mask(features.enabled)));
         return EXIT_SUCCESS;
     }
     ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
@@ -36,7 +36,7 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
         shaders[i] = (ogpu_next_shader){i ? OGPU_NEXT_STAGE_FRAGMENT : OGPU_NEXT_STAGE_VERTEX,
             OGPU_NEXT_SHADER_SPIRV,{code[i],(size_t)size},i ? (writing ? "fragmentMain" : "fragmentRead") : (writing ? "vertexMain" : "vertexRead"),NULL,NULL};
     }
-    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{0,0,0},0};
+    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(required),{0,0,0},0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
     ogpu_next_raster_options options = {HEADER(ogpu_next_raster_options,OGPU_NEXT_RASTER_OPTIONS),

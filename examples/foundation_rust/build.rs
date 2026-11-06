@@ -23,7 +23,7 @@ fn main() {
         }
         assert!(source.contains(&format!("sizeof(Textured_scene_{stage}Arguments) == 24,")));
         assert!(source.contains(&format!(
-            "#define textured_scene_{stage}_required_features (OGPU_NEXT_FEATURE_RASTER)"
+            "#define textured_scene_{stage}_feature_ids OGPU_NEXT_FEATURE_RASTER"
         )));
         let marker = format!("static const uint32_t textured_scene_{stage}_code[] = {{");
         let body = source

@@ -21,9 +21,9 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    uint64_t required = layered ? OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER : mode == 1 ? OGPU_NEXT_FEATURE_DEPTH_CLAMP : mode == 3 ? OGPU_NEXT_FEATURE_DEPTH_BOUNDS
-        : (mode == 4 || mode == 5) ? OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP : 0;
-    if (required & ~features.enabled) { printf("Depth-only mode %u NOT exercised: feature unavailable.\n",mode); return EXIT_SUCCESS; }
+    uint64_t required = layered ? FIXTURE_BIT(OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER) : mode == 1 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_CLAMP) : mode == 3 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_BOUNDS)
+        : (mode == 4 || mode == 5) ? FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP) : 0;
+    if (required & ~fixture_mask(features.enabled)) { printf("Depth-only mode %u NOT exercised: feature unavailable.\n",mode); return EXIT_SUCCESS; }
     ogpu_next_graphics_limits limits = {0}; q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS,&limits,1,sizeof(limits));
     TRY(ogpu_next_device_query(device,&q));
     if (resolving && (!(limits.depth_samples & 4) || !(limits.depth_resolve_modes & resolve_mode))) {
@@ -50,7 +50,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,
         OGPU_NEXT_D32_FLOAT,1,1,mode == 0 ? OGPU_NEXT_COMPARE_LESS : OGPU_NEXT_COMPARE_ALWAYS,{0},0,{0},{0},NULL,&options.header,0,0};
-    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),OGPU_NEXT_FEATURE_RASTER | (layered ? OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER : 0),{0,0,0},0};
+    ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | (layered ? FIXTURE_BIT(OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER) : 0)),{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         1,&shader,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
     if (resolving) { gs.samples = 4; options.sample_mask = 3; }
@@ -177,7 +177,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,probe);
         for (uint32_t i = 0; i < 2; ++i) {
             ogpu_next_set_stencil_reference(encoder,OGPU_NEXT_FACE_BOTH,1+i*2);
-            ogpu_next_query_begin(encoder,occlusion,i,features.enabled & OGPU_NEXT_FEATURE_PRECISE_OCCLUSION ? OGPU_NEXT_QUERY_PRECISE : 0);
+            ogpu_next_query_begin(encoder,occlusion,i,fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PRECISE_OCCLUSION) ? OGPU_NEXT_QUERY_PRECISE : 0);
             ogpu_next_draw(encoder,&draw); ogpu_next_query_end(encoder,occlusion,i);
         }
         ogpu_next_render_end(encoder);
@@ -213,7 +213,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
             const uint64_t *counts = (const uint64_t *)((const char *)map.data+512);
             uint32_t passing = resolve_mode == OGPU_NEXT_ATTACHMENT_RESOLVE_MAX;
             REQUIRE(counts[1-passing] == 0); REQUIRE(counts[passing] > 0);
-            if (features.enabled & OGPU_NEXT_FEATURE_PRECISE_OCCLUSION) REQUIRE(counts[passing] == 64);
+            if (fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PRECISE_OCCLUSION)) REQUIRE(counts[passing] == 64);
         } else for (uint32_t layer = 0; layer < layers; ++layer) for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 8; ++x) {
             float expected = depths[x >= 4], actual = ((float *)((char *)map.data+512))[layer*64+y*8+x];
             if (layered) expected = layer == 0 ? 0.5f : layer-1 == ((x >= 4) ^ replay) ? expected : 1;

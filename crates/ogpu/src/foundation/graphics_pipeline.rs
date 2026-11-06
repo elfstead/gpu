@@ -177,12 +177,14 @@ pub(super) unsafe fn prepare(
     let mesh_pipeline = stage_mask & MESH_STAGE != 0;
     let mesh_req = if mesh_pipeline {
         let req = unsafe { record::<MeshRequirements>(desc.requirements, MESH_REQUIREMENTS)? };
-        mesh::requirements(
-            &d.snapshot.mesh_limits,
-            d.snapshot.features.enabled,
-            stage_mask,
-            req,
-        )?;
+        unsafe {
+            mesh::requirements(
+                &d.snapshot.mesh_limits,
+                d.snapshot.features.enabled,
+                stage_mask,
+                req,
+            )?
+        };
         if !state.vertex_input.is_null() {
             return Err(INVALID);
         }
@@ -191,7 +193,7 @@ pub(super) unsafe fn prepare(
         Some(req)
     } else {
         let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
-        if req.features & !d.snapshot.features.enabled != 0 {
+        if unsafe { features::required(req.features)? } & !d.snapshot.features.enabled != 0 {
             return Err(UNSUPPORTED);
         }
         if req.local_size != [0; 3] || req.shared_memory != 0 {

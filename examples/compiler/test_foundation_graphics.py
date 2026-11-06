@@ -38,7 +38,7 @@ class FoundationGraphicsTests(unittest.TestCase):
     def test_pair_records(self):
         text = (g.HERE / "foundation-pattern.generated.h").read_text()
         for expected in ("pattern_push_size = 8", "OGPU_NEXT_ARGUMENT_GRAPHICS, pattern_push_size",
-                         "pattern_vertex_required_features | pattern_fragment_required_features",
+                         "pattern_vertex_feature_ids, pattern_fragment_feature_ids",
                          "static const ogpu_next_argument_layout_desc pattern_arguments",
                          ".local_size = {0, 0, 0}"):
             self.assertIn(expected,text)
@@ -46,7 +46,7 @@ class FoundationGraphicsTests(unittest.TestCase):
     def test_feature_union(self):
         r,a,b = self.fixtures["original","fragment"]
         text = g.header(r,a+"\nOpCapability Float16\n",b,b"synthetic",api="foundation")
-        self.assertIn("OGPU_NEXT_FEATURE_FLOAT16 | OGPU_NEXT_FEATURE_RASTER",text)
+        self.assertIn("OGPU_NEXT_FEATURE_FLOAT16, OGPU_NEXT_FEATURE_RASTER",text)
         self.assertNotIn("max_local_invocations",text)
 
 

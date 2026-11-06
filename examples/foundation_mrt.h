@@ -37,12 +37,12 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    if (!(features.enabled & OGPU_NEXT_FEATURE_INDEPENDENT_BLEND)) {
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_INDEPENDENT_BLEND))) {
         printf("Independent blend execution NOT exercised: feature unavailable.\n"); return EXIT_SUCCESS;
     }
-    uint64_t required = mode >= 15 ? OGPU_NEXT_FEATURE_LOGIC_OP : mode >= 10 ? OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS
-        : mode == 6 ? OGPU_NEXT_FEATURE_ALPHA_TO_ONE : mode == 9 ? OGPU_NEXT_FEATURE_SAMPLE_SHADING : 0;
-    if (required & ~features.enabled) {
+    uint64_t required = mode >= 15 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_LOGIC_OP) : mode >= 10 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS)
+        : mode == 6 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_ALPHA_TO_ONE) : mode == 9 ? FIXTURE_BIT(OGPU_NEXT_FEATURE_SAMPLE_SHADING) : 0;
+    if (required & ~fixture_mask(features.enabled)) {
         printf("Raster options mode %u NOT exercised: feature unavailable.\n",mode); return EXIT_SUCCESS;
     }
     uint32_t samples = mode >= 8 && mode != 10 ? 4 : 1, image_count = samples == 1 ? 2 : 4;
@@ -89,7 +89,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     if (mode == 11) { states[1].format = 0; states[1].write_mask = 0; }
     if (mode == 13) gs.color_count = 1;
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),
-        OGPU_NEXT_FEATURE_RASTER | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND,{0,0,0},0};
+        FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INDEPENDENT_BLEND)),{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         2,shaders,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
     if (options.discard) ed.shader_count = 1;

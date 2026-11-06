@@ -71,21 +71,30 @@ static const uint32_t display_code[] = {
 /* Source-only foundation revision; not installed ABI 20.
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
-#define display_required_features (OGPU_NEXT_FEATURE_RASTER)
+#define display_feature_ids OGPU_NEXT_FEATURE_RASTER
+#define display_feature_count (1)
+static const ogpu_next_feature display_feature_storage[] = {display_feature_ids};
+#define display_feature_list {display_feature_count ? display_feature_storage : NULL, display_feature_count, 0}
+static const ogpu_next_features display_required_features = display_feature_list;
 static const ogpu_next_argument_field display_argument_field = {
     0, 16, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
 static const ogpu_next_argument_layout_desc display_arguments = {
     OGPU_NEXT_ARGUMENT_GRAPHICS, 16, (16) != 0, 0, (16) ? &display_argument_field : NULL};
 static const ogpu_next_shader_requirements display_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
-    .features = display_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
+    .features = display_feature_list, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader display_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_FRAGMENT, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {display_code, sizeof(display_code)}, .entry = "main",
         .specialization = NULL, .subgroup = NULL};
 }
 static inline int display_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
-    return c->baseline_supported && (c->enabled & display_required_features) == display_required_features
+    const ogpu_next_features need = display_required_features;
+    for (uint32_t i=0; i<need.count; ++i) {
+        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;
+        if (j==c->enabled.count) return 0;
+    }
+    return c->baseline_supported
         && l->max_inline_bytes >= 16;
 }
 #endif

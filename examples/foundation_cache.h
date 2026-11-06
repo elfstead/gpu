@@ -12,7 +12,7 @@ static int prepare_with_compile_policy(ogpu_next_device *device, const ogpu_next
     REQUIRE(ogpu_next_executable_create(device, &desc, arguments, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);
     desc.reserved = 0; desc.compile_flags = OGPU_NEXT_COMPILE_FAIL_IF_REQUIRED;
     ogpu_next_status status = ogpu_next_executable_create(device, &desc, arguments, out);
-    if (!(features.enabled & OGPU_NEXT_FEATURE_CACHE_CONTROL)) {
+    if (!(fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_CACHE_CONTROL))) {
         REQUIRE(status == OGPU_NEXT_UNSUPPORTED && *out == NULL);
     } else {
         REQUIRE(status == OGPU_NEXT_OK || status == OGPU_NEXT_COMPILE_REQUIRED);
