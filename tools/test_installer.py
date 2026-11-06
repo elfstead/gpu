@@ -47,7 +47,7 @@ class InstallerTests(unittest.TestCase):
                 self.assertEqual('abi' in manifest,legacy)
                 self.assertFalse(manifest['cargo_default_features'])
                 self.assertEqual(manifest['cargo_features'],['legacy'] if legacy else [])
-                self.assertEqual(manifest['foundation']['revision'],9)
+                self.assertEqual(manifest['foundation']['revision'],10)
                 for name in ('arguments', 'descriptors', 'dependencies', 'presentation'):
                     self.assertTrue((prefix/f'share/ogpu/minimal-core-{name}.md').is_file())
                 native = prefix / manifest['native_rust']['path']

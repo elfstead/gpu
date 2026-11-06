@@ -1,5 +1,5 @@
 {
-  "revision": 9,
+  "revision": 10,
   "operations": [
     "ogpu_next_adapter_query",
     "ogpu_next_arena_create",
@@ -294,7 +294,9 @@
     "OGPU_NEXT_FEATURE_PRESENTATION": "feature_ids::PRESENTATION",
     "OGPU_NEXT_FEATURE_MESH_SHADER": "feature_ids::MESH_SHADER",
     "OGPU_NEXT_FEATURE_TASK_SHADER": "feature_ids::TASK_SHADER",
-    "OGPU_NEXT_FEATURE_GENERATED_COMMANDS": "feature_ids::GENERATED_COMMANDS"
+    "OGPU_NEXT_FEATURE_GENERATED_COMMANDS": "feature_ids::GENERATED_COMMANDS",
+    "OGPU_NEXT_FEATURE_MULTIVIEW": "feature_ids::MULTIVIEW",
+    "OGPU_NEXT_FEATURE_MESH_MULTIVIEW": "feature_ids::MESH_MULTIVIEW"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

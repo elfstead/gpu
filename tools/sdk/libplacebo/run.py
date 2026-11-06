@@ -50,7 +50,7 @@ def main():
         record = json.loads((HERE / "build.json").read_text())
         pkg = os.getenv("PKG_CONFIG","pkg-config")
         def variable(name): return subprocess.check_output([pkg,"--variable="+name,"ogpu-foundation"],text=True).strip()
-        require(variable("ogpu_foundation") == "9","foundation revision mismatch")
+        require(variable("ogpu_foundation") == "10","foundation revision mismatch")
         report["sdk"] = dict(revision=variable("ogpu_revision"),runtime_sha256=digest(Path(variable("libdir")) / "libogpu.so"),
                              header_sha256=digest(Path(variable("includedir")) / "ogpu_next.h"))
         build = verify_build(record,report["sdk"])

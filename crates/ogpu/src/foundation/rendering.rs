@@ -61,17 +61,23 @@ impl Device {
         desc: &RenderDesc,
     ) -> Result<(), Status> {
         desc.header.validate::<RenderDesc>(RENDER_DESC)?;
-        if desc.view_mask != 0 || desc.flags & !1 != 0 {
+        if desc.flags & !1 != 0 {
             return Err(UNSUPPORTED);
         }
         let limits = &self.snapshot.graphics_limits;
+        features::view_mask(self.snapshot.features.enabled, limits, desc.view_mask)?;
         samples(desc.samples, 127)?;
-        if desc.x < 0 || desc.y < 0 || desc.width == 0 || desc.height == 0 || desc.layers == 0 {
+        if desc.x < 0
+            || desc.y < 0
+            || desc.width == 0
+            || desc.height == 0
+            || (desc.view_mask == 0 && desc.layers == 0)
+        {
             return Err(INVALID);
         }
         if u64::from(desc.width) + desc.x as u64 > u64::from(limits.max_width)
             || u64::from(desc.height) + desc.y as u64 > u64::from(limits.max_height)
-            || desc.layers > limits.max_layers
+            || (desc.view_mask == 0 && desc.layers > limits.max_layers)
             || desc.color_count > limits.max_colors
         {
             return Err(UNSUPPORTED);
@@ -148,6 +154,7 @@ impl Device {
                 },
             },
             layerCount: desc.layers,
+            viewMask: desc.view_mask,
             colorAttachmentCount: desc.color_count,
             pColorAttachments: output,
             pDepthAttachment: depth.as_ref().map_or(ptr::null(), ptr::from_ref),

@@ -258,7 +258,7 @@ static int context(Scene *s,const char *directory) {
     color.dst_color=color.dst_alpha=OGPU_NEXT_BLEND_ONE_MINUS_SRC_ALPHA;
 #endif
     ogpu_next_graphics_state gs={HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,
-        OGPU_NEXT_FRONT_CCW,1,1,&color,OGPU_NEXT_D32_FLOAT,1,1,OGPU_NEXT_COMPARE_LESS,{0},0,{0},{0},NULL,NULL,0,0};
+        OGPU_NEXT_FRONT_CCW,1,1,&color,OGPU_NEXT_D32_FLOAT,1,1,OGPU_NEXT_COMPARE_LESS,{0},0,{0},{0},NULL,NULL,0,0,0};
 #ifdef SCENE_GENERATED
 #ifdef SCENE_FOUNDATION_FRONTIER
     ed.requirements=&scene_identity_pair_requirements.header;

@@ -63,6 +63,8 @@ pub(super) const PRESENTATION: u64 = 144115188075855872;
 pub(super) const MESH_SHADER: u64 = 288230376151711744;
 pub(super) const TASK_SHADER: u64 = 576460752303423488;
 pub(super) const GENERATED_COMMANDS: u64 = 1152921504606846976;
+pub(super) const MULTIVIEW: u64 = 1 << 61;
+pub(super) const MESH_MULTIVIEW: u64 = 1 << 62;
 #[derive(Clone, Copy, Default)]
 pub(super) struct FeatureState {
     pub available: u64,
@@ -77,7 +79,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<u64, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 61 {
+        if id > 63 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u64 << (id - 1);
@@ -85,12 +87,40 @@ pub(super) fn encode(ids: &[u32]) -> Result<u64, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: u64) -> Vec<u32> {
-    (1..=61)
+    (1..=63)
         .filter(|id| mask & (1u64 << (id - 1)) != 0)
         .collect()
 }
 pub(super) unsafe fn required(features: Features) -> Result<u64, Status> {
     encode(unsafe { features.as_slice()? })
+}
+
+/// A view mask selects indices, not a count. Sparse high bits need matching layers.
+pub(super) fn view_mask(enabled: u64, limits: &GraphicsLimits, mask: u32) -> Result<(), Status> {
+    if mask != 0
+        && (enabled & MULTIVIEW == 0 || 32 - mask.leading_zeros() > limits.max_multiview_views)
+    {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
+pub(super) fn render_layers(layers: u32, mask: u32) -> u32 {
+    if mask == 0 {
+        layers
+    } else {
+        32 - mask.leading_zeros()
+    }
+}
+pub(super) fn instance_range(
+    mask: u32,
+    maximum: u32,
+    first: u32,
+    count: u32,
+) -> Result<(), Status> {
+    if mask != 0 && count != 0 && u64::from(first) + u64::from(count) - 1 > u64::from(maximum) {
+        return Err(INVALID);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -117,7 +147,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [62, 64, 65, 128, u32::MAX] {
+        for id in [64, 65, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }
@@ -136,5 +166,49 @@ mod tests {
         list.count = 1;
         list.ids = std::ptr::null();
         assert_eq!(unsafe { required(list) }, Err(INVALID));
+    }
+
+    #[test]
+    fn multiview_uses_highest_index_not_population() {
+        let limits = GraphicsLimits {
+            max_multiview_views: 4,
+            ..Default::default()
+        };
+        assert_eq!(view_mask(0, &limits, 0), Ok(()));
+        assert_eq!(view_mask(0, &limits, 1), Err(UNSUPPORTED));
+        assert_eq!(view_mask(MULTIVIEW, &limits, 0b1010), Ok(()));
+        assert_eq!(view_mask(MULTIVIEW, &limits, 0b10000), Err(UNSUPPORTED));
+        assert_eq!(render_layers(9, 0), 9);
+        assert_eq!(render_layers(0, 0b1010), 4);
+        assert_eq!(render_layers(1, 1 << 31), 32);
+        let full = GraphicsLimits {
+            max_multiview_views: 32,
+            ..Default::default()
+        };
+        assert_eq!(view_mask(MULTIVIEW, &full, 1 << 31), Ok(()));
+    }
+
+    #[test]
+    fn multiview_instance_range_is_wide_and_zero_work_is_valid() {
+        assert_eq!(instance_range(1, 15, 12, 4), Ok(()));
+        assert_eq!(instance_range(1, 15, 12, 5), Err(INVALID));
+        assert_eq!(instance_range(1, u32::MAX, u32::MAX, 2), Err(INVALID));
+        assert_eq!(instance_range(1, 15, u32::MAX, 0), Ok(()));
+        assert_eq!(instance_range(0, 0, u32::MAX, 2), Ok(()));
+    }
+
+    #[test]
+    fn mesh_multiview_requires_explicit_native_dependencies() {
+        assert_eq!(validate_feature_dependencies(MULTIVIEW), Ok(()));
+        for bits in [
+            MESH_MULTIVIEW,
+            MESH_MULTIVIEW | MULTIVIEW,
+            MESH_MULTIVIEW | MESH_SHADER | RASTER,
+        ] {
+            assert_eq!(validate_feature_dependencies(bits), Err(INVALID));
+        }
+        let bits = MESH_MULTIVIEW | MULTIVIEW | MESH_SHADER | RASTER;
+        assert_eq!(validate_feature_dependencies(bits), Ok(()));
+        assert_eq!(encode(&decode(bits)), Ok(bits));
     }
 }

@@ -83,9 +83,9 @@ _Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
-_Static_assert(sizeof(ogpu_next_graphics_limits) == 112, "graphics limits ABI");
+_Static_assert(sizeof(ogpu_next_graphics_limits) == 120, "graphics limits ABI");
 _Static_assert(sizeof(ogpu_next_float_controls) == 24, "float controls ABI");
-_Static_assert(sizeof(ogpu_next_graphics_state) == 176, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_graphics_state) == 184, "graphics state ABI");
 _Static_assert(sizeof(ogpu_next_raster_options) == 96, "raster options ABI");
 _Static_assert(sizeof(ogpu_next_vertex_input) == 48, "vertex input ABI");
 _Static_assert(sizeof(ogpu_next_vertex_binding) == 12, "vertex binding ABI");
@@ -136,6 +136,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_raster_storage.h"
 #include "foundation_mrt.h"
 #include "foundation_depth.h"
+#include "foundation_multiview.h"
 #include "foundation_blend.h"
 #include "foundation_float_atomics.h"
 #include "foundation_matrices.h"
@@ -144,7 +145,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #define RASTER_OPTION_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE) | FIXTURE_BIT(OGPU_NEXT_FEATURE_INDEPENDENT_BLEND) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_CLAMP) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP) | FIXTURE_BIT(OGPU_NEXT_FEATURE_NON_SOLID_FILL) | FIXTURE_BIT(OGPU_NEXT_FEATURE_WIDE_LINES) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DEPTH_BOUNDS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SAMPLE_SHADING) | FIXTURE_BIT(OGPU_NEXT_FEATURE_ALPHA_TO_ONE) | FIXTURE_BIT(OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_LOGIC_OP) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND) | FIXTURE_BIT(OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER))
 #define FOUNDATION_FEATURES (FIXTURE_BIT(OGPU_NEXT_FEATURE_CACHE_CONTROL) | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | FLOAT64_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES | MATRIX_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE))
 static uint64_t foundation_features(uint64_t available) {
-uint64_t enabled = FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | (available & (FOUNDATION_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_INTEGER_DOT) | FLOAT16_ATOMIC_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_CUBE_ARRAY) | FIXTURE_BIT(OGPU_NEXT_FEATURE_MESH_SHADER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_TASK_SHADER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_GENERATED_COMMANDS)));
+uint64_t enabled = FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | (available & (FOUNDATION_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_INTEGER_DOT) | FLOAT16_ATOMIC_FEATURES | FIXTURE_BIT(OGPU_NEXT_FEATURE_CUBE_ARRAY) | FIXTURE_BIT(OGPU_NEXT_FEATURE_MESH_SHADER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_TASK_SHADER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_GENERATED_COMMANDS) | FIXTURE_BIT(OGPU_NEXT_FEATURE_MULTIVIEW) | FIXTURE_BIT(OGPU_NEXT_FEATURE_MESH_MULTIVIEW)));
     /* Existing fixture atomics use Device scope. Do not enable the stricter
      * memory model without its separate Device-scope capability. This is test
      * selection, not runtime policy or a matrix-API dependency. */
@@ -1084,7 +1085,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 48);
+    REQUIRE(argc == 49);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1106,6 +1107,7 @@ int main(int argc, char **argv) {
     REQUIRE(mesh_execution(device, memory_desc, graphics_domain, &argv[38]) == EXIT_SUCCESS);
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 0) == EXIT_SUCCESS);
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 1) == EXIT_SUCCESS);
+    REQUIRE(multiview_execution(device,memory_desc,graphics_domain,argv[48]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(dual_source_execution(device,memory_desc,graphics_domain,argv[3],argv[14]) == EXIT_SUCCESS);

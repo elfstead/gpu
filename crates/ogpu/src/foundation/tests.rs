@@ -345,9 +345,9 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ExecutableDesc>(), 80);
     assert_eq!(size_of::<ExecutableCacheDesc>(), 48);
     assert_eq!(size_of::<Launch>(), 24);
-    assert_eq!(size_of::<GraphicsLimits>(), 112);
+    assert_eq!(size_of::<GraphicsLimits>(), 120);
     assert_eq!(size_of::<FloatControls>(), 24);
-    assert_eq!(size_of::<GraphicsState>(), 176);
+    assert_eq!(size_of::<GraphicsState>(), 184);
     assert_eq!(size_of::<RasterOptions>(), 96);
     assert_eq!(size_of::<VertexInput>(), 48);
     assert_eq!(size_of::<VertexBinding>(), 12);
@@ -520,6 +520,7 @@ fn gpu_foundation_setup() {
                 features::required(features[0].available).unwrap(),
                 features::required(features[0].available).unwrap() & COOPERATIVE_MATRIX,
                 features::required(features[0].available).unwrap() & CUBE_ARRAY,
+                features::required(features[0].available).unwrap() & MULTIVIEW,
                 features::required(features[0].available).unwrap() & VULKAN_MEMORY_MODEL,
                 features::required(features[0].available).unwrap()
                     & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_CHAINS),

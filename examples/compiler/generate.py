@@ -63,6 +63,7 @@ def inspect(reflection, assembly, name="transform"):
                     "UntypedPointersKHR": "shader_untyped_pointers",
                     "Float16": "shader_float16",
                     "DrawParameters": "shader_draw_parameters",
+                    "MultiView": "multiview",
                     "StorageImageExtendedFormats": "storage_image_extended_formats",
                     "StorageImageReadWithoutFormat": "storage_image_read_without_format",
                     "StorageImageWriteWithoutFormat": "storage_image_write_without_format"}
@@ -71,6 +72,9 @@ def inspect(reflection, assembly, name="transform"):
     draw_identity = bool(re.search(r"OpDecorate %\S+ BuiltIn DrawIndex\b", assembly))
     require(("DrawParameters" in caps) == draw_identity and (not draw_identity or stage == "vertex"),
             "draw identity requires vertex DrawParameters")
+    view_identity = bool(re.search(r"OpDecorate %\S+ BuiltIn ViewIndex\b", assembly))
+    require(("MultiView" in caps) == view_identity and (not view_identity or stage in ("vertex", "fragment")),
+            "view identity requires graphics MultiView")
     extensions = re.findall(r'^\s*OpExtension "([^"]+)"\s*$', assembly, re.M)
     require(set(extensions) <= {"SPV_KHR_physical_storage_buffer", "SPV_EXT_descriptor_heap",
                                 "SPV_KHR_untyped_pointers"}, "unmapped extension")
@@ -144,6 +148,7 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     require(api in ("installed", "foundation"), "unsupported target API")
     fields, size, alignment, local, requirements = inspect(reflection, assembly, name)
     if api == "installed":
+        require("multiview" not in requirements, "multiview requires the foundation API")
         require(not any(r.startswith("storage_image_") for r in requirements),
                 "new storage image capabilities require the foundation API")
         require(set(getattr(fields, "resources", [])) <=
@@ -234,7 +239,8 @@ def foundation_records(name, size, local, requirements, stage="compute"):
                 "storage_image_extended_formats", "storage_image_read_without_format",
                 "storage_image_write_without_format"}
     optional = {"shader_float16": "OGPU_NEXT_FEATURE_FLOAT16", "graphics_queue": "OGPU_NEXT_FEATURE_RASTER",
-                "shader_draw_parameters": "OGPU_NEXT_FEATURE_RASTER"}
+                "shader_draw_parameters": "OGPU_NEXT_FEATURE_RASTER",
+                "multiview": "OGPU_NEXT_FEATURE_MULTIVIEW"}
     require(set(requirements) <= baseline | optional.keys(), "unmapped foundation requirement")
     required = sorted({optional[r] for r in requirements if r in optional})
     require(stage in ("compute", "vertex", "fragment"), "unsupported foundation stage")

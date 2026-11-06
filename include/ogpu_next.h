@@ -1,6 +1,6 @@
 #ifndef OGPU_NEXT_H
 #define OGPU_NEXT_H
-/* Experimental foundation revision 9, not ABI 20; the default Linux SDK surface.
+/* Experimental foundation revision 10, not ABI 20; the default Linux SDK surface.
  * Only declarations in THIS header are implemented (Linux Vulkan for now).
  * The remaining design lives in docs/drafts/ogpu_next.h.
  *
@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 9u
+#define OGPU_NEXT_VERSION 10u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -219,6 +219,8 @@ typedef struct ogpu_next_image_limits {
  * used simultaneously, or that memory of that size is currently available.
  */
 ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const ogpu_next_image_profile *, ogpu_next_image_limits *);
+#define OGPU_NEXT_FEATURE_MULTIVIEW UINT32_C(62)
+#define OGPU_NEXT_FEATURE_MESH_MULTIVIEW UINT32_C(63)
 #define OGPU_NEXT_FEATURE_RASTER UINT32_C(1)
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT32_C(2)
 #define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT32_C(3)
@@ -890,7 +892,7 @@ typedef struct ogpu_next_render_inheritance {
     ogpu_next_host_span scratch;
 } ogpu_next_render_inheritance;
 /* Rendering inheritance declares compatible attachment formats/sample count, not
- * attachment handles. Zero formats mean unused; view_mask=reserved=0 for now.
+ * attachment handles. Zero formats mean unused; reserved=0. view_mask must match the parent scope.
  * Both nonzero depth/stencil formats must match. Format translation uses caller
  * scratch, borrowed with all description data only during commands_begin. The
  * caller proves formats/count/samples match each eventual primary render scope.
@@ -1461,6 +1463,8 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t max_dual_source_attachments;
     uint32_t depth_resolve_modes, stencil_resolve_modes;
     uint32_t independent_resolve_none, independent_resolve;
+    /* One greater than the highest supported view index (<=32), not popcount. */
+    uint32_t max_multiview_views, max_multiview_instance_index;
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
@@ -1568,6 +1572,7 @@ typedef struct ogpu_next_graphics_state {
     const ogpu_next_record *vertex_input;
     const ogpu_next_record *raster_options;
     uint32_t logic_op_enable, logic_op;
+    uint32_t view_mask; /* zero: ordinary layered rendering; otherwise MULTIVIEW */
 } ogpu_next_graphics_state;
 enum {
     OGPU_NEXT_LOGIC_CLEAR = 0, OGPU_NEXT_LOGIC_AND = 1, OGPU_NEXT_LOGIC_AND_REVERSE = 2,
@@ -1729,7 +1734,17 @@ typedef struct ogpu_next_draw_desc {
     int32_t vertex_offset;
 } ogpu_next_draw_desc;
 /* Render begin does not need an executable and permits clear-only or attachmentless
- * scopes. Area is explicit and nonempty; layers>0; view_mask=0.
+ * scopes. Area is explicit and nonempty. With view_mask=0, layers must be >0.
+ * A nonzero view_mask requires MULTIVIEW and selects array indices relative to
+ * each attachment view's first_layer; layers is ignored. The highest set bit must
+ * fit max_multiview_views and every attachment/resolve view's layer_count.
+ * Pipeline and secondary inheritance masks must exactly match the render mask.
+ * Mesh pipelines additionally require MESH_MULTIVIEW and max_mesh_multiview_views.
+ * Multiview direct draws validate first_instance+instances-1 against
+ * max_multiview_instance_index; indirect/generated contents remain caller proof.
+ * Queries begun inside multiview and timestamp writes consume popcount(view_mask)
+ * consecutive pool slots. Sum occlusion/statistics results across these slots;
+ * their distribution is native-defined. Queries cannot enclose multiview scopes.
  * flags=0 selects inline commands; RENDER_SECONDARY selects secondary execution
  * in a primary scope and disallows inline draws. Nested execution is unsupported.
  * samples is one supported count and must match all non-resolve attachments.
@@ -2065,7 +2080,7 @@ typedef struct ogpu_next_query_pool_desc {
  *
  * Occlusion requires RASTER. One query of EACH type may be active per list;
  * occlusion and statistics may overlap. Begin/end match pool/index and render
- * scope. An outside-scope query may enclose complete scopes. An inside-scope query
+ * scope. An outside-scope query may enclose complete non-multiview scopes. An inside-scope query
  * must end before render_end. Begin flags=0, or PRECISE for occlusion with enabled
  * PRECISE_OCCLUSION; only PRECISE promises the actual number of passing samples.
  * Statistics use flags=0 and require a queue supporting every selected operation:

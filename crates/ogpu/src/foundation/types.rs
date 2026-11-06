@@ -25,7 +25,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 9;
+pub const VERSION: u32 = 10;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
     pub const RASTER: u32 = 1;
@@ -89,6 +89,8 @@ pub mod feature_ids {
     pub const MESH_SHADER: u32 = 59;
     pub const TASK_SHADER: u32 = 60;
     pub const GENERATED_COMMANDS: u32 = 61;
+    pub const MULTIVIEW: u32 = 62;
+    pub const MESH_MULTIVIEW: u32 = 63;
 }
 /// Borrowed feature IDs. Input storage lives through its host call. Query output
 /// storage lives through the queried adapter/discovery or device lifetime.
@@ -673,6 +675,11 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: u64) -> Result<(), Status> {
+    if required & MESH_MULTIVIEW != 0
+        && required & (MULTIVIEW | MESH_SHADER) != (MULTIVIEW | MESH_SHADER)
+    {
+        return Err(INVALID);
+    }
     if required & MESH_SHADER != 0 && required & RASTER == 0
         || required & TASK_SHADER != 0 && required & MESH_SHADER == 0
     {
@@ -853,6 +860,8 @@ pub struct GraphicsLimits {
     pub stencil_resolve_modes: u32,
     pub independent_resolve_none: u32,
     pub independent_resolve: u32,
+    pub max_multiview_views: u32,
+    pub max_multiview_instance_index: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]
@@ -900,6 +909,7 @@ pub struct GraphicsState {
     pub raster_options: *const Record,
     pub logic_op_enable: u32,
     pub logic_op: u32,
+    pub view_mask: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]

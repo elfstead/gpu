@@ -69,6 +69,7 @@ pub struct List {
     executable: Cell<*const Executable>,
     graphics: Cell<*const Executable>,
     rendering: Cell<bool>,
+    view_mask: Cell<u32>,
     viewport_set: Cell<bool>,
     index_count: Cell<Option<u64>>,
     active_queries: [Cell<Option<ActiveQuery>>; 2],
@@ -154,6 +155,7 @@ impl Arena {
                 executable: Cell::new(ptr::null()),
                 graphics: Cell::new(ptr::null()),
                 rendering: Cell::new(false),
+                view_mask: Cell::new(0),
                 viewport_set: Cell::new(false),
                 index_count: Cell::new(None),
                 active_queries: [const { Cell::new(None) }; 2],
@@ -234,6 +236,7 @@ impl Arena {
         let mut prepared = unsafe { secondary::inheritance(d, self.domain, desc)? };
         let continuation = prepared.rendering.is_some();
         let inherited_heaps = prepared.heap_mask();
+        let view_mask = prepared.rendering.as_ref().map_or(0, |r| r.viewMask);
         if continuation {
             stages(d, self.domain, 24, false)?;
         }
@@ -259,6 +262,7 @@ impl Arena {
         slot.graphics.set(ptr::null());
         slot.continuation = continuation;
         slot.rendering.set(slot.continuation);
+        slot.view_mask.set(view_mask);
         slot.secondary_contents.set(false);
         slot.inherited_occlusion = inheritance.occlusionQueryEnable;
         slot.inherited_query_flags = inheritance.queryFlags;
@@ -817,9 +821,14 @@ impl List {
         if self.level == 1 && desc.flags & 1 != 0 {
             return Err(UNSUPPORTED);
         }
+        // Native multiview queries must begin and end inside the render instance.
+        if desc.view_mask != 0 && self.active_queries.iter().any(|q| q.get().is_some()) {
+            return Err(INVALID);
+        }
         unsafe {
             d.begin_render(self.command, self.domain, desc)?;
         }
+        self.view_mask.set(desc.view_mask);
         self.rendering.set(true);
         self.secondary_contents.set(desc.flags & 1 != 0);
         Ok(())
@@ -839,6 +848,7 @@ impl List {
             (d.f.vkCmdEndRendering.unwrap())(self.command);
         }
         self.rendering.set(false);
+        self.view_mask.set(0);
         self.secondary_contents.set(false);
         Ok(())
     }
@@ -947,7 +957,7 @@ impl List {
     ) -> Result<(), Status> {
         let d = self.recording()?;
         stages(d, self.domain, 32, false)?;
-        pool.range(d, index, 1)?;
+        pool.range(d, index, self.view_mask.get().count_ones().max(1))?;
         if !matches!(pool.kind, 2 | 3) {
             return Err(INVALID);
         }
@@ -1000,7 +1010,7 @@ impl List {
         scope: u64,
     ) -> Result<(), Status> {
         let d = self.recording()?;
-        pool.range(d, index, 1)?;
+        pool.range(d, index, self.view_mask.get().count_ones().max(1))?;
         let native = stages(d, self.domain, scope, true)?;
         if pool.kind != 1 || native.count_ones() != 1 {
             return Err(INVALID);
@@ -1065,7 +1075,8 @@ impl List {
         Ok(())
     }
     fn drawing(&self, indexed: bool) -> Result<&Device, Status> {
-        if self.executable(24)?.stages & MESH_STAGE != 0 {
+        let executable = self.executable(24)?;
+        if executable.view_mask != self.view_mask.get() || executable.stages & MESH_STAGE != 0 {
             return Err(INVALID);
         }
         if !self.rendering.get()
@@ -1079,7 +1090,8 @@ impl List {
     }
     fn mesh_drawing(&self) -> Result<(&Device, &MeshWorkgroupLimits), Status> {
         let executable = self.executable(MESH_STAGE)?;
-        if executable.stages & MESH_STAGE == 0
+        if executable.view_mask != self.view_mask.get()
+            || executable.stages & MESH_STAGE == 0
             || !self.rendering.get()
             || self.secondary_contents.get()
             || !self.viewport_set.get()
@@ -1121,6 +1133,12 @@ impl List {
     }
     pub(in crate::foundation) fn draw(&self, draw: &DrawDesc, indexed: bool) -> Result<(), Status> {
         let d = self.drawing(indexed)?;
+        features::instance_range(
+            self.view_mask.get(),
+            d.snapshot.graphics_limits.max_multiview_instance_index,
+            draw.first_instance,
+            draw.instances,
+        )?;
         if indexed {
             if u64::from(draw.first) + u64::from(draw.count) > self.index_count.get().unwrap() {
                 return Err(INVALID);

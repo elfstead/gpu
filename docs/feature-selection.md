@@ -50,7 +50,7 @@ obligations. This is not a general safe ownership wrapper.
 Device creation and executable preparation decode requests once. Existing command
 checks remain direct private native-enable checks. No list traversal, allocation,
 resource tracking or fallback is added to recording, submission or GPU work.
-The private implementation currently represents the 61 native enables in a `u64`;
+The private implementation currently represents the 63 native enables in a `u64`;
 it can grow or change that encoding without another public representation change.
 The public list count is not a mask width. Unsupported future IDs are rejected
 because the runtime does not implement them, not because the ABI cannot represent
@@ -81,7 +81,7 @@ now passes; the receipt identifies both clean commits and unchanged C artifact
 identity after the final Rust-consumer fix. Windows/Metal foundation acceptance remains open; no new backend
 execution or global performance claim follows from this representation change.
 
-Next: multiview, including independently requested native enabling, limits,
-shader requirements, prepared pipeline masks, primary/secondary render masks and
-array-layer correctness. Shading rate, tile-local/pass continuation and remaining
-stages follow in M8; ray tracing remains M9.
+Revision 10 now adds [multiview](multiview.md) using this same counted-list
+representation: native enabling/limits, shader requirements, pipeline/render/
+secondary masks and array-layer correctness. Shading rate, tile-local/pass
+continuation and remaining stages follow in M8; ray tracing remains M9.

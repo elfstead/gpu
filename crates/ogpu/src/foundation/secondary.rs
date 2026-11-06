@@ -122,8 +122,8 @@ pub(super) unsafe fn inheritance(
         return Err(UNSUPPORTED);
     }
     let r = unsafe { executable_record::<RenderInheritance>(input.rendering, RENDER_INHERITANCE)? };
-    if r.view_mask != 0 || r.reserved != 0 || r.color_count > d.snapshot.graphics_limits.max_colors
-    {
+    features::view_mask(enabled, &d.snapshot.graphics_limits, r.view_mask)?;
+    if r.reserved != 0 || r.color_count > d.snapshot.graphics_limits.max_colors {
         return Err(UNSUPPORTED);
     }
     samples(r.samples, 127)?;
@@ -149,6 +149,7 @@ pub(super) unsafe fn inheritance(
         depthAttachmentFormat: attachment_format(d, r.depth_format, 2)?,
         stencilAttachmentFormat: attachment_format(d, r.stencil_format, 4)?,
         rasterizationSamples: r.samples,
+        viewMask: r.view_mask,
         ..Default::default()
     });
     Ok(prepared)
@@ -186,6 +187,7 @@ impl List {
                 || child.level != 1
                 || child.state.get() != 2
                 || child.continuation != self.rendering.get()
+                || (self.rendering.get() && child.view_mask.get() != self.view_mask.get())
                 || self.mode == 3 && child.mode != 3
             {
                 return Err(INVALID);

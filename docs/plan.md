@@ -318,9 +318,12 @@ recording retains direct checks. Source/ABI and local Vulkan regression pass;
 [clean installed-consumer acceptance](results/m8-feature-selection-2026-11-06.md)
 now passes for C/GGML/libplacebo and native Rust/Wayland. The receipt distinguishes
 the two clean acceptance commits and verifies unchanged C artifact identity.
-Next implement multiview using independently enabled native support and explicit
-render/pipeline/inheritance masks, with array-layer pixel and rejection coverage.
-Continue with shading rate, tile-local/pass-continuation and remaining
+Revision 10 implements [native multiview](multiview.md), including independently
+enabled support, limits, pipeline/render/inheritance masks, compiler requirements,
+sparse/offset array-layer checks and rejections. The [local receipt](results/m8-multiview-2026-11-06.md)
+records primary/secondary replay, the timestamp validation-layer limitation and
+remaining color/MSAA/generated/mesh acceptance. Complete clean revision-10 SDK
+acceptance, then continue with shading rate, tile-local/pass-continuation and remaining
 tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.

@@ -68,7 +68,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
         {OGPU_NEXT_RGBA8_UNORM,5,0,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ZERO,OGPU_NEXT_BLEND_ADD,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ZERO,OGPU_NEXT_BLEND_ADD}
     };
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,2,states,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
+        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,2,states,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
     if (mode >= 15) {
         gs.logic_op_enable = 1; gs.logic_op = mode-15;
         // Caller state is explicit. A separate diagnostic exercises native logic

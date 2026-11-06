@@ -30,7 +30,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
     }
     ogpu_next_color_state color = {OGPU_NEXT_RGBA32_FLOAT,15,1,1,1,0,1,1,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
+        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),
         FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND)),{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,

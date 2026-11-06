@@ -21,7 +21,7 @@ def reflected_type(typ):
 
 def reflected(entry):
     stage = entry["stage"]
-    require(len(entry["parameters"]) in ((1, 2) if stage == "vertex" else (1,)), "unsupported entry input count")
+    require(len(entry["parameters"]) in ((1, 2, 3) if stage == "vertex" else (1, 2) if stage == "fragment" else (1,)), "unsupported entry input count")
     expected = []
 
     def field(value, storage):
@@ -30,6 +30,8 @@ def reflected(entry):
         builtin = {
             ("compute", "Input", "SV_DISPATCHTHREADID"): ("GlobalInvocationId", "uint32", 3),
             ("vertex", "Input", "SV_VULKANVERTEXID"): ("VertexIndex", "uint32", 1),
+            ("vertex", "Input", "SV_VIEWID"): ("ViewIndex", "uint32", 1),
+            ("fragment", "Input", "SV_VIEWID"): ("ViewIndex", "uint32", 1),
             ("vertex", "Input", "SV_DRAWINDEX"): ("DrawIndex", "uint32", 1),
             ("vertex", "Output", "SV_POSITION"): ("Position", "float32", 4),
             ("fragment", "Input", "SV_POSITION"): ("FragCoord", "float32", 4),
@@ -37,7 +39,7 @@ def reflected(entry):
         if builtin:
             require((scalar, lanes) == builtin[1:] and "binding" not in value, "builtin reflection mismatch")
             # Slang exposes unsigned source IDs with signed native builtins.
-            expected.append((storage, "BuiltIn "+builtin[0], "int32" if builtin[0] in ("VertexIndex", "DrawIndex") else scalar, lanes))
+            expected.append((storage, "BuiltIn "+builtin[0], "int32" if builtin[0] in ("VertexIndex", "DrawIndex", "ViewIndex") else scalar, lanes))
             return
         require((stage, storage) in (("vertex", "Output"), ("fragment", "Input"), ("fragment", "Output")),
                 "unsupported stage varying direction")
@@ -79,8 +81,8 @@ def reflected(entry):
     required_builtins = {"compute": [("Input", "BuiltIn GlobalInvocationId")],
                          "vertex": [("Input", "BuiltIn VertexIndex"), ("Output", "BuiltIn Position")],
                          "fragment": []}[stage]
-    optional_builtins = {"compute": [], "vertex": [("Input", "BuiltIn DrawIndex")],
-                         "fragment": [("Input", "BuiltIn FragCoord")]}[stage]
+    optional_builtins = {"compute": [], "vertex": [("Input", "BuiltIn DrawIndex"), ("Input", "BuiltIn ViewIndex")],
+                         "fragment": [("Input", "BuiltIn FragCoord"), ("Input", "BuiltIn ViewIndex")]}[stage]
     actual_builtins = [(row[0], row[1]) for row in expected if row[1].startswith("BuiltIn")]
     require(set(required_builtins) <= set(actual_builtins) <= set(required_builtins + optional_builtins),
             "required stage builtin missing/duplicated")
@@ -108,7 +110,9 @@ def inspect(entry, definitions, variables, assembly, heap_ids):
         location = locations[0]
         interpolation = set(decorations) - {location}
         require(interpolation in (set(), {"Flat"}, {"NoPerspective"}), "unsupported interpolation decoration")
-        require(not interpolation or location.startswith("Location") and
+        require(not interpolation or
+                (location == "BuiltIn ViewIndex" and entry["stage"] == "fragment" and storage == "Input" and interpolation == {"Flat"}) or
+                location.startswith("Location") and
                 (entry["stage"], storage) in (("vertex", "Output"), ("fragment", "Input")),
                 "interpolation outside varying interface")
         if location.startswith("Location") and entry["stage"] == "fragment" and storage == "Input" and scalar != "float32":

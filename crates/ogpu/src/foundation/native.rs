@@ -357,13 +357,23 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()
         };
+        let mut multiview = vk::VkPhysicalDeviceMultiviewFeatures {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
+            pNext: ptr::from_mut(&mut v12).cast(),
+            ..Default::default()
+        };
         let mut root = vk::VkPhysicalDeviceFeatures2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            pNext: ptr::from_mut(&mut v12).cast(),
+            pNext: ptr::from_mut(&mut multiview).cast(),
+            ..Default::default()
+        };
+        let mut multiview_properties = vk::VkPhysicalDeviceMultiviewProperties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES,
             ..Default::default()
         };
         let mut dot_properties = vk::VkPhysicalDeviceShaderIntegerDotProductProperties {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES,
+            pNext: ptr::from_mut(&mut multiview_properties).cast(),
             ..Default::default()
         };
         let mut subgroup_control = vk::VkPhysicalDeviceSubgroupSizeControlProperties {
@@ -407,6 +417,9 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
+        if multiview.multiview != 0 {
+            features.available |= MULTIVIEW;
+        }
         features.available |= float_atomics::available(&float_atomic, &float_atomic2);
         if v12.vulkanMemoryModel != 0 {
             features.available |= VULKAN_MEMORY_MODEL;
@@ -541,6 +554,12 @@ pub(super) fn snapshot(
             stencil_resolve_modes: v12_properties.supportedStencilResolveModes & 13,
             independent_resolve_none: v12_properties.independentResolveNone,
             independent_resolve: v12_properties.independentResolve,
+            max_multiview_views: if multiview.multiview != 0 {
+                multiview_properties.maxMultiviewViewCount.min(32)
+            } else {
+                0
+            },
+            max_multiview_instance_index: multiview_properties.maxMultiviewInstanceIndex,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
@@ -606,7 +625,12 @@ pub(super) fn snapshot(
     let (generated_features, generated_limits) = generated::snapshot(instance, physical, &f)?;
     features.available |= generated_features;
     if features.available & RASTER != 0 {
-        features.available |= mesh_features;
+        features.available |= mesh_features
+            & if features.available & MULTIVIEW != 0 {
+                u64::MAX
+            } else {
+                !MESH_MULTIVIEW
+            };
     }
     if instance.wayland_enabled() {
         let support = super::presentation::support_native(instance, physical)?;
@@ -874,10 +898,16 @@ impl Device {
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()
         };
+        let mut multiview = vk::VkPhysicalDeviceMultiviewFeatures {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
+            multiview: u32::from(enabled & MULTIVIEW != 0),
+            pNext: ptr::from_mut(&mut v12).cast(),
+            ..Default::default()
+        };
         let mut storage16 = vk::VkPhysicalDevice16BitStorageFeatures {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
             storageBuffer16BitAccess: 1,
-            pNext: ptr::from_mut(&mut v12).cast(),
+            pNext: ptr::from_mut(&mut multiview).cast(),
             ..Default::default()
         };
         let draw_parameters = vk::VkPhysicalDeviceShaderDrawParametersFeatures {
@@ -947,6 +977,7 @@ impl Device {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
             pNext: previous.cast_mut(),
             meshShader: u32::from(enabled & MESH_SHADER != 0),
+            multiviewMeshShader: u32::from(enabled & MESH_MULTIVIEW != 0),
             taskShader: u32::from(enabled & TASK_SHADER != 0),
             ..Default::default()
         };

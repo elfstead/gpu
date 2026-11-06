@@ -1,9 +1,15 @@
 # Current support boundary
 
-Updated 2026-11-06. The default SDK is foundation revision 9; ABI20 packaging is
+Updated 2026-11-06. The default SDK is foundation revision 10; ABI20 packaging is
 explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
+
+Revision 10 adds [native multiview](multiview.md): feature/limit queries,
+pipeline/render/secondary masks and layered D32 execution pass locally. The
+[receipt](results/m8-multiview-2026-11-06.md) separates complete native timestamp
+readback from the installed validation layer's incomplete timestamp tracking.
+Color/MSAA/generated and physical mesh-multiview acceptance remain open.
 
 Revision 9 implements [counted feature selection](feature-selection.md) across
 C, native Rust and generated artifacts. Its local source/ABI, Vulkan and
@@ -34,7 +40,7 @@ not imply FP16 arithmetic, subgroup or matrix support. See the
 [SDK guide](foundation-quickstart.md), [implemented surface](foundation-implementation.md)
 and [contract dispositions](core-contract-review.md) for exact contracts and gaps.
 
-[Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) at `fc11fda` covers the public contract, native execution, bounded Wayland and isolated C/native Rust SDKs, including pinned GGML/libplacebo consumers. Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5, now refreshed for revision 9 above. Earlier receipts also used llvmpipe
+[Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) at `fc11fda` covers the public contract, native execution, bounded Wayland and isolated C/native Rust SDKs, including pinned GGML/libplacebo consumers. Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5, now refreshed for revision 10 above. Earlier receipts also used llvmpipe
 26.2.1; those are historical software evidence, not a fresh revision-7 run. M4 and M5 pass their declared scope. The full C fixture passes on Radeon;
 llvmpipe retains the explicit combined-depth/stencil-copy exclusion and the
 historical native-reproduced counted-to-fixed failure. Software is not another

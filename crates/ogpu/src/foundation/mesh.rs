@@ -68,7 +68,13 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
     }
     let features = if mesh.meshShader != 0 {
-        MESH_SHADER | if mesh.taskShader != 0 { TASK_SHADER } else { 0 }
+        MESH_SHADER
+            | if mesh.taskShader != 0 { TASK_SHADER } else { 0 }
+            | if mesh.multiviewMeshShader != 0 {
+                MESH_MULTIVIEW
+            } else {
+                0
+            }
     } else {
         0
     };

@@ -13,7 +13,7 @@ import oracle
 HERE=Path(__file__).resolve().parent
 
 
-FOUNDATION_REVISION = 9
+FOUNDATION_REVISION = 10
 
 def require(value,message):
     if not value:raise ValueError(message)

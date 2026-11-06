@@ -527,6 +527,7 @@ impl GeneratedSet {
                 || !ptr::eq(e.device, d)
                 || !e.indirect_bindable
                 || e.stages != initial.stages
+                || e.view_mask != initial.view_mask
                 || !e.arguments().generated_compatible(initial.arguments())
                 || writes[..i].iter().any(|p| p.index == w.index)
             {

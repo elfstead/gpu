@@ -1013,7 +1013,7 @@ impl View {
             || !matches!(c.b, 0 | 5)
             || !matches!(c.a, 0 | 6)
             || r.levelCount != 1
-            || r.layerCount < desc.layers
+            || r.layerCount < features::render_layers(desc.layers, desc.view_mask)
             || !matches!(
                 self.info.viewType,
                 vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D

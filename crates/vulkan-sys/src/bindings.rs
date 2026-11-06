@@ -7399,6 +7399,92 @@ impl Default for VkPhysicalDeviceMaintenance3Properties {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMultiviewFeatures {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub multiview: VkBool32,
+    pub multiviewGeometryShader: VkBool32,
+    pub multiviewTessellationShader: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMultiviewFeatures",
+    ][::std::mem::size_of::<VkPhysicalDeviceMultiviewFeatures>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceMultiviewFeatures",
+    ][::std::mem::align_of::<VkPhysicalDeviceMultiviewFeatures>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewFeatures::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewFeatures, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewFeatures::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewFeatures, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewFeatures::multiview",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewFeatures, multiview) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewFeatures::multiviewGeometryShader",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewFeatures, multiviewGeometryShader)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewFeatures::multiviewTessellationShader",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMultiviewFeatures, multiviewTessellationShader
+    ) - 24usize];
+};
+impl Default for VkPhysicalDeviceMultiviewFeatures {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMultiviewProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxMultiviewViewCount: u32,
+    pub maxMultiviewInstanceIndex: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMultiviewProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceMultiviewProperties>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceMultiviewProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceMultiviewProperties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewProperties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewProperties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewProperties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewProperties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewProperties::maxMultiviewViewCount",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMultiviewProperties, maxMultiviewViewCount)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceMultiviewProperties::maxMultiviewInstanceIndex",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMultiviewProperties, maxMultiviewInstanceIndex
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceMultiviewProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderDrawParametersFeatures {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,

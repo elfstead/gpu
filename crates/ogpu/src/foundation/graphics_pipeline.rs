@@ -141,6 +141,11 @@ pub(super) unsafe fn prepare(
     }
     let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
     let mut state = unsafe { *record::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
+    features::view_mask(
+        d.snapshot.features.enabled,
+        &d.snapshot.graphics_limits,
+        state.view_mask,
+    )?;
     // Native dynamic fields ignore their static counterparts. Sanitize only
     // those ignored cold-path fields before ordinary validation/native creation.
     for (bit, field) in [
@@ -175,6 +180,14 @@ pub(super) unsafe fn prepare(
         return Err(UNSUPPORTED);
     }
     let mesh_pipeline = stage_mask & MESH_STAGE != 0;
+    if mesh_pipeline
+        && state.view_mask != 0
+        && (d.snapshot.features.enabled & MESH_MULTIVIEW == 0
+            || 32 - state.view_mask.leading_zeros()
+                > d.snapshot.mesh_limits.max_mesh_multiview_views)
+    {
+        return Err(UNSUPPORTED);
+    }
     let mesh_req = if mesh_pipeline {
         let req = unsafe { record::<MeshRequirements>(desc.requirements, MESH_REQUIREMENTS)? };
         unsafe {
@@ -672,11 +685,11 @@ pub(super) unsafe fn prepare(
     let rendering = vk::VkPipelineRenderingCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
         pNext: ptr::from_ref(&flags).cast(),
+        viewMask: state.view_mask,
         colorAttachmentCount: formats.len() as u32,
         pColorAttachmentFormats: formats.as_ptr(),
         depthAttachmentFormat: if has_depth { depth_format } else { 0 },
         stencilAttachmentFormat: if has_stencil { depth_format } else { 0 },
-        ..Default::default()
     };
     let info = vk::VkGraphicsPipelineCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -703,6 +716,7 @@ pub(super) unsafe fn prepare(
         pipeline: ptr::null_mut(),
         arguments: layout,
         stages: stage_mask,
+        view_mask: state.view_mask,
         indirect_bindable: desc.compile_flags & 2 != 0,
         dynamic_state: desc.dynamic_state,
         vertex_bindings: vertex_bindings.iter().map(|b| b.binding).collect(),

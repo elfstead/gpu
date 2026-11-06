@@ -12,6 +12,7 @@ pub struct Executable {
     pub(super) pipeline: vk::VkPipeline,
     pub(super) arguments: *const ArgumentLayout,
     pub(super) stages: u64,
+    pub(super) view_mask: u32,
     pub(super) indirect_bindable: bool,
     pub(super) dynamic_state: u64,
     pub(super) vertex_bindings: Box<[u32]>,
@@ -195,6 +196,7 @@ impl Executable {
             pipeline: ptr::null_mut(),
             arguments: layout,
             stages: 4,
+            view_mask: 0,
             indirect_bindable: desc.compile_flags & 2 != 0,
             dynamic_state: 0,
             vertex_bindings: Box::new([]),
@@ -727,6 +729,7 @@ mod tests {
                 raster_options: ptr::null(),
                 logic_op_enable: 0,
                 logic_op: 0,
+                view_mask: 0,
             };
             let required_ids = features::decode(RASTER);
             let req = ShaderRequirements {
@@ -1000,6 +1003,7 @@ mod tests {
                     let logic_state = GraphicsState {
                         logic_op_enable: 1,
                         logic_op: op,
+                        view_mask: 0,
                         colors: &blend_color,
                         ..state
                     };
@@ -1022,6 +1026,7 @@ mod tests {
                     let logic_state = GraphicsState {
                         logic_op_enable: enable,
                         logic_op: op,
+                        view_mask: 0,
                         ..state
                     };
                     let logic_desc = ExecutableDesc {

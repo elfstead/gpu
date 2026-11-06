@@ -18,6 +18,11 @@ status-only presentation. Bounded Wayland consumers, the C2 audit and [clean loc
 
 M8 continuation, 2026-11-06: [generated ordinary/indexed/nested-count graphics with consumer-owned culling](results/m8-generated-indexed-counts-2026-11-06.md) passes on Radeon using the existing API (48 submissions, 98,304 pixels). Graphics pipeline selection remains unavailable locally; the [revision-8 buffer-state follow-up](results/m8-generated-buffer-state-2026-11-06.md) now implements and verifies vertex/index tokens and explicit vertex stride. Richer raster/scene coverage remains open.
 
+M8 multiview, 2026-11-06: [revision 10](multiview.md) implements native view masks,
+limits and shader requirements with sparse/offset D32 layers, primary/secondary
+execution and query checks. [Local evidence](results/m8-multiview-2026-11-06.md)
+distinguishes the timestamp validation-layer limitation and untested combinations.
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and

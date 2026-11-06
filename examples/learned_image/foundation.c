@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
     ogpu_next_shader graphics[2]; application_shaders(graphics);
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,
-        OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
+        OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,2,graphics,
         &gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&application_requirements.header,NULL,0,0}; TRY(ogpu_next_argument_layout_create(device,&application_arguments,&raster_arguments));
     TRY(ogpu_next_executable_create(device,&ed,raster_arguments,&raster));

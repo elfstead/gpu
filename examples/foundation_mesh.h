@@ -30,7 +30,7 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,0,0,0,0,0,0};
     /* Input topology is ignored by mesh pipelines; deliberately not a vertex enum. */
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        UINT32_MAX,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
+        UINT32_MAX,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
     REQUIRE(limits.output_vertex_granularity > 0);
     uint32_t padded_vertices = ((3+limits.output_vertex_granularity-1)/limits.output_vertex_granularity)*limits.output_vertex_granularity;
     ogpu_next_mesh_requirements req = {HEADER(ogpu_next_mesh_requirements,OGPU_NEXT_MESH_REQUIREMENTS),

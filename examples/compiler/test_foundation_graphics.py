@@ -1,5 +1,6 @@
 """Check actual linked artifacts, shared bank records and mismatched-stage rejection."""
 import json
+import os
 import unittest
 import generate as g
 import link_graphics
@@ -15,6 +16,22 @@ class FoundationGraphicsTests(unittest.TestCase):
                 directory = g.ROOT / "target/foundation-graphics" / variant / stage
                 cls.fixtures[variant,stage] = (json.loads((directory / "reflection.json").read_text()),
                     g.run("spirv-dis",str(directory / "transform.spv")),(directory / "transform.spv").read_bytes())
+
+    def test_multiview_artifacts_and_legacy_rejection(self):
+        directory = g.ROOT / "target/foundation-graphics/multiview"
+        directory.mkdir(parents=True, exist_ok=True)
+        for stage, source in (
+            ("vertex", (g.ROOT / "examples/shaders/foundation-multiview.slang").read_text().replace("vertexMain", "main")),
+            ("fragment", '[shader("fragment")] float4 main(uint view : SV_ViewID) : SV_Target { return float4(view,0,0,1); }'),
+        ):
+            path = directory / (stage+".slang"); path.write_text(source)
+            reflected, assembly, binary = g.compile_source(path, directory / stage, os.getenv("SLANGC", "slangc"), stage=stage)
+            content = g.header(reflected, assembly, binary, source.encode(), api="foundation")
+            self.assertIn("OGPU_NEXT_FEATURE_MULTIVIEW", content)
+            with self.assertRaisesRegex(ValueError, "multiview requires"):
+                g.header(reflected, assembly, binary, source.encode(), api="installed")
+            with self.assertRaisesRegex(ValueError, "view identity"):
+                g.inspect(reflected, assembly.replace("OpCapability MultiView", ""))
 
     def description(self, variant, stage):
         return g.inspect(*self.fixtures[variant,stage][:2],"pattern_"+stage)

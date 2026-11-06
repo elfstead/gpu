@@ -308,6 +308,7 @@ pub unsafe fn raster(
         raster_options: ptr::null(),
         logic_op_enable: 0,
         logic_op: 0,
+        view_mask: 0,
     };
     unsafe {
         gpu::executable_create(

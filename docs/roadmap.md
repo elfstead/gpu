@@ -589,8 +589,12 @@ shader/compiler and native Rust consumers. Native enables stay independent;
 private encoding and list preparation are cold.
 [Clean C and Rust SDK acceptance](results/m8-feature-selection-2026-11-06.md)
 now passes alongside source/ABI and local Vulkan regression.
-Then implement multiview, shading-rate, tile-local/pass-continuation and remaining
-tessellation/geometry profiles.
+Revision 10 now implements [multiview](multiview.md): explicit native enabling,
+physical limits, pipeline/render/inheritance masks, shader requirements and
+[local sparse/offset-layer correctness](results/m8-multiview-2026-11-06.md).
+Color/MSAA/resolve, generated/mesh multiview and corrected-layer full timestamp
+validation remain acceptance work. Next implement shading-rate, then
+tile-local/pass-continuation and remaining tessellation/geometry profiles.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage
