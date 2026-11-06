@@ -1,9 +1,11 @@
 # Current support boundary
 
-Updated 2026-11-06. The default SDK is foundation revision 7; ABI20 packaging is
+Updated 2026-11-06. The default SDK is foundation revision 8; ABI20 packaging is
 explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
+
+Current revision 8 adds [generated vertex/index state and explicit vertex stride](results/m8-generated-buffer-state-2026-11-06.md), verified locally under Vulkan validation. Revision-7 clean SDK evidence below remains identified by its historical commit.
 
 ## Default Linux/Vulkan foundation
 

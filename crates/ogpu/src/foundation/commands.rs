@@ -1188,7 +1188,7 @@ impl List {
         &self,
         first: u32,
         count: u32,
-        spans: *const Span,
+        spans: *const VertexBufferBinding,
         scratch: HostSpan,
     ) -> Result<(), Status> {
         let d = self.recording()?;
@@ -1212,16 +1212,26 @@ impl List {
         }
         let output = scratch.data.cast::<vk::VkBindVertexBuffer3InfoKHR>();
         for i in 0..count as usize {
-            let span = unsafe { &*spans.add(i) };
+            let binding = unsafe { &*spans.add(i) };
+            let span = &binding.span;
+            if binding.flags & !VERTEX_BIND_STRIDE != 0 {
+                return Err(UNSUPPORTED);
+            }
+            if binding.stride > d.snapshot.graphics_limits.max_vertex_stride
+                || binding.flags == 0 && binding.stride != 0
+            {
+                return Err(INVALID);
+            }
             let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
             let (_, _, address) =
                 memory.command_range(d, self.domain, span.offset, span.size, 16)?;
             let native = vk::VkBindVertexBuffer3InfoKHR {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_VERTEX_BUFFER_3_INFO_KHR,
+                setStride: binding.flags & VERTEX_BIND_STRIDE,
                 addressRange: vk::VkStridedDeviceAddressRangeKHR {
                     address,
                     size: span.size,
-                    stride: 0,
+                    stride: u64::from(binding.stride),
                 },
                 addressFlags: memory.address_flags(),
                 ..Default::default()
@@ -1230,7 +1240,7 @@ impl List {
                 output.add(i).write(native);
             }
         }
-        // All local checks precede the single native bind. Strides remain static PSO state.
+        // All local checks precede the single native bind. The caller chooses native static or dynamic stride binding.
         unsafe {
             (d.f.vkCmdBindVertexBuffers3KHR.unwrap())(self.command, first, count, output);
         }

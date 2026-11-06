@@ -630,7 +630,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 13];
+    let mut dynamic_states = [0; 14];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
@@ -646,6 +646,10 @@ pub(super) unsafe fn prepare(
         (512, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP),
         (1024, vk::VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE),
         (2048, vk::VkDynamicState_VK_DYNAMIC_STATE_FRONT_FACE),
+        (
+            DYNAMIC_VERTEX_STRIDE,
+            vk::VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE,
+        ),
     ] {
         if desc.dynamic_state & mask != 0 {
             dynamic_states[dynamic_count] = state;
@@ -698,6 +702,8 @@ pub(super) unsafe fn prepare(
         arguments: layout,
         stages: stage_mask,
         indirect_bindable: desc.compile_flags & 2 != 0,
+        dynamic_state: desc.dynamic_state,
+        vertex_bindings: vertex_bindings.iter().map(|b| b.binding).collect(),
     });
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(

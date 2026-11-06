@@ -13,7 +13,7 @@ metallib, with optional in-process SPIR-V translation (disable with
 The Vulkan runtime does not use ash or Vulkanalia. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. The ABI is experimental, not a specification of the eventual
-execution interface. The legacy ABI is 20; foundation revision 7 is mutable and
+execution interface. The legacy ABI is 20; foundation revision 8 is mutable and
 requires exact source/header/library/artifact matching. Default SDK builds exclude
 legacy, while plain Cargo defaults retain it. Rebuild callers after updating.
 The older commands below name their historical consumer/runtime workflows; they

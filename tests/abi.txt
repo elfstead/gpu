@@ -2,8 +2,8 @@
 vk VkDescriptorSetAndBindingMappingEXT sType pNext descriptorSet firstBinding bindingCount resourceMask source sourceData
 vk VkDescriptorMappingSourceDataEXT pushDataOffset pushAddressOffset
 vk VkShaderDescriptorSetAndBindingMappingInfoEXT sType pNext mappingCount pMappings
-next GeneratedLimits ogpu_next_generated_limits stages pipeline_binding_stages tokens max_pipelines max_sequences max_tokens max_token_offset max_stride reserved
-next GeneratedToken ogpu_next_generated_token kind offset argument_offset argument_size
+next GeneratedLimits ogpu_next_generated_limits stages pipeline_binding_stages tokens max_pipelines max_sequences max_tokens max_token_offset max_stride reserved index_u16 index_u32
+next GeneratedToken ogpu_next_generated_token kind offset target size
 next GeneratedLayoutDesc ogpu_next_generated_layout_desc header arguments stages flags stride token_count reserved tokens
 next GeneratedSetDesc ogpu_next_generated_set_desc header initial capacity reserved
 next GeneratedSetWrite ogpu_next_generated_set_write index reserved executable
@@ -324,3 +324,6 @@ next ImageCopy ogpu_next_image_copy region row_pitch slice_pitch state reserved
 next ImageTransfer ogpu_next_image_transfer source destination source_state destination_state
 next BlitRegion ogpu_next_blit_region aspect mip first_layer layer_count offsets
 next ImageBlit ogpu_next_image_blit source destination source_state destination_state filter reserved
+next VertexBufferBinding ogpu_next_vertex_buffer_binding span stride flags
+next GeneratedVertexBuffer ogpu_next_generated_vertex_buffer address size stride
+next GeneratedIndexBuffer ogpu_next_generated_index_buffer address size index_type

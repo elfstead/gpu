@@ -1,6 +1,6 @@
 #ifndef OGPU_NEXT_H
 #define OGPU_NEXT_H
-/* Experimental foundation revision 7, not ABI 20; the default Linux SDK surface.
+/* Experimental foundation revision 8, not ABI 20; the default Linux SDK surface.
  * Only declarations in THIS header are implemented (Linux Vulkan for now).
  * The remaining design lives in docs/drafts/ogpu_next.h.
  *
@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 7u
+#define OGPU_NEXT_VERSION 8u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -1462,7 +1462,8 @@ enum {
     OGPU_NEXT_DYNAMIC_STENCIL_TEST = 256,
     OGPU_NEXT_DYNAMIC_STENCIL_OPS = 512,
     OGPU_NEXT_DYNAMIC_CULL = 1024,
-    OGPU_NEXT_DYNAMIC_FRONT_FACE = 2048
+    OGPU_NEXT_DYNAMIC_FRONT_FACE = 2048,
+    OGPU_NEXT_DYNAMIC_VERTEX_STRIDE = 4096
 };
 enum { OGPU_NEXT_FACE_FRONT = 1, OGPU_NEXT_FACE_BACK = 2, OGPU_NEXT_FACE_BOTH = 3 };
 /* Dynamic values map directly to native commands, inside or outside rendering,
@@ -1805,14 +1806,23 @@ void ogpu_next_bind_indices(ogpu_next_encoder *, ogpu_next_span, uint32_t index_
  * Scratch is sized by count, disjoint/aligned, borrowed only during the call.
  * All local checks precede one native bind; no allocation, repack, barrier or
  * resource retention. Binding state persists across scopes/pipeline binds, not
- * across command begin/reset. Pipeline static strides are left unchanged.
+ * across command begin/reset. VERTEX_BIND_STRIDE sets dynamic stride <=
+ * max_vertex_stride and requires DYNAMIC_VERTEX_STRIDE on consuming pipelines.
+ * flags=0 requires stride=0 and preserves the static-stride strategy. Consuming
+ * pipelines must match this choice; rebind explicitly when switching strategies.
+ * No pipeline-dependent rewriting, draw-time conversion or implicit state update.
  * Each draw TRUSTS that every fetched binding is set and that all vertex/instance
  * indices (including first/base offsets), attribute offsets, strides and formats
  * address aligned, initialized bytes within the supplied spans. No per-draw scan.
  * Spans must remain alive and synchronized through recorded future/pending uses.
  */
 ogpu_next_status ogpu_next_vertex_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
-void ogpu_next_bind_vertices(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_span *, ogpu_next_host_span scratch);
+enum { OGPU_NEXT_VERTEX_BIND_STRIDE = 1 };
+typedef struct ogpu_next_vertex_buffer_binding {
+    ogpu_next_span span;
+    uint32_t stride, flags;
+} ogpu_next_vertex_buffer_binding;
+void ogpu_next_bind_vertices(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_vertex_buffer_binding *, ogpu_next_host_span scratch);
 void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
 void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
@@ -1849,6 +1859,7 @@ typedef struct ogpu_next_generated_limits {
     ogpu_next_stages stages, pipeline_binding_stages;
     uint64_t tokens; /* Bit (1 << token_kind); intersect with stage/feature support. */
     uint32_t max_pipelines, max_sequences, max_tokens, max_token_offset, max_stride, reserved;
+    uint32_t index_u16, index_u32; /* Queried GPU wire encodings; valid with INDEX_BUFFER token support. */
 } ogpu_next_generated_limits;
 enum {
     OGPU_NEXT_GENERATED_EXECUTABLE = 1, OGPU_NEXT_GENERATED_ARGUMENT = 2,
@@ -1856,10 +1867,11 @@ enum {
     OGPU_NEXT_GENERATED_DRAW = 5, OGPU_NEXT_GENERATED_DRAW_INDEXED = 6,
     OGPU_NEXT_GENERATED_MESH = 7, OGPU_NEXT_GENERATED_DRAW_COUNT = 8,
     OGPU_NEXT_GENERATED_DRAW_INDEXED_COUNT = 9, OGPU_NEXT_GENERATED_MESH_COUNT = 10,
+    OGPU_NEXT_GENERATED_VERTEX_BUFFER = 11, OGPU_NEXT_GENERATED_INDEX_BUFFER = 12,
     OGPU_NEXT_GENERATED_EXPLICIT_PREPROCESS = 1, OGPU_NEXT_GENERATED_UNORDERED = 2
 };
 typedef struct ogpu_next_generated_token {
-    uint32_t kind, offset, argument_offset, argument_size;
+    uint32_t kind, offset, target, size;
 } ogpu_next_generated_token;
 typedef struct ogpu_next_generated_layout_desc {
     ogpu_next_record header;
@@ -1897,22 +1909,39 @@ typedef struct ogpu_next_generated_draw_count {
     ogpu_next_address address;
     uint32_t stride, command_count;
 } ogpu_next_generated_draw_count;
+typedef struct ogpu_next_generated_vertex_buffer {
+    ogpu_next_address address;
+    uint32_t size, stride;
+} ogpu_next_generated_vertex_buffer;
+typedef struct ogpu_next_generated_index_buffer {
+    ogpu_next_address address;
+    uint32_t size, index_type;
+} ogpu_next_generated_index_buffer;
 /* Layouts borrow a same-device argument layout of the matching execution class;
  * it outlives the generated layout and all recorded/preprocessed/pending uses.
  * No token array is retained. One action token is last, with optional EXECUTABLE
- * selection first (one u32 table index). ARGUMENT copies argument_size bytes from
- * record+offset to argument_offset in that layout. Bounds and indivisible 8-byte
+ * selection first (one u32 table index). ARGUMENT copies size bytes from
+ * record+offset to target in that layout. Bounds and indivisible 8-byte
  * native-address updates are the same as set_arguments. Native addresses are
  * supplied directly by the native generated token, never decoded on the CPU.
  * GPU-produced address values must satisfy the field's alignment/access contract.
  * SEQUENCE_INDEX targets one declared four-byte INLINE field and writes the native
  * u32 index; it consumes no record bytes, at most one. Destinations cannot overlap.
- * Other tokens require argument_offset=argument_size=0. Token offsets are ordered,
+ * VERTEX_BUFFER uses target as the vertex binding and size=0; INDEX_BUFFER uses
+ * target=size=0. Each vertex destination and the index token occur at most once;
+ * both are vertex-graphics only. Other tokens require target=size=0. Offsets are ordered,
  * 4-aligned and queried-limit-bounded. Stride is 4-aligned, may be zero or smaller
  * than the record extent: overlapping source records are not forcibly repacked.
  * Wire actions: DISPATCH/MESH=extent; DRAW/DRAW_INDEXED=existing wire records;
- * *_COUNT=generated_draw_count. Vertex/index state tokens, ray tokens and shader-
- * object selection remain unimplemented, not emulated. Indexed work uses bound
+ * *_COUNT=generated_draw_count; VERTEX_BUFFER=generated_vertex_buffer;
+ * INDEX_BUFFER=generated_index_buffer. Buffer addresses refer to VERTEX/INDEX
+ * memory; caller owns bounds, alignment and pending lifetime. index_type uses
+ * queried generated_limits.index_u16/index_u32 (not INDEX_U16/INDEX_U32).
+ * These are the backend's GPU wire values; no CPU/GPU format translation is added.
+ * Vertex tokens require DYNAMIC_VERTEX_STRIDE and declared target bindings in all
+ * paired executables. The cold requirements query checks the initial executable;
+ * set members must preserve that state contract. Ray tokens and shader-object
+ * selection remain unimplemented. Indexed work without an index token uses bound
  * indices. Layout stages name one exact compute/vertex/mesh executable family.
  * UNORDERED permits native sequence reordering; compute sequences are inherently
  * unordered even without it. No sequence-to-sequence memory dependency is implied.
@@ -1966,7 +1995,8 @@ ogpu_next_status ogpu_next_generated_requirements(ogpu_next_device *, const ogpu
  * encoder on the same device. It borrows that encoder only for this host call.
  * State must bind the fixed executable, or the set's ORIGINAL initial executable.
  * Execution binds that same executable before each call, and uses a compatible
- * render scope/viewport/index binding for graphics, outside rendering for compute.
+ * render scope/viewport and required bindings for graphics, outside rendering for
+ * compute. Buffer state supplied by a token needs no prior CPU binding.
  * preprocessed is 0/1 and must match EXPLICIT_PREPROCESS. For 1, preparation must
  * have completed with identical work/input content and compatible native state;
  * execute/state encoder queue families match, and referenced set slots unchanged.
@@ -1976,6 +2006,9 @@ ogpu_next_status ogpu_next_generated_requirements(ogpu_next_device *, const ogpu
  * Preserve native state (including argument bytes/heaps) between snapshot and use.
  * Executable-selection tokens invalidate the corresponding executable binding;
  * argument/sequence tokens make the affected native argument domain undefined afterward.
+ * Vertex/index tokens also leave the corresponding binding state undefined;
+ * ordinary indexed work must explicitly rebind indices afterward, even for zero
+ * generated sequences. Restore affected vertex bindings/strides before later work.
  * Restore those explicitly for subsequent work. No hidden state restoration,
  * CPU readback, per-sequence host loop, compilation or allocation during recording.
  */

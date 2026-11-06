@@ -1,5 +1,5 @@
 {
-  "revision": 7,
+  "revision": 8,
   "operations": [
     "ogpu_next_adapter_query",
     "ogpu_next_arena_create",
@@ -229,7 +229,11 @@
     "OGPU_NEXT_VERSION_MISMATCH": "VERSION_MISMATCH",
     "OGPU_NEXT_INTERNAL_ERROR": "INTERNAL_ERROR",
     "OGPU_NEXT_SURFACE_LOST": "SURFACE_LOST",
-    "OGPU_NEXT_OUT_OF_DATE": "OUT_OF_DATE"
+    "OGPU_NEXT_OUT_OF_DATE": "OUT_OF_DATE",
+    "OGPU_NEXT_GENERATED_VERTEX_BUFFER": "GENERATED_VERTEX_BUFFER",
+    "OGPU_NEXT_GENERATED_INDEX_BUFFER": "GENERATED_INDEX_BUFFER",
+    "OGPU_NEXT_DYNAMIC_VERTEX_STRIDE": "DYNAMIC_VERTEX_STRIDE",
+    "OGPU_NEXT_VERTEX_BIND_STRIDE": "VERTEX_BIND_STRIDE"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

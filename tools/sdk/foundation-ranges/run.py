@@ -87,7 +87,7 @@ def main():
     try:
         pkg=os.getenv('PKG_CONFIG','pkg-config')
         def variable(name):return subprocess.check_output([pkg,'--variable='+name,'ogpu-foundation'],text=True).strip()
-        report['foundation']=int(variable('ogpu_foundation'));require(report['foundation']==7,'unsupported foundation revision')
+        report['foundation']=int(variable('ogpu_foundation'));require(report['foundation']==8,'unsupported foundation revision')
         report['sdk']=dict(revision=variable('ogpu_revision'),runtime_sha256=digest(Path(variable('libdir'))/'libogpu.so'))
         report['sources']={p.name:digest(p) for p in sorted(HERE.iterdir()) if p.is_file() and p.suffix in ('.c','.h','.py','.slang')}
         report['executables']={name:digest(HERE/name) for name in ('baseline','consumer','reuse','scopes')}

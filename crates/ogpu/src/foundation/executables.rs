@@ -13,6 +13,8 @@ pub struct Executable {
     pub(super) arguments: *const ArgumentLayout,
     pub(super) stages: u64,
     pub(super) indirect_bindable: bool,
+    pub(super) dynamic_state: u64,
+    pub(super) vertex_bindings: Box<[u32]>,
 }
 impl Drop for Executable {
     fn drop(&mut self) {
@@ -194,6 +196,8 @@ impl Executable {
             arguments: layout,
             stages: 4,
             indirect_bindable: desc.compile_flags & 2 != 0,
+            dynamic_state: 0,
+            vertex_bindings: Box::new([]),
         });
         let mapping = layout.mapping_info(
             shader.stage,
@@ -579,6 +583,9 @@ mod tests {
                 vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP => 512,
                 vk::VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE => 1024,
                 vk::VkDynamicState_VK_DYNAMIC_STATE_FRONT_FACE => 2048,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE => {
+                    DYNAMIC_VERTEX_STRIDE
+                }
                 _ => u64::MAX,
             };
         }
@@ -784,7 +791,7 @@ mod tests {
             // Old combinations, each new independent bit, and the combined profile.
             for selected in (0..16)
                 .map(|v| 1 | (v << 1))
-                .chain([33, 65, 129, 257, 513, 1025, 2049, 4095])
+                .chain([33, 65, 129, 257, 513, 1025, 2049, 4095, 4097, 8191])
             {
                 desc.dynamic_state = selected;
                 let mut ignored = state;
@@ -827,7 +834,7 @@ mod tests {
                 unsafe { ogpu_next_executable_destroy(out) };
             }
             desc.static_state = &state.header;
-            for unsupported in [0, 2, 4097, u64::MAX] {
+            for unsupported in [0, 2, 8193, u64::MAX] {
                 desc.dynamic_state = unsupported;
                 let mut out = ptr::dangling_mut();
                 DYNAMIC_MASK.set(0);

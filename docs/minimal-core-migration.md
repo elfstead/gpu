@@ -803,3 +803,13 @@ Windows hardware or a Mac. Keep unsupported capabilities honest.
 M8 generated graphics/GPU-culling and advanced raster resume after C2/local C3;
 M9 rays, M10 memory/interop and M11 compute/media retain their roadmap scope.
 C1 completion neither implements those families nor stabilizes this API.
+
+## Post-C3 M8 extension: foundation revision 8
+
+The [buffer-state token receipt](results/m8-generated-buffer-state-2026-11-06.md)
+records the coordinated C/Rust migration for generated vertex/index state and
+explicit vertex stride. `GeneratedToken` fields become `target`/`size`,
+`GeneratedLimits` adds native index encodings, and `bind_vertices` takes span,
+stride and flags records. There is one binding operation and no legacy adapter.
+The C1 composition and ownership rules remain; C2/C3 receipts above describe
+revision 7, not acceptance of every subsequent extension or another backend.

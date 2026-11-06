@@ -618,7 +618,7 @@ pub unsafe extern "C" fn ogpu_next_bind_vertices(
     encoder: *mut List,
     first: u32,
     count: u32,
-    spans: *const Span,
+    spans: *const VertexBufferBinding,
     scratch: HostSpan,
 ) {
     unsafe {

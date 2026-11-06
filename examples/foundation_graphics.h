@@ -99,6 +99,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR | dynamic_mask, &req.header, cache, 0, 0};
+    if (vertex_fetch && secondary == 0) ed.dynamic_state |= OGPU_NEXT_DYNAMIC_VERTEX_STRIDE;
     ed.dynamic_state |= UINT64_C(1) << 63;
     REQUIRE(ogpu_next_executable_create(device, &ed, arguments, &pipelines[0]) == OGPU_NEXT_UNSUPPORTED && pipelines[0] == NULL);
     ed.dynamic_state &= ~(UINT64_C(1) << 63);
@@ -223,7 +224,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_dependency generated = {1,0,0,0,&generated_scope,NULL,NULL};
         common_barrier(encoder,&generated,&generated_scope,generated_scratch);
     }
-    ogpu_next_span vertex_spans[2] = {{host,2048,48},{host,2112,32}};
+    uint32_t stride_flags = ed.dynamic_state & OGPU_NEXT_DYNAMIC_VERTEX_STRIDE ? OGPU_NEXT_VERTEX_BIND_STRIDE : 0;
+    ogpu_next_vertex_buffer_binding vertex_spans[2] = {{{host,2048,48},stride_flags ? 16u : 0u,stride_flags},{{host,2112,32},stride_flags ? 16u : 0u,stride_flags}};
     if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
     ogpu_next_queries_reset(encoder, timestamps, 0, 2);
     ogpu_next_queries_reset(encoder, occlusion, 0, 2);
@@ -561,11 +563,12 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         }
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
     }
-    for (uint32_t bad = 0; bad < 4; ++bad) {
+    for (uint32_t bad = 0; bad < 5; ++bad) {
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
-        ogpu_next_span invalid[2] = {vertex_spans[0],vertex_spans[1]};
-        if (bad == 2) invalid[1].size = host_desc.size;
-        if (bad == 3) invalid[1].memory = NULL;
+        ogpu_next_vertex_buffer_binding invalid[2] = {vertex_spans[0],vertex_spans[1]};
+        if (bad == 2) invalid[1].span.size = host_desc.size;
+        if (bad == 3) invalid[1].span.memory = NULL;
+        if (bad == 4) { invalid[1].flags = OGPU_NEXT_VERTEX_BIND_STRIDE; invalid[1].stride = limits.max_vertex_stride+1; }
         ogpu_next_bind_vertices(encoder,bad == 0 ? limits.max_vertex_bindings : 3,2,invalid,
             (ogpu_next_host_span){vertex_scratch,bad == 1 ? vr.size-1 : vr.size});
         REQUIRE(ogpu_next_commands_end(encoder,&list) == (bad == 1 ? OGPU_NEXT_CAPACITY : OGPU_NEXT_INVALID) && list == NULL);

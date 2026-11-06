@@ -305,7 +305,12 @@ unchanged revision 7: 48 submissions, explicit/integrated preprocessing, GPU
 compaction/count/identity, signed index offsets, nested count clamping and 98,304
 pixels with full-buffer guards. Graphics pipeline selection is unsupported locally
 and independently gated; no fallback is introduced.
-Next: native generated vertex/index-state token gaps, then remaining advanced raster profiles. Larger textured/depth and external
+The [buffer-state token follow-up](results/m8-generated-buffer-state-2026-11-06.md)
+now implements native vertex/index tokens and explicit vertex stride in foundation
+revision 8, with 96 total graphics submissions and 196,608 checked pixels. C/Rust
+bindings, SDK revision checks and the installed contract audit migrate together.
+Next: advanced raster profiles, starting with multiview, followed by shading rate,
+tile-local/pass-continuation and remaining tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 

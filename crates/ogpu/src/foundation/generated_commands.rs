@@ -103,7 +103,7 @@ impl List {
         } else if layout.stages & MESH_STAGE != 0 {
             self.mesh_drawing()?;
         } else {
-            self.drawing(matches!(layout.action, 6 | 9))?;
+            self.drawing(matches!(layout.action, 6 | 9) && !layout.index_binding)?;
         }
         let mut pipeline = Default::default();
         let info = unsafe { self.generated_info(batch, &mut pipeline)? };
@@ -114,6 +114,9 @@ impl List {
         };
         // Native execution-set tokens invalidate bindings. Do not restore state by
         // recording extra commands; subsequent ordinary work must explicitly bind.
+        if layout.index_binding {
+            self.index_count.set(None);
+        }
         if layout.selection {
             if layout.stages == 4 {
                 self.executable.set(ptr::null());

@@ -10,13 +10,13 @@ SDK profile. Foundation packaging is default; `--legacy` adds ABI20 files explic
 This is a migration boundary, not
 two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
-Current minimal-core revision, 2026-11-06: foundation schema 7 installs the
+Minimal-core consolidation, 2026-11-06: foundation schema 7 installed the
 [presentation lifecycle](minimal-core-presentation.md) through C and native Rust,
 following the argument, descriptor, generated-layout, dependency and submission
 cutovers. Borrowed frames and explicit effects replace index-only acquisition and
 status-only presentation. Bounded Wayland consumers, the C2 audit and [clean local C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) pass. Remaining M8 is active, as recorded in the [working plan](plan.md).
 
-M8 continuation, 2026-11-06: [generated ordinary/indexed/nested-count graphics with consumer-owned culling](results/m8-generated-indexed-counts-2026-11-06.md) passes on Radeon using the existing API (48 submissions, 98,304 pixels). Graphics pipeline selection remains unavailable locally; generated vertex/index-state tokens and richer raster/scene coverage remain open.
+M8 continuation, 2026-11-06: [generated ordinary/indexed/nested-count graphics with consumer-owned culling](results/m8-generated-indexed-counts-2026-11-06.md) passes on Radeon using the existing API (48 submissions, 98,304 pixels). Graphics pipeline selection remains unavailable locally; the [revision-8 buffer-state follow-up](results/m8-generated-buffer-state-2026-11-06.md) now implements and verifies vertex/index tokens and explicit vertex stride. Richer raster/scene coverage remains open.
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
@@ -57,7 +57,7 @@ storage and separate/integrated execution through the same C/Rust backend.
 GPU-produced compute selection, arguments, counts and sequence identity pass on
 both local drivers in the initial receipt. Generated ordinary/indexed/nested-count
 graphics now passes on Radeon in the follow-up above; generated mesh remains
-unverified locally. Vertex/index-state tokens are not implemented.
+unverified locally. Vertex/index-state tokens now pass locally in the revision-8 follow-up.
 Preparation storage, synchronization and lifetimes remain caller-controlled;
 recording adds no query, allocation, readback or implicit pipeline restoration.
 

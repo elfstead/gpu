@@ -24,7 +24,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 7;
+pub const VERSION: u32 = 8;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -68,6 +68,10 @@ pub const GENERATED_MESH: u32 = 7;
 pub const GENERATED_DRAW_COUNT: u32 = 8;
 pub const GENERATED_DRAW_INDEXED_COUNT: u32 = 9;
 pub const GENERATED_MESH_COUNT: u32 = 10;
+pub const GENERATED_VERTEX_BUFFER: u32 = 11;
+pub const GENERATED_INDEX_BUFFER: u32 = 12;
+pub const DYNAMIC_VERTEX_STRIDE: u64 = 4096;
+pub const VERTEX_BIND_STRIDE: u32 = 1;
 pub const GENERATED_EXPLICIT_PREPROCESS: u32 = 1;
 pub const GENERATED_UNORDERED: u32 = 2;
 #[repr(C)]
@@ -82,14 +86,16 @@ pub struct GeneratedLimits {
     pub max_token_offset: u32,
     pub max_stride: u32,
     pub reserved: u32,
+    pub index_u16: u32,
+    pub index_u32: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct GeneratedToken {
     pub kind: u32,
     pub offset: u32,
-    pub argument_offset: u32,
-    pub argument_size: u32,
+    pub target: u32,
+    pub size: u32,
 }
 #[repr(C)]
 pub struct GeneratedLayoutDesc {
@@ -1617,4 +1623,26 @@ pub struct Dependency {
 pub struct SplitDependency {
     pub split: *const super::Split,
     pub dependency: *const Dependency,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct VertexBufferBinding {
+    pub span: Span,
+    pub stride: u32,
+    pub flags: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct GeneratedVertexBuffer {
+    pub address: u64,
+    pub size: u32,
+    pub stride: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct GeneratedIndexBuffer {
+    pub address: u64,
+    pub size: u32,
+    pub index_type: u32,
 }

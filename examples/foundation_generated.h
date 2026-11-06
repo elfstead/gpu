@@ -67,13 +67,13 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
         ogpu_next_generated_layout_desc ld = {HEADER(ogpu_next_generated_layout_desc,OGPU_NEXT_GENERATED_LAYOUT_DESC),
             arguments,OGPU_NEXT_STAGE_COMPUTE,separate | (selection ? OGPU_NEXT_GENERATED_UNORDERED : 0),56,selection ? 5 : 4,0,tokens+(selection ? 0 : 1)};
         ogpu_next_generated_layout *rejected = NULL;
-        uint32_t saved_size = tokens[1].argument_size;
-        tokens[1].argument_size = 4; /* Cannot split the native 8-byte address. */
+        uint32_t saved_size = tokens[1].size;
+        tokens[1].size = 4; /* Cannot split the native 8-byte address. */
         REQUIRE(ogpu_next_generated_layout_create(device,&ld,&rejected) == OGPU_NEXT_INVALID && !rejected);
-        tokens[1].argument_size = saved_size;
-        tokens[3].argument_offset = 32; /* Undeclared/out-of-bounds identity. */
+        tokens[1].size = saved_size;
+        tokens[3].target = 32; /* Undeclared/out-of-bounds identity. */
         REQUIRE(ogpu_next_generated_layout_create(device,&ld,&rejected) != OGPU_NEXT_OK && !rejected);
-        tokens[3].argument_offset = 24;
+        tokens[3].target = 24;
         ld.arguments = NULL;
         REQUIRE(ogpu_next_generated_layout_create(device,&ld,&rejected) == OGPU_NEXT_INVALID && !rejected);
         ld.arguments = arguments;

@@ -144,9 +144,15 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
     }
-    let mut tokens = (1u64 << 8) - 2; // kinds 1..7, bit indexed by kind.
+    let input_modes = p.supportedIndirectCommandsInputModes;
+    let vulkan_indices = input_modes & vk::VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_VULKAN_INDEX_BUFFER_EXT != 0;
+    let dxgi_indices = input_modes & vk::VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_DXGI_INDEX_BUFFER_EXT != 0;
+    let mut tokens = ((1u64 << 8) - 2) | (1 << GENERATED_VERTEX_BUFFER); // Base action/argument tokens plus vertex binding.
     if p.deviceGeneratedCommandsMultiDrawIndirectCount != 0 {
         tokens |= 7 << 8;
+    }
+    if vulkan_indices || dxgi_indices {
+        tokens |= 1 << GENERATED_INDEX_BUFFER;
     }
     Ok((
         if features.deviceGeneratedCommands != 0 {
@@ -166,6 +172,16 @@ pub(super) fn snapshot(
             max_token_offset: p.maxIndirectCommandsTokenOffset,
             max_stride: p.maxIndirectCommandsIndirectStride,
             reserved: 0,
+            index_u16: if vulkan_indices {
+                vk::VkIndexType_VK_INDEX_TYPE_UINT16
+            } else {
+                57
+            },
+            index_u32: if vulkan_indices {
+                vk::VkIndexType_VK_INDEX_TYPE_UINT32
+            } else {
+                42
+            },
         },
     ))
 }
@@ -181,6 +197,8 @@ pub struct GeneratedLayout {
     pub(super) argument_end: u32,
     pub(super) action: u32,
     pub(super) selection: bool,
+    pub(super) index_binding: bool,
+    vertex_bindings: Box<[u32]>,
 }
 fn layout_contract(
     p: &GeneratedLimits,
@@ -230,7 +248,7 @@ fn layout_contract(
     let mut argument_end = 0;
     let mut sequence = false;
     for (i, t) in tokens.iter().enumerate() {
-        if t.kind > 10 || t.kind == 0 || p.tokens & (1 << t.kind) == 0 {
+        if t.kind > 12 || t.kind == 0 || p.tokens & (1 << t.kind) == 0 {
             return Err(UNSUPPORTED);
         }
         if t.offset % 4 != 0 || i != 0 && t.offset < tokens[i - 1].offset {
@@ -242,29 +260,25 @@ fn layout_contract(
         if t.kind == 1 && (i != 0 || desc.stages & !p.pipeline_binding_stages != 0) {
             return Err(UNSUPPORTED);
         }
-        if t.kind >= 4 && i != tokens.len() - 1 {
+        if matches!(t.kind, 4..=10) && i != tokens.len() - 1 {
             return Err(INVALID);
         }
         let size = if matches!(t.kind, 2 | 3) {
-            if t.argument_offset % 4 != 0
-                || t.argument_size == 0
-                || t.argument_size % 4 != 0
-                || t.kind == 3 && (sequence || t.argument_size != 4)
+            if t.target % 4 != 0
+                || t.size == 0
+                || t.size % 4 != 0
+                || t.kind == 3 && (sequence || t.size != 4)
             {
                 return Err(INVALID);
             }
-            let end = t
-                .argument_offset
-                .checked_add(t.argument_size)
-                .ok_or(INVALID)?;
+            let end = t.target.checked_add(t.size).ok_or(INVALID)?;
             if u64::from(end) > argument_bytes {
                 return Err(INVALID);
             }
             for prev in &tokens[..i] {
                 if matches!(prev.kind, 2 | 3)
-                    && u64::from(prev.argument_offset) < u64::from(end)
-                    && u64::from(t.argument_offset)
-                        < u64::from(prev.argument_offset) + u64::from(prev.argument_size)
+                    && u64::from(prev.target) < u64::from(end)
+                    && u64::from(t.target) < u64::from(prev.target) + u64::from(prev.size)
                 {
                     return Err(INVALID);
                 }
@@ -274,10 +288,21 @@ fn layout_contract(
                 sequence = true;
                 0
             } else {
-                t.argument_size
+                t.size
             }
+        } else if matches!(t.kind, GENERATED_VERTEX_BUFFER | GENERATED_INDEX_BUFFER) {
+            if !vertex
+                || t.size != 0
+                || t.kind == GENERATED_INDEX_BUFFER && t.target != 0
+                || tokens[..i].iter().any(|p| {
+                    p.kind == t.kind && (t.kind == GENERATED_INDEX_BUFFER || p.target == t.target)
+                })
+            {
+                return Err(INVALID);
+            }
+            16
         } else {
-            if t.argument_offset != 0 || t.argument_size != 0 {
+            if t.target != 0 || t.size != 0 {
                 return Err(INVALID);
             }
             match t.kind {
@@ -323,22 +348,40 @@ impl GeneratedLayout {
             desc,
             tokens,
         )?;
+        for t in tokens.iter().filter(|t| t.kind == GENERATED_VERTEX_BUFFER) {
+            if t.target >= d.snapshot.graphics_limits.max_vertex_bindings {
+                return Err(UNSUPPORTED);
+            }
+        }
         for t in tokens.iter().filter(|t| matches!(t.kind, 2 | 3)) {
-            arguments.generated_range(t.argument_offset, t.argument_size, t.kind == 3)?;
+            arguments.generated_range(t.target, t.size, t.kind == 3)?;
         }
         let push: Vec<_> = tokens
             .iter()
             .map(|t| vk::VkIndirectCommandsPushConstantTokenEXT {
                 updateRange: vk::VkPushConstantRange {
                     stageFlags: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_ALL,
-                    offset: t.argument_offset,
-                    size: t.argument_size,
+                    offset: t.target,
+                    size: t.size,
                 },
             })
             .collect();
+        let vertex: Vec<_> = tokens
+            .iter()
+            .map(|t| vk::VkIndirectCommandsVertexBufferTokenEXT {
+                vertexBindingUnit: t.target,
+            })
+            .collect();
+        let index = vk::VkIndirectCommandsIndexBufferTokenEXT {
+            mode: if d.snapshot.generated_limits.index_u16 == vk::VkIndexType_VK_INDEX_TYPE_UINT16 {
+                vk::VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_VULKAN_INDEX_BUFFER_EXT
+            } else {
+                vk::VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_DXGI_INDEX_BUFFER_EXT
+            },
+        };
         let execution = vk::VkIndirectCommandsExecutionSetTokenEXT { type_: vk::VkIndirectExecutionSetInfoTypeEXT_VK_INDIRECT_EXECUTION_SET_INFO_TYPE_PIPELINES_EXT,
             shaderStages: native_stages(desc.stages) };
-        let native: Vec<_> = tokens.iter().zip(&push).map(|(t, p)| vk::VkIndirectCommandsLayoutTokenEXT {
+        let native: Vec<_> = tokens.iter().zip(&push).zip(&vertex).map(|((t, p), v)| vk::VkIndirectCommandsLayoutTokenEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_TOKEN_EXT,
             type_: match t.kind {
                 1 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_EXECUTION_SET_EXT,
@@ -351,10 +394,14 @@ impl GeneratedLayout {
                 8 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_COUNT_EXT,
                 9 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_COUNT_EXT,
                 10 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_MESH_TASKS_COUNT_EXT,
+                GENERATED_VERTEX_BUFFER => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_EXT,
+                GENERATED_INDEX_BUFFER => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_EXT,
                 _ => unreachable!(),
             },
             data: if t.kind == 1 { vk::VkIndirectCommandsTokenDataEXT { pExecutionSet: &execution } }
                 else if matches!(t.kind, 2 | 3) { vk::VkIndirectCommandsTokenDataEXT { pPushConstant: p } }
+                else if t.kind == GENERATED_VERTEX_BUFFER { vk::VkIndirectCommandsTokenDataEXT { pVertexBuffer: v } }
+                else if t.kind == GENERATED_INDEX_BUFFER { vk::VkIndirectCommandsTokenDataEXT { pIndexBuffer: &index } }
                 else { Default::default() }, offset: t.offset, ..Default::default()
         }).collect();
         let info = vk::VkIndirectCommandsLayoutCreateInfoEXT {
@@ -386,6 +433,12 @@ impl GeneratedLayout {
             argument_end,
             action: tokens.last().unwrap().kind,
             selection: tokens[0].kind == 1,
+            index_binding: tokens.iter().any(|t| t.kind == GENERATED_INDEX_BUFFER),
+            vertex_bindings: tokens
+                .iter()
+                .filter(|t| t.kind == GENERATED_VERTEX_BUFFER)
+                .map(|t| t.target)
+                .collect(),
         }))
     }
 }
@@ -574,6 +627,16 @@ impl Device {
         if !unsafe { &*layout.arguments }.generated_compatible(e.arguments()) {
             return Err(INVALID);
         }
+        // Native state compatibility is a cold pairing check, never a per-draw scan.
+        if !layout.vertex_bindings.is_empty()
+            && (e.dynamic_state & DYNAMIC_VERTEX_STRIDE == 0
+                || layout
+                    .vertex_bindings
+                    .iter()
+                    .any(|binding| !e.vertex_bindings.contains(binding)))
+        {
+            return Err(INVALID);
+        }
         let pipeline = vk::VkGeneratedCommandsPipelineInfoEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GENERATED_COMMANDS_PIPELINE_INFO_EXT,
             pipeline: e.pipeline,
@@ -607,6 +670,72 @@ impl Device {
 mod tests {
     use super::*;
     #[test]
+    fn buffer_state_tokens_reject_ambiguous_or_wrong_stage_layouts() {
+        let limits = GeneratedLimits {
+            stages: 28,
+            tokens: (1 << 13) - 2,
+            max_tokens: 8,
+            max_token_offset: 256,
+            max_stride: 256,
+            ..Default::default()
+        };
+        let mut tokens = [
+            GeneratedToken {
+                kind: GENERATED_VERTEX_BUFFER,
+                offset: 0,
+                target: 3,
+                size: 0,
+            },
+            GeneratedToken {
+                kind: GENERATED_INDEX_BUFFER,
+                offset: 16,
+                target: 0,
+                size: 0,
+            },
+            GeneratedToken {
+                kind: GENERATED_DRAW_INDEXED,
+                offset: 32,
+                target: 0,
+                size: 0,
+            },
+        ];
+        let mut desc = GeneratedLayoutDesc {
+            header: Record::new::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC),
+            arguments: ptr::null_mut(),
+            stages: 24,
+            flags: 0,
+            stride: 64,
+            token_count: 3,
+            reserved: 0,
+            tokens: tokens.as_ptr(),
+        };
+        let check = |d: &GeneratedLayoutDesc, t: &[GeneratedToken]| {
+            layout_contract(&limits, GENERATED_COMMANDS | RASTER, 0, d, t)
+        };
+        assert_eq!(check(&desc, &tokens), Ok((52, 0)));
+        tokens[0].size = 4;
+        assert_eq!(check(&desc, &tokens), Err(INVALID));
+        tokens[0].size = 0;
+        tokens[1].target = 1;
+        assert_eq!(check(&desc, &tokens), Err(INVALID));
+        tokens[1] = GeneratedToken {
+            offset: 16,
+            ..tokens[0]
+        };
+        assert_eq!(check(&desc, &tokens), Err(INVALID)); // Duplicate vertex destination.
+        tokens[1].target = 4;
+        assert_eq!(check(&desc, &tokens), Ok((52, 0)));
+        for token in &mut tokens[..2] {
+            token.kind = GENERATED_INDEX_BUFFER;
+            token.target = 0;
+        }
+        assert_eq!(check(&desc, &tokens), Err(INVALID)); // Duplicate index binding.
+        tokens[0].kind = GENERATED_VERTEX_BUFFER;
+        desc.stages = 4;
+        tokens[2].kind = GENERATED_DISPATCH;
+        assert_eq!(check(&desc, &tokens), Err(INVALID));
+    }
+    #[test]
     fn layout_contract_preserves_explicit_wire_and_argument_ranges() {
         let limits = GeneratedLimits {
             stages: 28 | MESH_STAGE | TASK_STAGE,
@@ -625,14 +754,14 @@ mod tests {
             GeneratedToken {
                 kind: 2,
                 offset: 4,
-                argument_offset: 8,
-                argument_size: 8,
+                target: 8,
+                size: 8,
             },
             GeneratedToken {
                 kind: 3,
                 offset: 12,
-                argument_offset: 0,
-                argument_size: 4,
+                target: 0,
+                size: 4,
             },
             GeneratedToken {
                 kind: 4,
@@ -661,18 +790,18 @@ mod tests {
         desc.stride = 25;
         assert_eq!(check(&desc, &tokens), Err(INVALID));
         desc.stride = 24;
-        tokens[2].argument_offset = 12;
+        tokens[2].target = 12;
         assert_eq!(check(&desc, &tokens), Err(INVALID));
-        tokens[2].argument_offset = 0;
+        tokens[2].target = 0;
         tokens[3].kind = 5;
         assert_eq!(check(&desc, &tokens), Err(INVALID));
         tokens[3].kind = 4;
         tokens[1].offset = 5;
         assert_eq!(check(&desc, &tokens), Err(INVALID));
         tokens[1].offset = 4;
-        tokens[1].argument_offset = u32::MAX - 3;
+        tokens[1].target = u32::MAX - 3;
         assert_eq!(check(&desc, &tokens), Err(INVALID));
-        tokens[1].argument_offset = 8;
+        tokens[1].target = 8;
         tokens[1].kind = 1;
         assert_eq!(check(&desc, &tokens), Err(UNSUPPORTED));
         assert_eq!(

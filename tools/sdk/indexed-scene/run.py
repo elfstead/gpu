@@ -82,7 +82,7 @@ def main(foundation=False):
         version=int(subprocess.check_output([pkg,'--variable='+('ogpu_foundation' if foundation else 'ogpu_abi'),package],text=True))
         report['foundation' if foundation else 'abi']=version
         if foundation:
-            require(version==7,'unsupported foundation revision')
+            require(version==8,'unsupported foundation revision')
             libdir=Path(subprocess.check_output([pkg,'--variable=libdir',package],text=True).strip())
             report['sdk']=dict(revision=report['revision'],runtime_sha256=digest(libdir/'libogpu.so'))
             report['reuse_runs']=[]

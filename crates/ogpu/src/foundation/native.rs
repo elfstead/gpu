@@ -532,7 +532,7 @@ pub(super) fn snapshot(
             max_vertex_attributes: p.maxVertexInputAttributes,
             max_vertex_attribute_offset: p.maxVertexInputAttributeOffset,
             max_vertex_stride: p.maxVertexInputBindingStride,
-            dynamic_states: 4095,
+            dynamic_states: 8191,
             line_width_range: p.lineWidthRange,
             line_width_granularity: p.lineWidthGranularity,
             max_dual_source_attachments: p.maxFragmentDualSrcAttachments,
