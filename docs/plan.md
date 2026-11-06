@@ -329,6 +329,8 @@ limits/tuples, static/dynamic state, attachment usage/scope and compiler require
 [Local evidence](results/m8-shading-rate-2026-11-06.md) covers host/compiler rules,
 real capability queries/rejections and existing Vulkan regressions. The local GPU
 exposes no native shading-rate input; positive rendering acceptance stays open.
+Clean revision-11 C/GGML/libplacebo and isolated native Rust/Wayland SDK checks
+pass at `8a57dc4`, with source and runtime identity recorded in the receipt.
 Next implement tile-local/pass-continuation and remaining tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.

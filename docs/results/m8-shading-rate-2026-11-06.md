@@ -47,9 +47,16 @@ rerun passes. No runtime workaround or validation-error suppression was added.
 The scalar/state review also removed an unnecessary single-mip restriction from
 rate attachment views and fixed the disabled-feature dynamic-state gate.
 
-Clean installed-SDK acceptance follows the implementation commit; it is not yet
-claimed at this checkpoint. Source logs are in `/tmp/m8-fsr-*.log`; the acceptance
-follow-up records source/runtime identity and log hashes.
+Clean installed-SDK acceptance passes at
+`8a57dc4e780966f42f4fd5ae5e15ffce1864c038`. The manifest reports foundation 11,
+`source_dirty=false`, no legacy/default Cargo features and runtime SHA-256
+`3fc75276b72c4e26a4297c363160761118dea85bbd2fc87ef560cfc2ccaeea36`.
+All six relocated C example families, pinned GGML (transformer/quantized plus both
+full-dataset MNIST precision modes), pinned libplacebo, and isolated native Rust
+headless/Wayland checks pass. Installed source graphs, runtime identity, expected
+failures and exact exports pass. These establish revision-11 compatibility; they
+do not establish positive shading-rate execution. The [adjacent JSON](m8-shading-rate-2026-11-06.json)
+records the exact source/runtime identities, capability observations and log hashes.
 
 ## Reproduce and remaining acceptance
 
@@ -63,6 +70,12 @@ cargo xtask foundation-shaders --check
 cargo xtask foundation-compiler --check
 cargo xtask foundation-graphics-compiler --check
 VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 cargo xtask foundation
+python3 tools/install.py --prefix /tmp/ogpu-m8-8a57dc4-sdk
+python3 tools/test-foundation-install.py --prefix /tmp/ogpu-m8-8a57dc4-sdk \
+  --ggml-source target/ggml-source --ggml-data target/ggml-data \
+  --libplacebo-source target/libplacebo-source \
+  --vulkan-registry vendor/Vulkan-Headers/registry/vk.xml
+python3 tools/test-rust-install.py --prefix /tmp/ogpu-m8-8a57dc4-sdk --presentation
 ```
 
 Use the pinned toolchain and correct local loader/ICD/layer paths. The complete

@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "source_revision": "8a57dc4e780966f42f4fd5ae5e15ffce1864c038",
+  "source_dirty": false,
+  "foundation_revision": 11,
+  "runtime_sha256": "3fc75276b72c4e26a4297c363160761118dea85bbd2fc87ef560cfc2ccaeea36",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation_layer": "1.4.357",
+  "synchronization_validation": true,
+  "sdk_acceptance": "complete: relocated C/GGML/libplacebo and isolated native Rust/Wayland",
+  "shading_rate": {
+    "available": {
+      "pipeline": false,
+      "primitive": false,
+      "attachment": false,
+      "mesh_primitive": false
+    },
+    "rate_sample_tuples": 0,
+    "native_enable_rejection": "pass",
+    "host_state_and_bounds": "pass",
+    "compiler_artifacts_and_alternative_enables": "pass",
+    "intercepted_dynamic_setter": "pass; does not execute native shading-rate command",
+    "positive_native_rendering": "unaccepted: local capabilities unavailable",
+    "verification_plan": "../shading-rate.md#verification-still-needed"
+  },
+  "host_library_tests": 89,
+  "rust_correspondence_tests": 2,
+  "native_library_tests": 29,
+  "windows": "unaccepted",
+  "metal": "deferred",
+  "performance_parity": "not measured",
+  "logs": {
+    "installation": {
+      "path": "/tmp/m8-fsr-install.log",
+      "sha256": "6bcbc4119fdf858a7bc9e47296c7898b3d6397bebf8153911863eaa00478d924",
+      "result": "pass"
+    },
+    "installed_c": {
+      "path": "/tmp/m8-fsr-sdk-c.log",
+      "sha256": "5ffd6b73b6eb78cb8d4b93219d8701a38940365d8ae056419abf7f1b8bda4c63",
+      "result": "pass"
+    },
+    "installed_rust": {
+      "path": "/tmp/m8-fsr-sdk-rust.log",
+      "sha256": "dc88d6813b8f5c678d0c72499138391d6f9a61b308c7a9f2af321bedf58f737d",
+      "result": "pass"
+    },
+    "installed_surface": {
+      "path": "/tmp/m8-fsr-sdk-surface.log",
+      "sha256": "268f67ca125cbfb4f52240b5331a7f47d84821136ffa2071a520d38412725792",
+      "result": "pass"
+    },
+    "host": {
+      "path": "/tmp/m8-fsr-host.log",
+      "sha256": "7790044ae3da01e374a00a6c8e75984560da618ee40962dbc671394e32fd8028",
+      "result": "pass"
+    },
+    "native_gpu": {
+      "path": "/tmp/m8-fsr-gpu.log",
+      "sha256": "5e76da497be812281c6a49c9e5159525f256568e8ded6f134c45bc01e7f29e8e",
+      "result": "pass"
+    },
+    "public_c_validated": {
+      "path": "/tmp/m8-fsr-foundation.log",
+      "sha256": "66ceb5b3b63abca2a42faf0020a17e54aea101e7099b9d63c4ff8d2390df086d",
+      "result": "pass"
+    },
+    "clippy": {
+      "path": "/tmp/m8-fsr-clippy.log",
+      "sha256": "1ce80e9d758b57bcc37129cde6152faa6a78eec6c0302c4b3e47c2134d086168",
+      "result": "pass"
+    },
+    "native_rust_clippy": {
+      "path": "/tmp/m8-fsr-rust-clippy.log",
+      "sha256": "2dbf1316006eac3b8d5332d0b8cb936dd0aa54c7050d4e384d4582e436e546a8",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/m8-fsr-abi.log",
+      "sha256": "62892545cec529df661bcdc021e17dc7ac101edcaa58c06cccfc6167633a76a1",
+      "result": "pass"
+    },
+    "surface": {
+      "path": "/tmp/m8-fsr-surface.log",
+      "sha256": "67fff8704dfd77931d052f4bbc3a8395650dd8b875502bc4b4ff977a71a468ca",
+      "result": "pass"
+    },
+    "bindings": {
+      "path": "/tmp/m8-fsr-bindings-check.log",
+      "sha256": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+      "result": "pass"
+    },
+    "shaders": {
+      "path": "/tmp/m8-fsr-shaders.log",
+      "sha256": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+      "result": "pass"
+    },
+    "compute_compiler": {
+      "path": "/tmp/m8-fsr-compute-compiler.log",
+      "sha256": "8d65bef582ceddaf7354c5bbd4a8ed361c0d71bbe7b6b203428ddfe9bb6c56b3",
+      "result": "pass"
+    },
+    "graphics_compiler": {
+      "path": "/tmp/m8-fsr-compiler.log",
+      "sha256": "be32ed1ee60400463c7727cb0eb4dda2bdcd80dcdcc959b06143f773caf520a1",
+      "result": "pass"
+    },
+    "scene_tests": {
+      "path": "/tmp/m8-fsr-scene-tests.log",
+      "sha256": "d80342be26f6fb94bc1855593790f4803fd370b1dbd5478ef75ecf773d6f2a4d",
+      "result": "pass"
+    },
+    "installer_tests": {
+      "path": "/tmp/m8-fsr-installer-tests.log",
+      "sha256": "003f52ba8eac46c24af285fc25ef8145e9bd4ea4cfa83da9587acf7a23281113",
+      "result": "pass"
+    },
+    "textured_handoff_tests": {
+      "path": "/tmp/m8-fsr-handoff-tests.log",
+      "sha256": "c90fd80859e85f27d81655bf3d8cb854fb7302925179aba5c6ec3b0778583d64",
+      "result": "pass"
+    },
+    "initial_c_format_mask_failure": {
+      "path": "/tmp/m8-fsr-foundation-old-format-mask.log",
+      "sha256": "73aca2387a2fe1abacbb2e6f01be717919ce128a82a6f012f5ee596009d51f40",
+      "result": "failed: fixture known-format mask; corrected and rerun"
+    }
+  }
+}

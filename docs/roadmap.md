@@ -598,7 +598,8 @@ validation remain acceptance work. Revision 11 implements [fragment shading rate
 with independent enables, limits/tuples, static/dynamic state, attachment use and
 compiler requirements. [Local evidence](results/m8-shading-rate-2026-11-06.md) covers
 host/compiler and regression checks; this GPU has no native shading-rate inputs,
-so positive rendering acceptance remains open. Next implement tile-local/pass-
+so positive rendering acceptance remains open. Clean revision-11 C/GGML/libplacebo
+and native Rust/Wayland SDK acceptance passes at `8a57dc4`. Next implement tile-local/pass-
 continuation and remaining tessellation/geometry profiles.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
