@@ -617,9 +617,9 @@ Clean C/GGML/libplacebo, isolated native Rust/Wayland and installed-release rast
 consumer checks pass at `385e215`.
 The [textured advanced-raster consumer](../tools/sdk/foundation-advanced/README.md)
 now integrates geometry/tessellation with generated indexed geometry, texture
-heaps/mips/filtering, depth, blending, scissors and continuation. The initial
-257×193 five-profile matrix passes locally; clean installed acceptance is tracked
-separately. The [M8 coverage audit](m8-coverage.md) schedules the remaining native
+heaps/mips/filtering, depth, blending, scissors and continuation. The [clean installed matrix](results/m8-advanced-textured-2026-11-06.md)
+passes 180 frames at 257×193 and 640×360, including continuation and independent
+CPU/reference checks. The [M8 coverage audit](m8-coverage.md) schedules the remaining native
 raster/fetch controls, distinct raster mechanisms, geometry capture/dynamic patch
 state, and contract/composition consolidation before M9. Next implement the first
 control batch; native combinations and general stage-interface tooling remain

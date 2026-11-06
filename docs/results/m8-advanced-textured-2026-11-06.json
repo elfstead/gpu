@@ -1,0 +1,288 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "complete": true,
+  "foundation_revision": 11,
+  "implementation": "8d52135cb73be8d1b92dcccbf815f95936d595fc",
+  "source_dirty": false,
+  "sdk": {
+    "revision": "8d52135cb73be8d1b92dcccbf815f95936d595fc",
+    "runtime_sha256": "1b86e9093f29602e5a669f79b7ba74d45fdf3bd62f1d17554ddcfffb044d2674",
+    "header_sha256": "99a8f47ddeca1e1831bb6be50d78be01a9ce852ae49d3e17cfbbd308832ca70f"
+  },
+  "device": {
+    "vendor": 4098,
+    "device": 29471,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "OGPU_VULKAN_LIBRARY": "/nix/store/la62431p5qf1ggr3rdzql9dksv5fhicc-vulkan-loader-1.4.363.0/lib/libvulkan.so.1"
+  },
+  "sources": {
+    "oracle.py": "19e201a2749ad50f16e0fb1e1f0d433680d4c1926c1a44806502d76302af81d0",
+    "advanced_textured.generated.h": "7dace05a7439d0e8c4bf574d481cb525843406df8ff04fadc3ce6cc0cf0c5e09",
+    "advanced.geometry.slang": "f8356e2169de1124056743bc44a10c07aa14510f6c79b8ebe0cfb5635eea8233",
+    "foundation_scene_prepare16.generated.h": "4e64d64d918c85f85df4c83f7a982950b6836723d70c081e041ed10fae822041",
+    "textured_scene.generated.h": "4985edcdd138de9fa0d0c3c05405cfeea52a78d95b89a2c0fcdfd1445053e318",
+    "textured_checks.py": "6e0e4eaa63da6386ec8549f17e25cbc71584ad559a798b601d35e0b3d7c9ff01",
+    "textured.c": "b8cd6bc6162dc1cd83a772ce82209ac922e05b7b9f447990cdc035cab2941f6d",
+    "textured_oracle.py": "cca05b999b05b2c475d298b879231e9f01d64b9dc5cec9ed3844a8c81466aa5a",
+    "build.py": "39fcad2b299dfb10017929b42c7159077f52a90855cd40fd28a66b563a3aa4b3",
+    "feature_selection.h": "e413c63747a838b658118a376702efec657dba1f9d4b52d0da57270a442d39d9",
+    "foundation.c": "37119ed89842bf8cc52b8b425faac6e766bbcf0f200af313ed99cfd8ef8020aa",
+    "foundation_scene_prepare.generated.h": "bbcd61c45737b259c9ca070c064002e0b1657c35a69a80e8a5570f58dd909203",
+    "advanced_common.slang": "287cb74d87af8154957843cb38bbb3025223fe23caf64d1ae4ab8bacbec7c9ff",
+    "advanced.hull.slang": "13306e15e0cfb85390013dde568ebebb4c296a42882696c2c8f923e2807595fb",
+    "advanced.domain.slang": "f2b658e15723f1d28118a152628f5c4ccfd09380153b16649abbb7d9564a47d0",
+    "main.c": "59109287c25b5b81923a3f5685643372c751f1afc1e9d8cb78a6cc01541663d1",
+    "advanced_shaders.py": "0af3bc55b2809c145980fc4507fe8daffe320f5635253a3184efe61b758537f5",
+    "textured.vert.slang": "bb903dd55b2a65fa86be833be1a206835f4e532ab72978e9448537e82b32613e",
+    "advanced_checks.py": "93d66802cee55a07bf1adeaa415ae89f6a64ba6bf330a77a0dbce393d9c58117",
+    "run.py": "796c28fa5adefce0d052ee7137225e23a03f84e8678bd2193617fb67f2d39e1c",
+    "textured.frag.slang": "ef9f5c820bd726c3047fbdf40d22dd8e37e1fc52407f8833ee9c8ef1d75dc94e"
+  },
+  "executable_sha256": "3db77444477031adea7d1f5334e54ca8016f985609a177185050091a4935fe54",
+  "frames": 180,
+  "image_pixels": 25200090,
+  "cpu_checked_pixels": 24073530,
+  "runs": [
+    {
+      "extent": [
+        257,
+        193
+      ],
+      "profile": 0,
+      "frames": 18,
+      "cpu_checked_pixels": 825522,
+      "baseline_comparison": null,
+      "image_exact_to_previous_profile": null,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "cb38619d05364d458520218860c6d603e9cfcd4e00092c324c461f7aff456bcd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        257,
+        193
+      ],
+      "profile": 1,
+      "frames": 18,
+      "cpu_checked_pixels": 825522,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 892818,
+        "max_color_byte_delta": 0,
+        "exact": true
+      },
+      "image_exact_to_previous_profile": null,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "d4d0cad400e2cc7b833c419c1beefee2294f2bcedae2650324aae1594f01c9d9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        257,
+        193
+      ],
+      "profile": 2,
+      "frames": 18,
+      "cpu_checked_pixels": 825522,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 892818,
+        "max_color_byte_delta": 93,
+        "max_checked_color_byte_delta": 1,
+        "boundary_pixels_over_tolerance": 1298,
+        "boundary_policy": "existing CPU oracle polygon-edge/nearest-texel tie mask; linear color and all depth unmasked"
+      },
+      "image_exact_to_previous_profile": null,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "6b6311e29f2f82353c9ae03f691a32130245a72cf205eb0dea1997e2bca05ab1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        257,
+        193
+      ],
+      "profile": 3,
+      "frames": 18,
+      "cpu_checked_pixels": 825522,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 892818,
+        "max_color_byte_delta": 93,
+        "max_checked_color_byte_delta": 1,
+        "boundary_pixels_over_tolerance": 1298,
+        "boundary_policy": "existing CPU oracle polygon-edge/nearest-texel tie mask; linear color and all depth unmasked"
+      },
+      "image_exact_to_previous_profile": true,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "7282e3b40934a77d97bfc8746f50e5909a6b4f82c90f3685e1f01982a93ebc37",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        257,
+        193
+      ],
+      "profile": 4,
+      "frames": 18,
+      "cpu_checked_pixels": 825522,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 892818,
+        "max_color_byte_delta": 93,
+        "max_checked_color_byte_delta": 1,
+        "boundary_pixels_over_tolerance": 1298,
+        "boundary_policy": "existing CPU oracle polygon-edge/nearest-texel tie mask; linear color and all depth unmasked"
+      },
+      "image_exact_to_previous_profile": true,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "1a6d4f1b37aca203bb5d9c6923d4fe8ef1ab3d790eafefad46a9d301c2754fd4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        640,
+        360
+      ],
+      "profile": 0,
+      "frames": 18,
+      "cpu_checked_pixels": 3989184,
+      "baseline_comparison": null,
+      "image_exact_to_previous_profile": null,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "cb38619d05364d458520218860c6d603e9cfcd4e00092c324c461f7aff456bcd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        640,
+        360
+      ],
+      "profile": 1,
+      "frames": 18,
+      "cpu_checked_pixels": 3989184,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 4147200,
+        "max_color_byte_delta": 0,
+        "exact": true
+      },
+      "image_exact_to_previous_profile": null,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "d4d0cad400e2cc7b833c419c1beefee2294f2bcedae2650324aae1594f01c9d9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        640,
+        360
+      ],
+      "profile": 2,
+      "frames": 18,
+      "cpu_checked_pixels": 3989184,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 4147200,
+        "max_color_byte_delta": 173,
+        "max_checked_color_byte_delta": 1,
+        "boundary_pixels_over_tolerance": 27,
+        "boundary_policy": "existing CPU oracle polygon-edge/nearest-texel tie mask; linear color and all depth unmasked"
+      },
+      "image_exact_to_previous_profile": null,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "6b6311e29f2f82353c9ae03f691a32130245a72cf205eb0dea1997e2bca05ab1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        640,
+        360
+      ],
+      "profile": 3,
+      "frames": 18,
+      "cpu_checked_pixels": 3989184,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 4147200,
+        "max_color_byte_delta": 173,
+        "max_checked_color_byte_delta": 1,
+        "boundary_pixels_over_tolerance": 27,
+        "boundary_policy": "existing CPU oracle polygon-edge/nearest-texel tie mask; linear color and all depth unmasked"
+      },
+      "image_exact_to_previous_profile": true,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "7282e3b40934a77d97bfc8746f50e5909a6b4f82c90f3685e1f01982a93ebc37",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "extent": [
+        640,
+        360
+      ],
+      "profile": 4,
+      "frames": 18,
+      "cpu_checked_pixels": 3989184,
+      "baseline_comparison": {
+        "frames": 18,
+        "pixels": 4147200,
+        "max_color_byte_delta": 173,
+        "max_checked_color_byte_delta": 1,
+        "boundary_pixels_over_tolerance": 27,
+        "boundary_policy": "existing CPU oracle polygon-edge/nearest-texel tie mask; linear color and all depth unmasked"
+      },
+      "image_exact_to_previous_profile": true,
+      "validation_errors": 0,
+      "validation_warnings": 0,
+      "stdout_sha256": "1a6d4f1b37aca203bb5d9c6923d4fe8ef1ab3d790eafefad46a9d301c2754fd4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "semantics": "independent CPU oracle; OGPU VS/FS control; no native performance comparison",
+  "checks": [
+    "relocated isolated SDK public C build and source graph",
+    "missing loader leaves incomplete receipt with no runs",
+    "pinned Slang artifacts reproduce and SPIR-V validates",
+    "all frame identities and A/B/A, mip-view equivalence, inputs and guards checked",
+    "geometry-only exact to baseline; geometry after tessellation and continuation exact to previous profile",
+    "foundation surface audit: 154 operations, 138 records, 185 constants, 1284 values"
+  ],
+  "unchanged_textured_regression": {
+    "revision": "da5919ac311b2c9a806a591a68f8a5fe3370f032",
+    "frames": 72,
+    "scope": "supplied and reordered/regenerated root, each 36 frames; macro-disabled source unchanged except diagnostic line numbers in corrected SDK"
+  },
+  "evidence": {
+    "/tmp/ogpu-foundation-external-_xni30cr/independent advanced-raster/run-f54dvnr7/report.json": "1c5944a7604125302904005d23eb041f7ca43be2bc41c804bfda3de0bd5bfd73",
+    "/tmp/ogpu-m8-advanced-fixed-sdk/share/ogpu/manifest.json": "233f11a40e67ff818cbf15c339478ac604bc10a0406a3bb3aaca4f32e41ec273",
+    "/tmp/m8-advanced-fixed-install.log": "ce78ac8cea302cc417796d1a74f13ff199cc45dbf85f6b0d70ab169bd290bccf",
+    "/tmp/m8-advanced-fixed-sdk.log": "7921db9a843919516d666aecd009cadcc3ef6ba76a5d854308eda9ec9731b5ba",
+    "/tmp/m8-advanced-baseline-source-check.log": "53e6c348c78cf1025f7cf518fd9cd2b6d5779860167780edd4aa02ca1c55ab15"
+  },
+  "rejected_initial_receipt": "/tmp/ogpu-foundation-external-04ordo9t/independent advanced-raster/run-vj92n7ll/report.json",
+  "exclusions": [
+    "1280x720 optional scale not run",
+    "general stage-interface linker",
+    "other hardware/backends",
+    "unlisted native feature combinations",
+    "performance parity"
+  ]
+}

@@ -19,7 +19,8 @@ The new [textured consumer](../tools/sdk/foundation-advanced/README.md) composes
 GPU-produced indexed draws, sampled texture heaps, mip views, filtering, depth,
 blending and scissors with geometry, tessellation and continuation. It uses five
 explicit profiles. No runtime operation, public layout or hidden policy was added.
-Its fixed offline shader recipe is deliberately separate from the bounded VS/FS
+[Clean installed acceptance](results/m8-advanced-textured-2026-11-06.md) passes
+180 frames at both extents. Its fixed offline shader recipe is deliberately separate from the bounded VS/FS
 `ogpu-graphics` linker. It is not evidence that arbitrary stage interfaces are
 automatically checked.
 

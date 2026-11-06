@@ -101,11 +101,12 @@ are not implemented by this change; include them in the remaining M8 coverage au
 
 The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
 composes these stages with generated indexed geometry, texture heaps and mip
-sampling, depth, blending, scissors and render continuation. The initial five
-profiles pass at 257×193, including exact tessellation versus tessellation/geometry
+sampling, depth, blending, scissors and render continuation. The five
+profiles pass at 257×193 and 640×360, including exact tessellation versus tessellation/geometry
 and uninterrupted versus suspended image agreement. The existing CPU oracle
 handles nearest-filter ties explicitly; no runtime lowering change was needed.
-Installed acceptance is recorded separately. The [M8 audit](m8-coverage.md)
+[Clean installed acceptance](results/m8-advanced-textured-2026-11-06.md) records
+180 frames and the explicit boundary comparison results. The [M8 audit](m8-coverage.md)
 schedules remaining native profiles and composition/tooling work before M9;
 these bounded fixtures do not imply blanket M8 completion.
 
