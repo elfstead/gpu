@@ -49,7 +49,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     if (mode == 6) options.depth_bias_constant = 16;
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,
-        OGPU_NEXT_D32_FLOAT,1,1,mode == 0 ? OGPU_NEXT_COMPARE_LESS : OGPU_NEXT_COMPARE_ALWAYS,{0},0,{0},{0},NULL,&options.header,0,0,0};
+        OGPU_NEXT_D32_FLOAT,1,1,mode == 0 ? OGPU_NEXT_COMPARE_LESS : OGPU_NEXT_COMPARE_ALWAYS,{0},0,{0},{0},NULL,&options.header,0,0,0,NULL};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | (layered ? FIXTURE_BIT(OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER) : 0)),{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         1,&shader,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
@@ -139,7 +139,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         dep_scope.stages_after = OGPU_NEXT_STAGE_COLOR; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     }
     ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={1,0}}};
-    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,0,NULL,&attachment,NULL,{NULL,0}};
+    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,0,NULL,&attachment,NULL,{NULL,0},NULL};
     if (layered) render.layers = 2;
     if (resolving) {
         render.samples = 4; attachment.resolve_view = target_view;

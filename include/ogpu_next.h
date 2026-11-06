@@ -1,6 +1,6 @@
 #ifndef OGPU_NEXT_H
 #define OGPU_NEXT_H
-/* Experimental foundation revision 10, not ABI 20; the default Linux SDK surface.
+/* Experimental foundation revision 11, not ABI 20; the default Linux SDK surface.
  * Only declarations in THIS header are implemented (Linux Vulkan for now).
  * The remaining design lives in docs/drafts/ogpu_next.h.
  *
@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 10u
+#define OGPU_NEXT_VERSION 11u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -221,6 +221,11 @@ typedef struct ogpu_next_image_limits {
 ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const ogpu_next_image_profile *, ogpu_next_image_limits *);
 #define OGPU_NEXT_FEATURE_MULTIVIEW UINT32_C(62)
 #define OGPU_NEXT_FEATURE_MESH_MULTIVIEW UINT32_C(63)
+#define OGPU_NEXT_FEATURE_PIPELINE_SHADING_RATE UINT32_C(64)
+#define OGPU_NEXT_FEATURE_PRIMITIVE_SHADING_RATE UINT32_C(65)
+#define OGPU_NEXT_FEATURE_ATTACHMENT_SHADING_RATE UINT32_C(66)
+#define OGPU_NEXT_FEATURE_MESH_PRIMITIVE_SHADING_RATE UINT32_C(67)
+
 #define OGPU_NEXT_FEATURE_RASTER UINT32_C(1)
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT32_C(2)
 #define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT32_C(3)
@@ -1452,6 +1457,69 @@ typedef struct ogpu_next_launch {
 void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
 void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
 
+/* Independent PIPELINE/PRIMITIVE/ATTACHMENT_SHADING_RATE feature enables; none
+ * implies another. MESH_PRIMITIVE_SHADING_RATE also requires MESH_SHADER and
+ * PRIMITIVE_SHADING_RATE. Physical limits/tuples are identical on adapter/device;
+ * zero limits/empty tuples if the native extension is absent. Samples is a bitmask.
+ * Interaction properties and tuples describe native final-rate reduction, not
+ * additional hard validity restrictions or a promise of the exact requested rate.
+ * Vulkan maps this profile to VK_KHR_fragment_shading_rate, not density maps. */
+#define OGPU_NEXT_FORMAT_SHADING_RATE UINT64_C(8192)
+#define OGPU_NEXT_QUERY_SHADING_RATE_LIMITS 20u
+#define OGPU_NEXT_QUERY_SHADING_RATES 21u
+#define OGPU_NEXT_DYNAMIC_SHADING_RATE UINT64_C(8192)
+#define OGPU_NEXT_IMAGE_SHADING_RATE UINT64_C(256)
+#define OGPU_NEXT_STATE_SHADING_RATE 9u
+#define OGPU_NEXT_STAGE_SHADING_RATE UINT64_C(8388608)
+#define OGPU_NEXT_ACCESS_SHADING_RATE_READ UINT64_C(8388608)
+#define OGPU_NEXT_COMPILE_SHADING_RATE_ATTACHMENT 4u
+enum { OGPU_NEXT_SHADING_RATE_KEEP = 0, OGPU_NEXT_SHADING_RATE_REPLACE = 1,
+       OGPU_NEXT_SHADING_RATE_MIN = 2, OGPU_NEXT_SHADING_RATE_MAX = 3, OGPU_NEXT_SHADING_RATE_MUL = 4 };
+/* Fragment dimensions are 1, 2 or 4; other values INVALID. Without PIPELINE
+ * enable they must be 1x1. Combine pipeline with primitive using combiners[0],
+ * then combine that result with attachment using combiners[1]. KEEP keeps the
+ * first input, REPLACE chooses the second. Disabled primitive/attachment inputs
+ * require KEEP in their respective slot. MIN/MAX/MUL require nontrivial_combiners.
+ * Static state is borrowed only through executable creation; NULL means
+ * {{1,1},{KEEP,KEEP}}. DYNAMIC_SHADING_RATE ignores the static pointer and requires
+ * the caller to set dynamic state before use, respecting native invalidation. */
+typedef struct ogpu_next_shading_rate_state {
+    uint32_t fragment_size[2], combiners[2];
+} ogpu_next_shading_rate_state;
+/* Render pointer NULL means absent. Otherwise view is non-NULL, bound, same-device,
+ * 2D/2D_ARRAY with IMAGE_SHADING_RATE usage and identity component mapping; image
+ * samples=1, state=GENERAL or SHADING_RATE, reserved=0. texel_size is a power of
+ * two within queried min/max/aspect limits. The selected base mip covers the
+ * entire offset render area after scaling by texel_size. One layer broadcasts;
+ * otherwise enough layers for render layers/highest view-mask bit are required.
+ * Multiple layers require layered_attachments. The view cannot equal an ordinary
+ * attachment or resolve view in this render scope. Caller owns backing, contents,
+ * barriers, layout and retirement. There is no implicit generation or transition.
+ * Graphics executables used with this attachment must explicitly request
+ * COMPILE_SHADING_RATE_ATTACHMENT (requires ATTACHMENT enable; invalid for compute).
+ * Vulkan texels use the native unsigned shading-rate encoding; query format usage.
+ * Rate state/attachment record are borrowed through the call, resource through use. */
+typedef struct ogpu_next_shading_rate_attachment {
+    ogpu_next_view *view;
+    uint32_t state, texel_size[2], reserved;
+} ogpu_next_shading_rate_attachment;
+typedef struct ogpu_next_shading_rate {
+    uint32_t fragment_size[2], samples;
+} ogpu_next_shading_rate;
+typedef struct ogpu_next_shading_rate_limits {
+    uint32_t min_attachment_texel[2], max_attachment_texel[2];
+    uint32_t max_attachment_texel_aspect_ratio, primitive_with_multiple_viewports;
+    uint32_t layered_attachments, nontrivial_combiners, max_fragment_size[2];
+    uint32_t max_fragment_aspect_ratio, max_coverage_samples, max_rasterization_samples;
+    uint32_t with_shader_depth_stencil_writes, with_sample_mask, with_shader_sample_mask;
+    uint32_t with_conservative_rasterization, with_fragment_shader_interlock;
+    uint32_t with_custom_sample_locations, strict_multiply_combiner;
+} ogpu_next_shading_rate_limits;
+/* Borrow state through this recording call. Requires a graphics queue and at
+ * least one enabled shading-rate input. One native state command, no allocation,
+ * compilation or cache. Errors poison recording via the usual encoder contract. */
+void ogpu_next_set_shading_rate(ogpu_next_encoder *, const ogpu_next_shading_rate_state *);
+
 typedef struct ogpu_next_graphics_limits {
     uint32_t max_colors, max_width, max_height, max_layers;
     uint32_t max_viewport[2]; float viewport_bounds[2];
@@ -1573,6 +1641,7 @@ typedef struct ogpu_next_graphics_state {
     const ogpu_next_record *raster_options;
     uint32_t logic_op_enable, logic_op;
     uint32_t view_mask; /* zero: ordinary layered rendering; otherwise MULTIVIEW */
+    const ogpu_next_shading_rate_state *shading_rate;
 } ogpu_next_graphics_state;
 enum {
     OGPU_NEXT_LOGIC_CLEAR = 0, OGPU_NEXT_LOGIC_AND = 1, OGPU_NEXT_LOGIC_AND_REVERSE = 2,
@@ -1721,6 +1790,7 @@ typedef struct ogpu_next_render_desc {
     const ogpu_next_attachment *colors;
     const ogpu_next_attachment *depth, *stencil;
     ogpu_next_host_span scratch;
+    const ogpu_next_shading_rate_attachment *shading_rate;
 } ogpu_next_render_desc;
 enum { OGPU_NEXT_RENDER_SECONDARY = 1 };
 typedef struct ogpu_next_viewport_state {

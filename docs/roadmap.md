@@ -594,8 +594,12 @@ physical limits, pipeline/render/inheritance masks, shader requirements and
 [local sparse/offset-layer correctness](results/m8-multiview-2026-11-06.md).
 The clean revision-10 C and native Rust SDK checks also pass at `2f316e6`.
 Color/MSAA/resolve, generated/mesh multiview and corrected-layer full timestamp
-validation remain acceptance work. Next implement shading-rate, then
-tile-local/pass-continuation and remaining tessellation/geometry profiles.
+validation remain acceptance work. Revision 11 implements [fragment shading rate](shading-rate.md)
+with independent enables, limits/tuples, static/dynamic state, attachment use and
+compiler requirements. [Local evidence](results/m8-shading-rate-2026-11-06.md) covers
+host/compiler and regression checks; this GPU has no native shading-rate inputs,
+so positive rendering acceptance remains open. Next implement tile-local/pass-
+continuation and remaining tessellation/geometry profiles.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage

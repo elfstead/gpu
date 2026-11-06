@@ -91,7 +91,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM, 15, 0, 1, 0, 0, 1, 0, 0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state, OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES, OGPU_NEXT_CULL_NONE, OGPU_NEXT_FRONT_CCW, 1, 1, &color,
-        OGPU_NEXT_D32_FLOAT, 1, 1, OGPU_NEXT_COMPARE_LESS, {0, 0, 0, 0}, 0, {0}, {0}, NULL, NULL, 0, 0,0};
+        OGPU_NEXT_D32_FLOAT, 1, 1, OGPU_NEXT_COMPARE_LESS, {0, 0, 0, 0}, 0, {0}, {0}, NULL, NULL, 0, 0,0,NULL};
     ogpu_next_vertex_binding bindings[2] = {{3,16,OGPU_NEXT_VERTEX_RATE_VERTEX},{4,16,OGPU_NEXT_VERTEX_RATE_INSTANCE}};
     ogpu_next_vertex_attribute attributes[2] = {{0,3,OGPU_NEXT_RG32_FLOAT,4},{1,4,OGPU_NEXT_RG32_FLOAT,8}};
     ogpu_next_vertex_input input = {HEADER(ogpu_next_vertex_input, OGPU_NEXT_VERTEX_INPUT),2,2,bindings,attributes};
@@ -241,7 +241,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_attachment depth = {views[1], NULL, OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.depth_stencil = {1,0}}};
     ogpu_next_attachment stencil = depth;
     ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc, OGPU_NEXT_RENDER_DESC),
-        0, 0, 16, 8, 1, 0, samples, 0, 1, &colors, &depth, stencil_enabled ? &stencil : NULL, {scratch, rr.size}};
+        0, 0, 16, 8, 1, 0, samples, 0, 1, &colors, &depth, stencil_enabled ? &stencil : NULL, {scratch, rr.size},NULL};
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state, OGPU_NEXT_VIEWPORT_STATE),
         0, 0, 16, 8, 0, 1, 0, 0, 8, 8};
     ogpu_next_draw_desc draw = {3, 1, 0, vertex_fetch ? 1u : 0u, 0};

@@ -314,7 +314,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 23) - 1;
+const KNOWN_SCOPES: u64 = (1 << 24) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -327,7 +327,8 @@ const RASTER_SCOPES: u64 = 8
     | GRAPHICS_SCOPE
     | PRE_RASTER_SCOPE
     | MESH_STAGE
-    | TASK_STAGE;
+    | TASK_STAGE
+    | SHADING_RATE_STAGE;
 
 fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u64, Status> {
     if mask & !KNOWN_SCOPES != 0 {
@@ -370,6 +371,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT,
         vk::VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT,
         vk::VK_PIPELINE_STAGE_2_COMMAND_PREPROCESS_BIT_EXT,
+        vk::VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
@@ -379,6 +381,7 @@ fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
     if mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
         || mask & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
         || mask & PREPROCESS_STAGE != 0 && enabled & GENERATED_COMMANDS == 0
+        || mask & SHADING_RATE_STAGE != 0 && enabled & ATTACHMENT_SHADING_RATE == 0
     {
         return Err(UNSUPPORTED);
     }
@@ -401,7 +404,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 23) - 1) != 0 {
+    if mask & !((1 << 24) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -432,6 +435,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         shaders,
         1 | PREPROCESS_STAGE,
         1 | PREPROCESS_STAGE,
+        1 | GRAPHICS_SCOPE | SHADING_RATE_STAGE,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -457,6 +461,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
         vk::VK_ACCESS_2_COMMAND_PREPROCESS_READ_BIT_EXT,
         vk::VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT,
+        vk::VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -471,6 +476,9 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
 }
 
 fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u64, Status> {
+    if mask & SHADING_RATE_READ != 0 && d.snapshot.features.enabled & ATTACHMENT_SHADING_RATE == 0 {
+        return Err(UNSUPPORTED);
+    }
     if scope & 1 != 0 {
         // ALL_COMMANDS expands only to operations supported by this family; it
         // doesn't make shader accesses valid on a transfer-only queue.
@@ -490,6 +498,9 @@ fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u
         }
         if flags & GRAPHICS != 0 {
             scope |= 8 | 16 | 32 | 64 | 128 | INPUT_SCOPE;
+            if d.snapshot.features.enabled & ATTACHMENT_SHADING_RATE != 0 {
+                scope |= SHADING_RATE_STAGE;
+            }
         }
     }
     access(mask, scope)
@@ -878,6 +889,27 @@ impl List {
         }
         .unwrap();
         unsafe { command(self.command, faces, value) };
+        Ok(())
+    }
+    pub(in crate::foundation) fn shading_rate(
+        &self,
+        state: &ShadingRateState,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        shading_rate::state(
+            d.snapshot.features.enabled,
+            &d.snapshot.shading_rate_limits,
+            state,
+        )?;
+        let size = vk::VkExtent2D {
+            width: state.fragment_size[0],
+            height: state.fragment_size[1],
+        };
+        let combiners = state.combiners;
+        unsafe {
+            (d.shading_rate_function.ok_or(UNSUPPORTED)?)(self.command, &size, combiners.as_ptr());
+        }
         Ok(())
     }
     pub(in crate::foundation) fn viewport(&self, state: &ViewportState) -> Result<(), Status> {
@@ -1760,7 +1792,7 @@ mod tests {
             stage_mask(TRANSFER, false, COPY_SCOPE | CLEAR_SCOPE, false),
             Ok(vk::VK_PIPELINE_STAGE_2_COPY_BIT | vk::VK_PIPELINE_STAGE_2_CLEAR_BIT)
         );
-        assert_eq!(stage_mask(GRAPHICS, true, 1 << 23, false), Err(UNSUPPORTED));
+        assert_eq!(stage_mask(GRAPHICS, true, 1 << 24, false), Err(UNSUPPORTED));
         assert_eq!(stage_mask(COMPUTE, false, 256, true), Err(INVALID));
         assert_eq!(access(512, 8), Err(INVALID));
         assert_eq!(access(1024, 8), Err(INVALID));
@@ -1806,7 +1838,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 23, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 24, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

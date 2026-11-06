@@ -353,6 +353,7 @@ unsafe fn record_frame(
                     depth: &depth,
                     stencil: ptr::null(),
                     scratch: rendering.span(),
+                    shading_rate: ptr::null(),
                 },
             );
             gpu::bind_executable(list, pipeline);

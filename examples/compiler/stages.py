@@ -33,6 +33,8 @@ def reflected(entry):
             ("vertex", "Input", "SV_VIEWID"): ("ViewIndex", "uint32", 1),
             ("fragment", "Input", "SV_VIEWID"): ("ViewIndex", "uint32", 1),
             ("vertex", "Input", "SV_DRAWINDEX"): ("DrawIndex", "uint32", 1),
+            ("vertex", "Output", "SV_SHADINGRATE"): ("PrimitiveShadingRateKHR", "uint32", 1),
+            ("fragment", "Input", "SV_SHADINGRATE"): ("ShadingRateKHR", "uint32", 1),
             ("vertex", "Output", "SV_POSITION"): ("Position", "float32", 4),
             ("fragment", "Input", "SV_POSITION"): ("FragCoord", "float32", 4),
         }.get((stage, storage, semantic))
@@ -81,8 +83,8 @@ def reflected(entry):
     required_builtins = {"compute": [("Input", "BuiltIn GlobalInvocationId")],
                          "vertex": [("Input", "BuiltIn VertexIndex"), ("Output", "BuiltIn Position")],
                          "fragment": []}[stage]
-    optional_builtins = {"compute": [], "vertex": [("Input", "BuiltIn DrawIndex"), ("Input", "BuiltIn ViewIndex")],
-                         "fragment": [("Input", "BuiltIn FragCoord"), ("Input", "BuiltIn ViewIndex")]}[stage]
+    optional_builtins = {"compute": [], "vertex": [("Input", "BuiltIn DrawIndex"), ("Input", "BuiltIn ViewIndex"), ("Output", "BuiltIn PrimitiveShadingRateKHR")],
+                         "fragment": [("Input", "BuiltIn FragCoord"), ("Input", "BuiltIn ViewIndex"), ("Input", "BuiltIn ShadingRateKHR")]}[stage]
     actual_builtins = [(row[0], row[1]) for row in expected if row[1].startswith("BuiltIn")]
     require(set(required_builtins) <= set(actual_builtins) <= set(required_builtins + optional_builtins),
             "required stage builtin missing/duplicated")
@@ -111,7 +113,7 @@ def inspect(entry, definitions, variables, assembly, heap_ids):
         interpolation = set(decorations) - {location}
         require(interpolation in (set(), {"Flat"}, {"NoPerspective"}), "unsupported interpolation decoration")
         require(not interpolation or
-                (location == "BuiltIn ViewIndex" and entry["stage"] == "fragment" and storage == "Input" and interpolation == {"Flat"}) or
+                (location in ("BuiltIn ViewIndex", "BuiltIn ShadingRateKHR") and entry["stage"] == "fragment" and storage == "Input" and interpolation == {"Flat"}) or
                 location.startswith("Location") and
                 (entry["stage"], storage) in (("vertex", "Output"), ("fragment", "Input")),
                 "interpolation outside varying interface")

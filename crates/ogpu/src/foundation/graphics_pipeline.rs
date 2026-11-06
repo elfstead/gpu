@@ -224,6 +224,26 @@ pub(super) unsafe fn prepare(
         return Err(INVALID);
     }
     raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
+    let rate = if desc.dynamic_state & DYNAMIC_SHADING_RATE != 0 || state.shading_rate.is_null() {
+        ShadingRateState::default()
+    } else {
+        unsafe { *state.shading_rate }
+    };
+    let has_rate = d.snapshot.features.enabled & shading_rate::INPUTS != 0;
+    if has_rate {
+        shading_rate::state(
+            d.snapshot.features.enabled,
+            &d.snapshot.shading_rate_limits,
+            &rate,
+        )?;
+    } else if !state.shading_rate.is_null() || desc.dynamic_state & DYNAMIC_SHADING_RATE != 0 {
+        return Err(UNSUPPORTED);
+    }
+    let native_rate = vk::VkPipelineFragmentShadingRateStateCreateInfoKHR {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_STATE_CREATE_INFO_KHR,
+        fragmentSize: vk::VkExtent2D { width: rate.fragment_size[0], height: rate.fragment_size[1] },
+        combinerOps: rate.combiners, ..Default::default()
+    };
     let shader_count = desc.shader_count;
     if options.discard != 0 && stage_mask & 16 != 0 {
         return Err(UNSUPPORTED);
@@ -645,7 +665,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 14];
+    let mut dynamic_states = [0; 15];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
@@ -657,6 +677,10 @@ pub(super) unsafe fn prepare(
         (32, vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE),
         (64, vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE),
         (128, vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_COMPARE_OP),
+        (
+            DYNAMIC_SHADING_RATE,
+            vk::VkDynamicState_VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR,
+        ),
         (256, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE),
         (512, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP),
         (1024, vk::VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE),
@@ -680,7 +704,11 @@ pub(super) unsafe fn prepare(
     let flags = vk::VkPipelineCreateFlags2CreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
         flags: pipeline_flags,
-        ..Default::default()
+        pNext: if has_rate {
+            ptr::from_ref(&native_rate).cast()
+        } else {
+            ptr::null()
+        },
     };
     let rendering = vk::VkPipelineRenderingCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,

@@ -16,6 +16,7 @@ fn image_features(native: u64) -> u64 {
         vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
     ];
     remap(native, &bits)
+        | if native & u64::from(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR) != 0 { format_features::SHADING_RATE } else { 0 }
         | if native & vk::VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT != 0 {
             format_features::STORAGE_READ_WITHOUT_FORMAT
         } else {
@@ -108,6 +109,14 @@ impl Device {
         if profile.reserved != 0 {
             return Err(UNSUPPORTED);
         }
+        if profile.usage & IMAGE_SHADING_RATE != 0 {
+            if self.snapshot.features.enabled & ATTACHMENT_SHADING_RATE == 0 {
+                return Err(UNSUPPORTED);
+            }
+            if profile.dimension != 2 {
+                return Err(INVALID);
+            }
+        }
         let format = format(profile.format)?;
         let native_usage = usage(profile.usage, format.aspects)?;
         let flags = image_flags(profile.image_flags)?;
@@ -139,12 +148,14 @@ impl Device {
             return Err(UNSUPPORTED);
         }
         self.result(result)?;
-        let samples =
-            if profile.usage & 8 != 0 || profile.dimension != 2 || profile.image_flags & 2 != 0 {
-                p.sampleCounts & 1
-            } else {
-                p.sampleCounts
-            };
+        let samples = if profile.usage & (8 | IMAGE_SHADING_RATE) != 0
+            || profile.dimension != 2
+            || profile.image_flags & 2 != 0
+        {
+            p.sampleCounts & 1
+        } else {
+            p.sampleCounts
+        };
         if samples == 0 {
             return Err(UNSUPPORTED);
         }
@@ -178,6 +189,7 @@ mod tests {
             ("COPY_DST", COPY_DST),
             ("STORAGE_READ_WITHOUT_FORMAT", STORAGE_READ_WITHOUT_FORMAT),
             ("STORAGE_WRITE_WITHOUT_FORMAT", STORAGE_WRITE_WITHOUT_FORMAT),
+            ("SHADING_RATE", SHADING_RATE),
         ] {
             assert!(header.contains(&format!(
                 "#define OGPU_NEXT_FORMAT_{name} UINT64_C({value})"
@@ -299,7 +311,7 @@ mod tests {
     fn format_capabilities_keep_tiling_and_buffer_domains_distinct() {
         assert_eq!(image_features(0), 0);
         assert_eq!(buffer_features(0), 0);
-        assert_eq!(image_features(u64::MAX), 8191);
+        assert_eq!(image_features(u64::MAX), 16383);
         assert_eq!(buffer_features(u64::MAX), 15);
         assert_eq!(image_features(1 << 31), 2048);
         assert_eq!(image_features(1 << 32), 4096);

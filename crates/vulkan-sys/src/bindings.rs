@@ -10579,6 +10579,7 @@ pub type VkPipelineCreateFlags2 = VkFlags64;
 pub type VkPipelineCreateFlagBits2 = VkFlags64;
 pub const VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT: VkPipelineCreateFlagBits2 = 256;
 pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits2 = 68719476736;
+pub const VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkPipelineCreateFlagBits2 = 2097152;
 pub const VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT: VkPipelineCreateFlagBits2 = 274877906944;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -11319,6 +11320,364 @@ impl Default for VkPhysicalDeviceShaderBfloat16FeaturesKHR {
         }
     }
 }
+pub const VkFragmentShadingRateCombinerOpKHR_VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR: VkFragmentShadingRateCombinerOpKHR = 0;
+pub const VkFragmentShadingRateCombinerOpKHR_VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR: VkFragmentShadingRateCombinerOpKHR = 1;
+pub const VkFragmentShadingRateCombinerOpKHR_VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MIN_KHR: VkFragmentShadingRateCombinerOpKHR = 2;
+pub const VkFragmentShadingRateCombinerOpKHR_VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR: VkFragmentShadingRateCombinerOpKHR = 3;
+pub const VkFragmentShadingRateCombinerOpKHR_VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MUL_KHR: VkFragmentShadingRateCombinerOpKHR = 4;
+pub const VkFragmentShadingRateCombinerOpKHR_VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_ENUM_KHR: VkFragmentShadingRateCombinerOpKHR = 2147483647;
+pub type VkFragmentShadingRateCombinerOpKHR = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineFragmentShadingRateStateCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub fragmentSize: VkExtent2D,
+    pub combinerOps: [VkFragmentShadingRateCombinerOpKHR; 2usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineFragmentShadingRateStateCreateInfoKHR",
+    ][::std::mem::size_of::<VkPipelineFragmentShadingRateStateCreateInfoKHR>()
+        - 32usize];
+    [
+        "Alignment of VkPipelineFragmentShadingRateStateCreateInfoKHR",
+    ][::std::mem::align_of::<VkPipelineFragmentShadingRateStateCreateInfoKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineFragmentShadingRateStateCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineFragmentShadingRateStateCreateInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineFragmentShadingRateStateCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineFragmentShadingRateStateCreateInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineFragmentShadingRateStateCreateInfoKHR::fragmentSize",
+    ][::std::mem::offset_of!(
+        VkPipelineFragmentShadingRateStateCreateInfoKHR, fragmentSize
+    ) - 16usize];
+    [
+        "Offset of field: VkPipelineFragmentShadingRateStateCreateInfoKHR::combinerOps",
+    ][::std::mem::offset_of!(
+        VkPipelineFragmentShadingRateStateCreateInfoKHR, combinerOps
+    ) - 24usize];
+};
+impl Default for VkPipelineFragmentShadingRateStateCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceFragmentShadingRateFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipelineFragmentShadingRate: VkBool32,
+    pub primitiveFragmentShadingRate: VkBool32,
+    pub attachmentFragmentShadingRate: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceFragmentShadingRateFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceFragmentShadingRateFeaturesKHR>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceFragmentShadingRateFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceFragmentShadingRateFeaturesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRateFeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRateFeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateFeaturesKHR::pipelineFragmentShadingRate",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR, pipelineFragmentShadingRate
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateFeaturesKHR::primitiveFragmentShadingRate",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR, primitiveFragmentShadingRate
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateFeaturesKHR::attachmentFragmentShadingRate",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR, attachmentFragmentShadingRate
+    ) - 24usize];
+};
+impl Default for VkPhysicalDeviceFragmentShadingRateFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceFragmentShadingRatePropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub minFragmentShadingRateAttachmentTexelSize: VkExtent2D,
+    pub maxFragmentShadingRateAttachmentTexelSize: VkExtent2D,
+    pub maxFragmentShadingRateAttachmentTexelSizeAspectRatio: u32,
+    pub primitiveFragmentShadingRateWithMultipleViewports: VkBool32,
+    pub layeredShadingRateAttachments: VkBool32,
+    pub fragmentShadingRateNonTrivialCombinerOps: VkBool32,
+    pub maxFragmentSize: VkExtent2D,
+    pub maxFragmentSizeAspectRatio: u32,
+    pub maxFragmentShadingRateCoverageSamples: u32,
+    pub maxFragmentShadingRateRasterizationSamples: VkSampleCountFlagBits,
+    pub fragmentShadingRateWithShaderDepthStencilWrites: VkBool32,
+    pub fragmentShadingRateWithSampleMask: VkBool32,
+    pub fragmentShadingRateWithShaderSampleMask: VkBool32,
+    pub fragmentShadingRateWithConservativeRasterization: VkBool32,
+    pub fragmentShadingRateWithFragmentShaderInterlock: VkBool32,
+    pub fragmentShadingRateWithCustomSampleLocations: VkBool32,
+    pub fragmentShadingRateStrictMultiplyCombiner: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceFragmentShadingRatePropertiesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceFragmentShadingRatePropertiesKHR>()
+        - 96usize];
+    [
+        "Alignment of VkPhysicalDeviceFragmentShadingRatePropertiesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceFragmentShadingRatePropertiesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRatePropertiesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRatePropertiesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::minFragmentShadingRateAttachmentTexelSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        minFragmentShadingRateAttachmentTexelSize
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentShadingRateAttachmentTexelSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        maxFragmentShadingRateAttachmentTexelSize
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentShadingRateAttachmentTexelSizeAspectRatio",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        maxFragmentShadingRateAttachmentTexelSizeAspectRatio
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::primitiveFragmentShadingRateWithMultipleViewports",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        primitiveFragmentShadingRateWithMultipleViewports
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::layeredShadingRateAttachments",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR, layeredShadingRateAttachments
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateNonTrivialCombinerOps",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateNonTrivialCombinerOps
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR, maxFragmentSize
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentSizeAspectRatio",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR, maxFragmentSizeAspectRatio
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentShadingRateCoverageSamples",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        maxFragmentShadingRateCoverageSamples
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentShadingRateRasterizationSamples",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        maxFragmentShadingRateRasterizationSamples
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateWithShaderDepthStencilWrites",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateWithShaderDepthStencilWrites
+    ) - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateWithSampleMask",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateWithSampleMask
+    ) - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateWithShaderSampleMask",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateWithShaderSampleMask
+    ) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateWithConservativeRasterization",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateWithConservativeRasterization
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateWithFragmentShaderInterlock",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateWithFragmentShaderInterlock
+    ) - 84usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateWithCustomSampleLocations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateWithCustomSampleLocations
+    ) - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRatePropertiesKHR::fragmentShadingRateStrictMultiplyCombiner",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceFragmentShadingRatePropertiesKHR,
+        fragmentShadingRateStrictMultiplyCombiner
+    ) - 92usize];
+};
+impl Default for VkPhysicalDeviceFragmentShadingRatePropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceFragmentShadingRateKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub sampleCounts: VkSampleCountFlags,
+    pub fragmentSize: VkExtent2D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceFragmentShadingRateKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceFragmentShadingRateKHR>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceFragmentShadingRateKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceFragmentShadingRateKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRateKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRateKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateKHR::sampleCounts",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRateKHR, sampleCounts)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceFragmentShadingRateKHR::fragmentSize",
+    ][::std::mem::offset_of!(VkPhysicalDeviceFragmentShadingRateKHR, fragmentSize)
+        - 20usize];
+};
+impl Default for VkPhysicalDeviceFragmentShadingRateKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderingFragmentShadingRateAttachmentInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub imageView: VkImageView,
+    pub imageLayout: VkImageLayout,
+    pub shadingRateAttachmentTexelSize: VkExtent2D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRenderingFragmentShadingRateAttachmentInfoKHR",
+    ][::std::mem::size_of::<VkRenderingFragmentShadingRateAttachmentInfoKHR>()
+        - 40usize];
+    [
+        "Alignment of VkRenderingFragmentShadingRateAttachmentInfoKHR",
+    ][::std::mem::align_of::<VkRenderingFragmentShadingRateAttachmentInfoKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkRenderingFragmentShadingRateAttachmentInfoKHR::sType",
+    ][::std::mem::offset_of!(VkRenderingFragmentShadingRateAttachmentInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkRenderingFragmentShadingRateAttachmentInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkRenderingFragmentShadingRateAttachmentInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkRenderingFragmentShadingRateAttachmentInfoKHR::imageView",
+    ][::std::mem::offset_of!(VkRenderingFragmentShadingRateAttachmentInfoKHR, imageView)
+        - 16usize];
+    [
+        "Offset of field: VkRenderingFragmentShadingRateAttachmentInfoKHR::imageLayout",
+    ][::std::mem::offset_of!(
+        VkRenderingFragmentShadingRateAttachmentInfoKHR, imageLayout
+    ) - 24usize];
+    [
+        "Offset of field: VkRenderingFragmentShadingRateAttachmentInfoKHR::shadingRateAttachmentTexelSize",
+    ][::std::mem::offset_of!(
+        VkRenderingFragmentShadingRateAttachmentInfoKHR, shadingRateAttachmentTexelSize
+    ) - 28usize];
+};
+impl Default for VkRenderingFragmentShadingRateAttachmentInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pFragmentShadingRateCount: *mut u32,
+        pFragmentShadingRates: *mut VkPhysicalDeviceFragmentShadingRateKHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkCmdSetFragmentShadingRateKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pFragmentSize: *const VkExtent2D,
+        combinerOps: *const VkFragmentShadingRateCombinerOpKHR,
+    ),
+>;
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_PROTECTED_BIT_KHR: VkAddressCommandFlagBitsKHR = 1;
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR: VkAddressCommandFlagBitsKHR = 2;
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR: VkAddressCommandFlagBitsKHR = 4;

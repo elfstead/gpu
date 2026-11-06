@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
     ogpu_next_shader graphics[2]; application_shaders(graphics);
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,
-        OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
+        OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0,NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,2,graphics,
         &gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&application_requirements.header,NULL,0,0}; TRY(ogpu_next_argument_layout_create(device,&application_arguments,&raster_arguments));
     TRY(ogpu_next_executable_create(device,&ed,raster_arguments,&raster));
@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
     ogpu_next_dependency image_dep = {1,0,1,0,&image_dep_scope,NULL,&barrier};
         common_barrier(encoder,&image_dep,&image_dep_scope,image_dep_scratch);
         ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
-        ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,ow,oh,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size}};
+        ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,ow,oh,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size},NULL};
         ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)ow,(float)oh,0,1,0,0,ow,oh};
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,raster); ogpu_next_set_graphics_state(encoder,&vp.header);
         ogpu_next_set_arguments(encoder, raster_arguments, 0, sizeof(display), &display);

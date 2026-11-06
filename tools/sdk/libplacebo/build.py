@@ -32,7 +32,7 @@ def main():
     pkg = os.getenv("PKG_CONFIG","pkg-config")
     def flags(option,*packages): return shlex.split(output([pkg,option,*packages]))
     def variable(name): return output([pkg,"--variable="+name,"ogpu-foundation"])
-    if variable("ogpu_foundation") != "10": raise ValueError("foundation revision 10 required")
+    if variable("ogpu_foundation") != "11": raise ValueError("foundation revision 11 required")
     include,library = Path(variable("includedir")).resolve(),Path(variable("libdir")).resolve()
     # Fresh build every time; failed builds never replace the last complete receipt.
     build = Path(tempfile.mkdtemp(prefix="build-",dir=HERE))

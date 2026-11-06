@@ -68,7 +68,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
         {OGPU_NEXT_RGBA8_UNORM,5,0,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ZERO,OGPU_NEXT_BLEND_ADD,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ZERO,OGPU_NEXT_BLEND_ADD}
     };
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,2,states,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
+        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,2,states,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0,NULL};
     if (mode >= 15) {
         gs.logic_op_enable = 1; gs.logic_op = mode-15;
         // Caller state is explicit. A separate diagnostic exercises native logic
@@ -133,7 +133,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     ogpu_next_host_span dep_scratch = {bs,br.size};
     ogpu_next_dependency dep = {1,0,image_count,0,&dep_scope,NULL,barriers};
     common_barrier(encoder,&dep,&dep_scope,dep_scratch);
-    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,samples,0,2,attachments,NULL,NULL,{rs,rr.size}};
+    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,samples,0,2,attachments,NULL,NULL,{rs,rr.size},NULL};
     if (mode == 12 || mode == 14) {
         // Explicitly initialize both targets, including the target omitted below.
         ogpu_next_render_begin(encoder,&render); ogpu_next_render_end(encoder);

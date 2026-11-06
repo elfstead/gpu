@@ -1,5 +1,5 @@
 {
-  "revision": 10,
+  "revision": 11,
   "operations": [
     "ogpu_next_adapter_query",
     "ogpu_next_arena_create",
@@ -103,6 +103,7 @@
     "ogpu_next_set_depth_write",
     "ogpu_next_set_front_face",
     "ogpu_next_set_graphics_state",
+    "ogpu_next_set_shading_rate",
     "ogpu_next_set_stencil_compare_mask",
     "ogpu_next_set_stencil_ops",
     "ogpu_next_set_stencil_reference",
@@ -296,7 +297,25 @@
     "OGPU_NEXT_FEATURE_TASK_SHADER": "feature_ids::TASK_SHADER",
     "OGPU_NEXT_FEATURE_GENERATED_COMMANDS": "feature_ids::GENERATED_COMMANDS",
     "OGPU_NEXT_FEATURE_MULTIVIEW": "feature_ids::MULTIVIEW",
-    "OGPU_NEXT_FEATURE_MESH_MULTIVIEW": "feature_ids::MESH_MULTIVIEW"
+    "OGPU_NEXT_FEATURE_MESH_MULTIVIEW": "feature_ids::MESH_MULTIVIEW",
+    "OGPU_NEXT_FEATURE_PIPELINE_SHADING_RATE": "feature_ids::PIPELINE_SHADING_RATE",
+    "OGPU_NEXT_FEATURE_PRIMITIVE_SHADING_RATE": "feature_ids::PRIMITIVE_SHADING_RATE",
+    "OGPU_NEXT_FEATURE_ATTACHMENT_SHADING_RATE": "feature_ids::ATTACHMENT_SHADING_RATE",
+    "OGPU_NEXT_FEATURE_MESH_PRIMITIVE_SHADING_RATE": "feature_ids::MESH_PRIMITIVE_SHADING_RATE",
+    "OGPU_NEXT_QUERY_SHADING_RATE_LIMITS": "SHADING_RATE_LIMITS",
+    "OGPU_NEXT_QUERY_SHADING_RATES": "SHADING_RATES",
+    "OGPU_NEXT_DYNAMIC_SHADING_RATE": "DYNAMIC_SHADING_RATE",
+    "OGPU_NEXT_IMAGE_SHADING_RATE": "IMAGE_SHADING_RATE",
+    "OGPU_NEXT_STATE_SHADING_RATE": "STATE_SHADING_RATE",
+    "OGPU_NEXT_FORMAT_SHADING_RATE": "format_features::SHADING_RATE",
+    "OGPU_NEXT_STAGE_SHADING_RATE": "SHADING_RATE_STAGE",
+    "OGPU_NEXT_ACCESS_SHADING_RATE_READ": "SHADING_RATE_READ",
+    "OGPU_NEXT_COMPILE_SHADING_RATE_ATTACHMENT": "COMPILE_SHADING_RATE_ATTACHMENT",
+    "OGPU_NEXT_SHADING_RATE_KEEP": "SHADING_RATE_KEEP",
+    "OGPU_NEXT_SHADING_RATE_REPLACE": "SHADING_RATE_REPLACE",
+    "OGPU_NEXT_SHADING_RATE_MIN": "SHADING_RATE_MIN",
+    "OGPU_NEXT_SHADING_RATE_MAX": "SHADING_RATE_MAX",
+    "OGPU_NEXT_SHADING_RATE_MUL": "SHADING_RATE_MUL"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

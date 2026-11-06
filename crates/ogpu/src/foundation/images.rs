@@ -64,7 +64,7 @@ pub(super) fn format(id: u32) -> Result<Format, Status> {
         .ok_or(UNSUPPORTED)
 }
 fn usage(value: u64, aspects: u32) -> Result<u32, Status> {
-    if value & !255 != 0 {
+    if value & !511 != 0 {
         return Err(UNSUPPORTED);
     }
     if value == 0
@@ -74,10 +74,17 @@ fn usage(value: u64, aspects: u32) -> Result<u32, Status> {
     {
         return Err(INVALID);
     }
-    // These eight OGPU usage bits deliberately map to the eight core image uses.
-    Ok(value as u32)
+    Ok((value as u32 & 255)
+        | if value & IMAGE_SHADING_RATE != 0 {
+            vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR
+        } else {
+            0
+        })
 }
 fn dimensions(desc: &ImageDesc) -> Result<vk::VkImageType, Status> {
+    if desc.usage & IMAGE_SHADING_RATE != 0 && (desc.dimension != 2 || desc.sample_count != 1) {
+        return Err(INVALID);
+    }
     let e = desc.extent;
     if e.x == 0
         || e.y == 0
@@ -263,6 +270,11 @@ impl Device {
         self.ready()?;
         desc.header.validate::<ImageDesc>(IMAGE_DESC)?;
         if desc.flags & !7 != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if desc.usage & IMAGE_SHADING_RATE != 0
+            && self.snapshot.features.enabled & ATTACHMENT_SHADING_RATE == 0
+        {
             return Err(UNSUPPORTED);
         }
         let base = format(desc.format)?;
@@ -610,8 +622,11 @@ impl Image {
             7 if usage & (4 | 32 | 128) != 0 && aspects != 1 => {
                 Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
             }
+            STATE_SHADING_RATE if usage & IMAGE_SHADING_RATE != 0 => {
+                Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR)
+            }
             STATE_PRESENT if self.borrowed => Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
-            _ => Err(if state <= STATE_PRESENT {
+            _ => Err(if state <= STATE_SHADING_RATE {
                 INVALID
             } else {
                 UNSUPPORTED
@@ -990,6 +1005,51 @@ impl Drop for Image {
     }
 }
 impl View {
+    pub(super) fn shading_rate_attachment(
+        &self,
+        device: &Device,
+        domain: u32,
+        desc: &RenderDesc,
+        a: &ShadingRateAttachment,
+    ) -> Result<vk::VkRenderingFragmentShadingRateAttachmentInfoKHR, Status> {
+        if self.device != device || a.reserved != 0 {
+            return Err(INVALID);
+        }
+        if device.snapshot.features.enabled & ATTACHMENT_SHADING_RATE == 0 {
+            return Err(UNSUPPORTED);
+        }
+        shading_rate::texels(&device.snapshot.shading_rate_limits, a.texel_size)?;
+        let image = unsafe { &*self.image };
+        image.command_handle(device, domain, IMAGE_SHADING_RATE)?;
+        let p = &image.prepared.desc;
+        let r = self.info.subresourceRange;
+        let c = self.info.components;
+        shading_rate::attachment_bounds(
+            [
+                (p.extent.x >> r.baseMipLevel).max(1),
+                (p.extent.y >> r.baseMipLevel).max(1),
+            ],
+            r.layerCount,
+            a.texel_size,
+            desc,
+        )?;
+        if self.usage.usage
+            & vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR
+            == 0
+            || !matches!(c.r, 0 | 3)
+            || !matches!(c.g, 0 | 4)
+            || !matches!(c.b, 0 | 5)
+            || !matches!(c.a, 0 | 6)
+            || !matches!(a.state, 1 | STATE_SHADING_RATE)
+        {
+            return Err(INVALID);
+        }
+        Ok(vk::VkRenderingFragmentShadingRateAttachmentInfoKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
+            imageView: self.handle, imageLayout: image.layout(a.state)?,
+            shadingRateAttachmentTexelSize: vk::VkExtent2D { width:a.texel_size[0],height:a.texel_size[1] }, ..Default::default()
+        })
+    }
     pub(super) fn attachment(
         &self,
         device: *const Device,
@@ -1096,7 +1156,10 @@ impl View {
         if !image.prepared.formats.is_empty() && !image.prepared.formats.contains(&f.native) {
             return Err(INVALID);
         }
-        if desc.usage & !188 != 0 || desc.usage == 0 || u64::from(desc.usage) & !base.usage != 0 {
+        if desc.usage & !(188 | 256) != 0
+            || desc.usage == 0
+            || u64::from(desc.usage) & !base.usage != 0
+        {
             return Err(INVALID);
         }
         let native_usage = usage(desc.usage.into(), f.aspects)?;
@@ -1122,11 +1185,28 @@ impl View {
             }
             _ => return Err(INVALID),
         };
+        if base.usage & IMAGE_SHADING_RATE != 0
+            && !matches!(
+                native_type,
+                vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D
+                    | vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D_ARRAY
+            )
+        {
+            return Err(INVALID);
+        }
+        if u64::from(desc.usage) & IMAGE_SHADING_RATE != 0 {
+            if d.snapshot.features.enabled & ATTACHMENT_SHADING_RATE == 0 {
+                return Err(UNSUPPORTED);
+            }
+            if range.layerCount != 1 && d.snapshot.shading_rate_limits.layered_attachments == 0 {
+                return Err(UNSUPPORTED);
+            }
+        }
         if desc.component_mapping.iter().any(|c| *c > 6) {
             return Err(INVALID);
         }
         // Storage/attachment views require identity swizzles, not silently reset ones.
-        if desc.usage & (8 | 16 | 32 | 128) != 0 && desc.component_mapping != [0; 4] {
+        if desc.usage & (8 | 16 | 32 | 128 | 256) != 0 && desc.component_mapping != [0; 4] {
             return Err(INVALID);
         }
         let mut support = image.prepared.info;
@@ -1354,7 +1434,7 @@ mod tests {
         assert_eq!(usage(32, 1), Err(INVALID));
         assert_eq!(usage(64 | 4, 1), Err(INVALID));
         assert_eq!(usage(64 | 16, 1), Ok(80));
-        assert_eq!(usage(256, 1), Err(UNSUPPORTED));
+        assert_eq!(usage(512, 1), Err(UNSUPPORTED));
     }
     #[test]
     fn pitched_copy_extent_and_overflow() {

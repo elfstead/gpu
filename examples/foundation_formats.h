@@ -2,6 +2,7 @@
 static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_device *device) {
     int result = EXIT_FAILURE;
     ogpu_next_format_info *physical = NULL, *enabled = NULL, *saved = NULL;
+    ogpu_next_shading_rate *rates = NULL, *device_rates = NULL;
     ogpu_next_float_controls float_physical = {0}, float_device = {0};
     ogpu_next_query fq = query(OGPU_NEXT_QUERY_FLOAT_CONTROLS,NULL,0,sizeof(float_physical));
     TRY(ogpu_next_adapter_query(adapter,&fq)); REQUIRE(fq.count == 1);
@@ -37,11 +38,31 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     REQUIRE(q.count == count && memcmp(physical, enabled, count*sizeof(physical[0])) == 0);
     for (uint32_t i = 0; i < count; ++i) {
         REQUIRE(physical[i].format != 0 && physical[i].aspects != 0);
-        REQUIRE((physical[i].optimal_features & ~UINT64_C(8191)) == 0);
-        REQUIRE((physical[i].linear_features & ~UINT64_C(8191)) == 0);
+        REQUIRE((physical[i].optimal_features & ~UINT64_C(16383)) == 0);
+        REQUIRE((physical[i].linear_features & ~UINT64_C(16383)) == 0);
         REQUIRE((physical[i].buffer_features & ~UINT64_C(15)) == 0);
         for (uint32_t j = 0; j < i; ++j) REQUIRE(physical[i].format != physical[j].format);
     }
+    ogpu_next_shading_rate_limits rate_limits = {0}, device_rate_limits = {0};
+    ogpu_next_query rq = query(OGPU_NEXT_QUERY_SHADING_RATE_LIMITS,&rate_limits,1,sizeof(rate_limits));
+    TRY(ogpu_next_adapter_query(adapter,&rq)); REQUIRE(rq.count == 1);
+    rq.data = &device_rate_limits; TRY(ogpu_next_device_query(device,&rq));
+    REQUIRE(memcmp(&rate_limits,&device_rate_limits,sizeof(rate_limits)) == 0);
+    rq = query(OGPU_NEXT_QUERY_SHADING_RATES,NULL,0,sizeof(*rates));
+    TRY(ogpu_next_adapter_query(adapter,&rq)); uint32_t rate_count = rq.count;
+    TRY(ogpu_next_device_query(device,&rq)); REQUIRE(rq.count == rate_count);
+    if (rate_count) {
+        rates = malloc(rate_count*sizeof(*rates)); device_rates = malloc(rate_count*sizeof(*rates));
+        REQUIRE(rates && device_rates);
+        memset(rates,0xa5,rate_count*sizeof(*rates)); memcpy(device_rates,rates,rate_count*sizeof(*rates));
+        rq.data = rates; rq.capacity = rate_count-1;
+        REQUIRE(ogpu_next_adapter_query(adapter,&rq) == OGPU_NEXT_CAPACITY && rq.count == rate_count);
+        REQUIRE(memcmp(rates,device_rates,rate_count*sizeof(*rates)) == 0);
+        rq.capacity = rate_count; TRY(ogpu_next_adapter_query(adapter,&rq));
+        rq.data = device_rates; TRY(ogpu_next_device_query(device,&rq));
+        REQUIRE(memcmp(rates,device_rates,rate_count*sizeof(*rates)) == 0);
+    }
+    printf("Shading-rate physical queries pass: %u native rate/sample tuples (not an execution test).\n",rate_count);
     ogpu_next_image_profile profile = {HEADER(ogpu_next_image_profile, OGPU_NEXT_IMAGE_PROFILE),
         OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_IMAGE_2D, OGPU_NEXT_IMAGE_COPY_SRC | OGPU_NEXT_IMAGE_COPY_DST, 0, 0};
     ogpu_next_image_limits limits = {0};
@@ -72,6 +93,6 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     printf("Format discovery passes: immutable adapter/device capabilities, capacity atomicity, exact image-profile limits and unchanged failure outputs.\n");
     result = EXIT_SUCCESS;
 cleanup:
-    free(physical); free(enabled); free(saved);
+    free(physical); free(enabled); free(saved); free(rates); free(device_rates);
     return result;
 }

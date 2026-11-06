@@ -70,14 +70,20 @@ unsafe fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Statu
     Ok(())
 }
 fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64, Status> {
-    if flags & !3 != 0
+    if flags & !7 != 0
         || reserved != 0
         || (flags & 1 != 0 && enabled & CACHE_CONTROL == 0)
         || (flags & 2 != 0 && enabled & GENERATED_COMMANDS == 0)
+        || (flags & 4 != 0 && enabled & ATTACHMENT_SHADING_RATE == 0)
     {
         return Err(UNSUPPORTED);
     }
     Ok(vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+        | if flags & 4 != 0 {
+            vk::VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR
+        } else {
+            0
+        }
         | if flags & 2 != 0 {
             vk::VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT
         } else {
@@ -126,6 +132,9 @@ impl Executable {
             || desc.dynamic_state != 0
         {
             return Err(UNSUPPORTED);
+        }
+        if desc.compile_flags & 4 != 0 {
+            return Err(INVALID);
         }
         let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
         let shader = unsafe { array(desc.shaders, 1)? }.first().unwrap();
@@ -310,6 +319,18 @@ mod tests {
         let base = vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
         assert_eq!(compile_flags(0, 0, 0), Ok(base));
         assert_eq!(compile_flags(0, 1, 0), Err(UNSUPPORTED));
+        assert_eq!(
+            compile_flags(PIPELINE_SHADING_RATE, COMPILE_SHADING_RATE_ATTACHMENT, 0),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            compile_flags(ATTACHMENT_SHADING_RATE, COMPILE_SHADING_RATE_ATTACHMENT, 0),
+            Ok(base | vk::VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR)
+        );
+        assert_eq!(
+            compile_flags(ATTACHMENT_SHADING_RATE, 8, 0),
+            Err(UNSUPPORTED)
+        );
         assert_eq!(compile_flags(CACHE_CONTROL, 2, 0), Err(UNSUPPORTED));
         assert_eq!(
             compile_flags(GENERATED_COMMANDS, 2, 0),
@@ -730,6 +751,7 @@ mod tests {
                 logic_op_enable: 0,
                 logic_op: 0,
                 view_mask: 0,
+                shading_rate: ptr::null(),
             };
             let required_ids = features::decode(RASTER);
             let req = ShaderRequirements {
@@ -1027,6 +1049,7 @@ mod tests {
                         logic_op_enable: enable,
                         logic_op: op,
                         view_mask: 0,
+                        shading_rate: ptr::null(),
                         ..state
                     };
                     let logic_desc = ExecutableDesc {

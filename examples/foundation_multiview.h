@@ -75,7 +75,7 @@ static int multiview_execution(ogpu_next_device *device, ogpu_next_memory_desc m
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={1,0}}};
     /* layers is ignored when a nonzero view mask selects layers. */
-    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,0,0,1,0,0,NULL,&attachment,NULL,{NULL,0}};
+    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,0,0,1,0,0,NULL,&attachment,NULL,{NULL,0},NULL};
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,4,8};
     ogpu_next_draw_desc draw = {3,1,0,0,0};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL, *child = NULL;

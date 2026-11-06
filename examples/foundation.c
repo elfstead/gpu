@@ -85,7 +85,7 @@ _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache 
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
 _Static_assert(sizeof(ogpu_next_graphics_limits) == 120, "graphics limits ABI");
 _Static_assert(sizeof(ogpu_next_float_controls) == 24, "float controls ABI");
-_Static_assert(sizeof(ogpu_next_graphics_state) == 184, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_graphics_state) == 192, "graphics state ABI");
 _Static_assert(sizeof(ogpu_next_raster_options) == 96, "raster options ABI");
 _Static_assert(sizeof(ogpu_next_vertex_input) == 48, "vertex input ABI");
 _Static_assert(sizeof(ogpu_next_vertex_binding) == 12, "vertex binding ABI");
@@ -93,7 +93,7 @@ _Static_assert(sizeof(ogpu_next_vertex_attribute) == 16, "vertex attribute ABI")
 _Static_assert(sizeof(ogpu_next_stencil_state) == 28, "stencil state ABI");
 _Static_assert(sizeof(ogpu_next_color_state) == 36, "color state ABI");
 _Static_assert(sizeof(ogpu_next_attachment) == 56, "attachment ABI");
-_Static_assert(sizeof(ogpu_next_render_desc) == 104, "render ABI");
+_Static_assert(sizeof(ogpu_next_render_desc) == 112, "render ABI");
 _Static_assert(sizeof(ogpu_next_viewport_state) == 64, "viewport ABI");
 _Static_assert(sizeof(ogpu_next_draw_desc) == 20, "draw ABI");
 

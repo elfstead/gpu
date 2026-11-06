@@ -941,3 +941,15 @@ pub unsafe extern "C" fn ogpu_next_set_stencil_ops(
         })
     };
 }
+
+/// # Safety
+/// Exclusive encoder, readable state, and native dynamic-state ordering/lifetime.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_shading_rate(
+    encoder: *mut List,
+    state: *const ShadingRateState,
+) {
+    unsafe {
+        encode(encoder, |e| e.shading_rate(state.as_ref().ok_or(INVALID)?));
+    }
+}

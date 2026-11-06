@@ -23,6 +23,12 @@ limits and shader requirements with sparse/offset D32 layers, primary/secondary
 execution and query checks. [Local evidence](results/m8-multiview-2026-11-06.md)
 distinguishes the timestamp validation-layer limitation and untested combinations.
 
+M8 shading rate, 2026-11-06: [revision 11](shading-rate.md) implements independent
+inputs, physical limits/rates, static/dynamic state, attachment usage/synchronization
+and compiler requirements. [Local checks](results/m8-shading-rate-2026-11-06.md) pass
+for supported regressions and unavailable-feature rejection; native shading-rate
+rendering remains unaccepted on this GPU.
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and

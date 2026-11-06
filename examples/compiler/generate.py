@@ -64,6 +64,7 @@ def inspect(reflection, assembly, name="transform"):
                     "Float16": "shader_float16",
                     "DrawParameters": "shader_draw_parameters",
                     "MultiView": "multiview",
+                    "FragmentShadingRateKHR": "primitive_shading_rate" if stage == "vertex" else "shading_rate_input",
                     "StorageImageExtendedFormats": "storage_image_extended_formats",
                     "StorageImageReadWithoutFormat": "storage_image_read_without_format",
                     "StorageImageWriteWithoutFormat": "storage_image_write_without_format"}
@@ -77,7 +78,12 @@ def inspect(reflection, assembly, name="transform"):
             "view identity requires graphics MultiView")
     extensions = re.findall(r'^\s*OpExtension "([^"]+)"\s*$', assembly, re.M)
     require(set(extensions) <= {"SPV_KHR_physical_storage_buffer", "SPV_EXT_descriptor_heap",
-                                "SPV_KHR_untyped_pointers"}, "unmapped extension")
+                                "SPV_KHR_untyped_pointers", "SPV_KHR_fragment_shading_rate"}, "unmapped extension")
+    primitive_rate = bool(re.search(r"OpDecorate %\S+ BuiltIn PrimitiveShadingRateKHR\b", assembly))
+    fragment_rate = bool(re.search(r"OpDecorate %\S+ BuiltIn ShadingRateKHR\b", assembly))
+    require(("FragmentShadingRateKHR" in caps) == ("SPV_KHR_fragment_shading_rate" in extensions) == (primitive_rate or fragment_rate)
+            and (not primitive_rate or stage == "vertex") and (not fragment_rate or stage == "fragment"),
+            "shading-rate capability/stage mismatch")
     native_heaps = "DescriptorHeapEXT" in caps
     require(stage != "vertex" or not native_heaps, "vertex heap interfaces unsupported")
     require(native_heaps == ("UntypedPointersKHR" in caps) == ("SPV_EXT_descriptor_heap" in extensions)
@@ -148,6 +154,7 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     require(api in ("installed", "foundation"), "unsupported target API")
     fields, size, alignment, local, requirements = inspect(reflection, assembly, name)
     if api == "installed":
+        require(not {"primitive_shading_rate", "shading_rate_input"} & set(requirements), "shading rate requires the foundation API")
         require("multiview" not in requirements, "multiview requires the foundation API")
         require(not any(r.startswith("storage_image_") for r in requirements),
                 "new storage image capabilities require the foundation API")
@@ -237,10 +244,11 @@ def foundation_records(name, size, local, requirements, stage="compute"):
     """
     baseline = {"compute_queue", "buffer_device_address", "descriptor_heap", "shader_untyped_pointers",
                 "storage_image_extended_formats", "storage_image_read_without_format",
-                "storage_image_write_without_format"}
+                "storage_image_write_without_format", "shading_rate_input"}
     optional = {"shader_float16": "OGPU_NEXT_FEATURE_FLOAT16", "graphics_queue": "OGPU_NEXT_FEATURE_RASTER",
                 "shader_draw_parameters": "OGPU_NEXT_FEATURE_RASTER",
-                "multiview": "OGPU_NEXT_FEATURE_MULTIVIEW"}
+                "multiview": "OGPU_NEXT_FEATURE_MULTIVIEW",
+                "primitive_shading_rate": "OGPU_NEXT_FEATURE_PRIMITIVE_SHADING_RATE"}
     require(set(requirements) <= baseline | optional.keys(), "unmapped foundation requirement")
     required = sorted({optional[r] for r in requirements if r in optional})
     require(stage in ("compute", "vertex", "fragment"), "unsupported foundation stage")
@@ -251,6 +259,19 @@ def foundation_records(name, size, local, requirements, stage="compute"):
     if local:
         checks.append(f"l->max_local_invocations >= {local[0]*local[1]*local[2]}")
         checks += [f"l->max_local_size[{i}] >= {n}" for i, n in enumerate(local)]
+    alternatives = []
+    if "shading_rate_input" in requirements:
+        alternatives = [
+            "    /* ShadingRate input needs ANY native input enable, not all three.",
+            "     * The caller selects it; the trusted runtime requirements list is conjunctive. */",
+            "    int shading_rate_input = 0;",
+            "    for (uint32_t i=0; i<c->enabled.count; ++i) {",
+            "        uint32_t id = c->enabled.ids[i];",
+            "        shading_rate_input |= id == OGPU_NEXT_FEATURE_PIPELINE_SHADING_RATE ||",
+            "            id == OGPU_NEXT_FEATURE_PRIMITIVE_SHADING_RATE || id == OGPU_NEXT_FEATURE_ATTACHMENT_SHADING_RATE;",
+            "    }",
+            "    if (!shading_rate_input) return 0;",
+        ]
     record = lambda typ, kind: f"{{{kind}, OGPU_NEXT_VERSION, sizeof({typ}), 0, NULL}}"
     return ["};", "/* Source-only foundation revision; not installed ABI 20.",
             " * Inline bytes contain addresses, not pointee copies or retained owners.",
@@ -266,6 +287,7 @@ def foundation_records(name, size, local, requirements, stage="compute"):
             f"        .specialization = NULL, .subgroup = NULL}};", "}",
             f"static inline int {name}_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {{",
             *([] if checks else ["    (void)l;"]),
+            *alternatives,
             f"    const ogpu_next_features need = {name}_required_features;",
             "    for (uint32_t i=0; i<need.count; ++i) {",
             "        uint32_t j=0; for (; j<c->enabled.count; ++j) if (c->enabled.ids[j]==need.ids[i]) break;",

@@ -25,7 +25,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 10;
+pub const VERSION: u32 = 11;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
     pub const RASTER: u32 = 1;
@@ -91,6 +91,10 @@ pub mod feature_ids {
     pub const GENERATED_COMMANDS: u32 = 61;
     pub const MULTIVIEW: u32 = 62;
     pub const MESH_MULTIVIEW: u32 = 63;
+    pub const PIPELINE_SHADING_RATE: u32 = 64;
+    pub const PRIMITIVE_SHADING_RATE: u32 = 65;
+    pub const ATTACHMENT_SHADING_RATE: u32 = 66;
+    pub const MESH_PRIMITIVE_SHADING_RATE: u32 = 67;
 }
 /// Borrowed feature IDs. Input storage lives through its host call. Query output
 /// storage lives through the queried adapter/discovery or device lifetime.
@@ -164,6 +168,12 @@ pub const PREPROCESS_STAGE: u64 = 1 << 22;
 pub const PREPROCESS_READ: u64 = 1 << 21;
 pub const PREPROCESS_WRITE: u64 = 1 << 22;
 pub const COMPILE_INDIRECT_BINDABLE: u32 = 2;
+pub const COMPILE_SHADING_RATE_ATTACHMENT: u32 = 4;
+pub const SHADING_RATE_KEEP: u32 = 0;
+pub const SHADING_RATE_REPLACE: u32 = 1;
+pub const SHADING_RATE_MIN: u32 = 2;
+pub const SHADING_RATE_MAX: u32 = 3;
+pub const SHADING_RATE_MUL: u32 = 4;
 pub const GENERATED_EXECUTABLE: u32 = 1;
 pub const GENERATED_ARGUMENT: u32 = 2;
 pub const GENERATED_SEQUENCE_INDEX: u32 = 3;
@@ -675,6 +685,12 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
+    if required & MESH_PRIMITIVE_SHADING_RATE != 0
+        && required & (MESH_SHADER | PRIMITIVE_SHADING_RATE)
+            != (MESH_SHADER | PRIMITIVE_SHADING_RATE)
+    {
+        return Err(INVALID);
+    }
     if required & MESH_MULTIVIEW != 0
         && required & (MULTIVIEW | MESH_SHADER) != (MULTIVIEW | MESH_SHADER)
     {
@@ -760,6 +776,7 @@ pub mod format_features {
     pub const COPY_DST: u64 = 1024;
     pub const STORAGE_READ_WITHOUT_FORMAT: u64 = 2048;
     pub const STORAGE_WRITE_WITHOUT_FORMAT: u64 = 4096;
+    pub const SHADING_RATE: u64 = 8192;
 }
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
@@ -910,6 +927,7 @@ pub struct GraphicsState {
     pub logic_op_enable: u32,
     pub logic_op: u32,
     pub view_mask: u32,
+    pub shading_rate: *const ShadingRateState,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -983,6 +1001,7 @@ pub struct RenderDesc {
     pub depth: *const Attachment,
     pub stencil: *const Attachment,
     pub scratch: HostSpan,
+    pub shading_rate: *const ShadingRateAttachment,
 }
 #[repr(C)]
 pub struct ViewportState {
@@ -1702,4 +1721,62 @@ pub struct GeneratedIndexBuffer {
     pub address: u64,
     pub size: u32,
     pub index_type: u32,
+}
+
+// Native fragment shading rate: independent inputs, explicit native combiners.
+pub const SHADING_RATE_LIMITS: u32 = 20;
+pub const SHADING_RATES: u32 = 21;
+pub const DYNAMIC_SHADING_RATE: u64 = 8192;
+pub const IMAGE_SHADING_RATE: u64 = 256;
+pub const STATE_SHADING_RATE: u32 = 9;
+pub const SHADING_RATE_STAGE: u64 = 1 << 23;
+pub const SHADING_RATE_READ: u64 = 1 << 23;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ShadingRateState {
+    pub fragment_size: [u32; 2],
+    pub combiners: [u32; 2],
+}
+impl Default for ShadingRateState {
+    fn default() -> Self {
+        Self {
+            fragment_size: [1, 1],
+            combiners: [0, 0],
+        }
+    }
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ShadingRateAttachment {
+    pub view: *mut super::View,
+    pub state: u32,
+    pub texel_size: [u32; 2],
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct ShadingRate {
+    pub fragment_size: [u32; 2],
+    pub samples: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct ShadingRateLimits {
+    pub min_attachment_texel: [u32; 2],
+    pub max_attachment_texel: [u32; 2],
+    pub max_attachment_texel_aspect_ratio: u32,
+    pub primitive_with_multiple_viewports: u32,
+    pub layered_attachments: u32,
+    pub nontrivial_combiners: u32,
+    pub max_fragment_size: [u32; 2],
+    pub max_fragment_aspect_ratio: u32,
+    pub max_coverage_samples: u32,
+    pub max_rasterization_samples: u32,
+    pub with_shader_depth_stencil_writes: u32,
+    pub with_sample_mask: u32,
+    pub with_shader_sample_mask: u32,
+    pub with_conservative_rasterization: u32,
+    pub with_fragment_shader_interlock: u32,
+    pub with_custom_sample_locations: u32,
+    pub strict_multiply_combiner: u32,
 }

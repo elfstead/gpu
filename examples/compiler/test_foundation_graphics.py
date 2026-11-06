@@ -1,6 +1,8 @@
 """Check actual linked artifacts, shared bank records and mismatched-stage rejection."""
 import json
 import os
+import subprocess
+import shlex
 import unittest
 import generate as g
 import link_graphics
@@ -32,6 +34,31 @@ class FoundationGraphicsTests(unittest.TestCase):
                 g.header(reflected, assembly, binary, source.encode(), api="installed")
             with self.assertRaisesRegex(ValueError, "view identity"):
                 g.inspect(reflected, assembly.replace("OpCapability MultiView", ""))
+
+    def test_shading_rate_native_input_alternatives(self):
+        directory = g.ROOT / "target/foundation-graphics/shading-rate"
+        for stage in ("vertex", "fragment"):
+            path = g.HERE / ("shading_rate_"+stage+".slang")
+            r, a, b = g.compile_source(path, directory / stage, os.getenv("SLANGC", "slangc"), stage=stage)
+            content = g.header(r, a, b, path.read_bytes(), name="rate", api="foundation")
+            with self.assertRaisesRegex(ValueError, "shading rate requires"):
+                g.header(r, a, b, path.read_bytes(), api="installed")
+            with self.assertRaisesRegex(ValueError, "shading-rate capability"):
+                g.inspect(r, a.replace("OpCapability FragmentShadingRateKHR", ""))
+            folder = directory / stage
+            (folder / "rate.h").write_text(content)
+            # Run the generated host predicate: each independent input suffices
+            # for fragment ShadingRate, only primitive output suffices for vertex.
+            (folder / "check.c").write_text('#include "rate.h"\nint main(void) {\n'
+                'ogpu_next_execution_limits l={0}; ogpu_next_feature ids[2]={OGPU_NEXT_FEATURE_RASTER,0};\n'
+                'ogpu_next_feature_info f={.enabled={ids,2,0},.baseline_supported=1};\n'
+                'if (rate_compatible(&f,&l)) return 1;\n'
+                'const ogpu_next_feature inputs[3]={OGPU_NEXT_FEATURE_PIPELINE_SHADING_RATE,OGPU_NEXT_FEATURE_PRIMITIVE_SHADING_RATE,OGPU_NEXT_FEATURE_ATTACHMENT_SHADING_RATE};\n'
+                'for (int i=0;i<3;++i) { ids[1]=inputs[i]; if (rate_compatible(&f,&l) != '+('1' if stage == 'fragment' else '(i==1)')+') return 2; }\nreturn 0; }\n')
+            binary = folder / "check"
+            subprocess.run([*shlex.split(os.getenv("CC", "cc")), "-std=c11", "-Wall", "-Wextra", "-Werror", "-pedantic",
+                            "-I"+str(g.ROOT/"include"), str(folder/"check.c"), "-o", str(binary)], check=True)
+            subprocess.run([str(binary)],check=True)
 
     def description(self, variant, stage):
         return g.inspect(*self.fixtures[variant,stage][:2],"pattern_"+stage)

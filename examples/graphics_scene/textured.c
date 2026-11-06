@@ -104,7 +104,7 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
     Scene *s=&t->scene;
     ogpu_next_attachment color={s->views[0],NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,overlay ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
     ogpu_next_attachment depth={s->views[1],NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,overlay ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={1,0}}};
-    ogpu_next_render_desc rd={HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,s->width,s->height,1,0,1,0,1,&color,&depth,NULL,{s->rs,s->render_scratch.size}};
+    ogpu_next_render_desc rd={HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,s->width,s->height,1,0,1,0,1,&color,&depth,NULL,{s->rs,s->render_scratch.size},NULL};
     ogpu_next_render_begin(s->encoder,&rd); ogpu_next_bind_executable(s->encoder,s->raster[overlay ? 1 : 0]);
     unsigned inset=mode>=4,vx=inset ? s->width/8 : 0,vy=inset ? s->height/8 : 0;
     ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),

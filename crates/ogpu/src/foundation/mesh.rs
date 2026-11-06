@@ -69,6 +69,11 @@ pub(super) fn snapshot(
     }
     let features = if mesh.meshShader != 0 {
         MESH_SHADER
+            | if mesh.primitiveFragmentShadingRateMeshShader != 0 {
+                MESH_PRIMITIVE_SHADING_RATE
+            } else {
+                0
+            }
             | if mesh.taskShader != 0 { TASK_SHADER } else { 0 }
             | if mesh.multiviewMeshShader != 0 {
                 MESH_MULTIVIEW

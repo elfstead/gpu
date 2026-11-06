@@ -324,8 +324,12 @@ sparse/offset array-layer checks and rejections. The [local receipt](results/m8-
 records primary/secondary replay, the timestamp validation-layer limitation and
 remaining color/MSAA/generated/mesh acceptance. Clean revision-10 C/GGML/libplacebo
 and isolated native Rust/Wayland SDK acceptance passes at `2f316e6`.
-Next implement shading rate, followed by tile-local/pass-continuation and remaining
-tessellation/geometry coverage. Larger textured/depth and external
+Revision 11 implements [fragment shading rate](shading-rate.md): independent inputs,
+limits/tuples, static/dynamic state, attachment usage/scope and compiler requirements.
+[Local evidence](results/m8-shading-rate-2026-11-06.md) covers host/compiler rules,
+real capability queries/rejections and existing Vulkan regressions. The local GPU
+exposes no native shading-rate input; positive rendering acceptance stays open.
+Next implement tile-local/pass-continuation and remaining tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 

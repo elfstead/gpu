@@ -30,7 +30,7 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,0,0,0,0,0,0};
     /* Input topology is ignored by mesh pipelines; deliberately not a vertex enum. */
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        UINT32_MAX,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
+        UINT32_MAX,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0,NULL};
     REQUIRE(limits.output_vertex_granularity > 0);
     uint32_t padded_vertices = ((3+limits.output_vertex_granularity-1)/limits.output_vertex_granularity)*limits.output_vertex_granularity;
     ogpu_next_mesh_requirements req = {HEADER(ogpu_next_mesh_requirements,OGPU_NEXT_MESH_REQUIREMENTS),
@@ -76,7 +76,7 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
     ogpu_next_host_span dep_scratch = {bs,br.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier};
     ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,1,1}}};
-    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size}};
+    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size},NULL};
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,8,8};
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
     const float red[4] = {1,0,0,1};

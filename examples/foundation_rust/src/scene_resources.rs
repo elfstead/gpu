@@ -309,6 +309,7 @@ pub unsafe fn raster(
         logic_op_enable: 0,
         logic_op: 0,
         view_mask: 0,
+        shading_rate: ptr::null(),
     };
     unsafe {
         gpu::executable_create(

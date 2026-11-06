@@ -3,6 +3,11 @@
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
 pub(super) type FeatureBits = u128;
+pub(super) const PIPELINE_SHADING_RATE: FeatureBits = 1 << 63;
+pub(super) const PRIMITIVE_SHADING_RATE: FeatureBits = 1 << 64;
+pub(super) const ATTACHMENT_SHADING_RATE: FeatureBits = 1 << 65;
+pub(super) const MESH_PRIMITIVE_SHADING_RATE: FeatureBits = 1 << 66;
+
 pub(super) const RASTER: FeatureBits = 1;
 pub(super) const FLOAT16: FeatureBits = 2;
 pub(super) const UNIFIED_IMAGES: FeatureBits = 4;
@@ -80,7 +85,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 63 {
+        if id > 67 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u128 << (id - 1);
@@ -88,7 +93,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=63)
+    (1..=67)
         .filter(|id| mask & (1u128 << (id - 1)) != 0)
         .collect()
 }
@@ -152,7 +157,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [64, 65, 128, u32::MAX] {
+        for id in [68, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

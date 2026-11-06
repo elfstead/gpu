@@ -30,7 +30,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
     }
     ogpu_next_color_state color = {OGPU_NEXT_RGBA32_FLOAT,15,1,1,1,0,1,1,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0};
+        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0,0,NULL};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),
         FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER) | FIXTURE_BIT(OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND)),{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
@@ -72,7 +72,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier};
     const float initial[4] = {0.5f,0.25f,0.125f,0.75f};
     ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0.5f,0.25f,0.125f,0.75f}}};
-    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size}};
+    ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size},NULL};
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,8,8};
     ogpu_next_draw_desc draw = {3,1,0,0,0};
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};

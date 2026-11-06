@@ -94,3 +94,5 @@ scratch!(execute_scratch_requirements, execute_scratch);
 scratch!(inheritance_scratch_requirements, inheritance_scratch);
 scratch!(render_scratch_requirements, render_scratch);
 scratch!(vertex_scratch_requirements, vertex_scratch);
+
+record!(fn set_shading_rate(list, state: &ShadingRateState) |e| e.shading_rate(state));

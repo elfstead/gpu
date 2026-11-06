@@ -71,6 +71,7 @@ replay, query totals and malformed combinations.
 Color, multisample/resolve, generated-command multiview, physical mesh-multiview and
 additional-device execution remain explicit verification work. The native paths
 share the mask/attachment validation; that does not establish their execution.
-Shading rate is the next M8 implementation batch, followed by tile-local/input-
-attachment and pass-continuation profiles and remaining tessellation/geometry work.
+[Shading rate](shading-rate.md) is now implemented in revision 11, with native
+execution acceptance open. Next are tile-local/input-attachment and pass-continuation
+profiles and remaining tessellation/geometry work.
 M9 owns rays. Metal remains deferred until a Mac is available.

@@ -136,8 +136,29 @@ impl Device {
         {
             samples(desc.samples, limits.no_attachment_samples)?;
         }
+        let shading = if let Some(a) = unsafe { desc.shading_rate.as_ref() } {
+            let v = unsafe { a.view.as_ref() }.ok_or(INVALID)?;
+            let rate = v.shading_rate_attachment(self, domain, desc, a)?;
+            for i in 0..desc.color_count as usize {
+                let color = unsafe { &*output.add(i) };
+                if color.imageView == rate.imageView || color.resolveImageView == rate.imageView {
+                    return Err(INVALID);
+                }
+            }
+            for target in [depth.as_ref(), stencil.as_ref()].into_iter().flatten() {
+                if target.imageView == rate.imageView || target.resolveImageView == rate.imageView {
+                    return Err(INVALID);
+                }
+            }
+            Some(rate)
+        } else {
+            None
+        };
         let info = vk::VkRenderingInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_INFO,
+            pNext: shading
+                .as_ref()
+                .map_or(ptr::null(), |s| ptr::from_ref(s).cast()),
             flags: if desc.flags & 1 != 0 {
                 vk::VkRenderingFlagBits_VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
             } else {
@@ -159,7 +180,6 @@ impl Device {
             pColorAttachments: output,
             pDepthAttachment: depth.as_ref().map_or(ptr::null(), ptr::from_ref),
             pStencilAttachment: stencil.as_ref().map_or(ptr::null(), ptr::from_ref),
-            ..Default::default()
         };
         unsafe {
             (self.f.vkCmdBeginRendering.unwrap())(command, &info);

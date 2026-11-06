@@ -43,6 +43,8 @@ fn fixture() -> Snapshot {
         integer_dot: IntegerDotInfo::default(),
         mesh_limits: MeshLimits::default(),
         generated_limits: GeneratedLimits::default(),
+        shading_rate_limits: ShadingRateLimits::default(),
+        shading_rates: Vec::new(),
         formats: vec![],
     }
 }
@@ -347,7 +349,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<Launch>(), 24);
     assert_eq!(size_of::<GraphicsLimits>(), 120);
     assert_eq!(size_of::<FloatControls>(), 24);
-    assert_eq!(size_of::<GraphicsState>(), 184);
+    assert_eq!(size_of::<GraphicsState>(), 192);
     assert_eq!(size_of::<RasterOptions>(), 96);
     assert_eq!(size_of::<VertexInput>(), 48);
     assert_eq!(size_of::<VertexBinding>(), 12);
@@ -355,7 +357,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<StencilState>(), 28);
     assert_eq!(size_of::<ColorState>(), 36);
     assert_eq!(size_of::<Attachment>(), 56);
-    assert_eq!(size_of::<RenderDesc>(), 104);
+    assert_eq!(size_of::<RenderDesc>(), 112);
     assert_eq!(size_of::<ViewportState>(), 64);
     assert_eq!(size_of::<DrawDesc>(), 20);
     assert_eq!(size_of::<Indirect>(), 56);

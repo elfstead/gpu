@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "shading_rate.rs"]
+mod shading_rate;
+
 #[path = "memory.rs"]
 mod memory;
 pub use memory::Memory;
@@ -622,6 +625,12 @@ pub(super) fn snapshot(
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
     let (mesh_features, mesh_limits) = mesh::snapshot(instance, physical, &f)?;
+    let (shading_features, shading_rate_limits, shading_rates) =
+        shading_rate::snapshot(instance, physical, &f)?;
+    features.available |= shading_features;
+    if shading_features != 0 {
+        graphics_limits.dynamic_states |= DYNAMIC_SHADING_RATE;
+    }
     let (generated_features, generated_limits) = generated::snapshot(instance, physical, &f)?;
     features.available |= generated_features;
     if features.available & RASTER != 0 {
@@ -631,6 +640,9 @@ pub(super) fn snapshot(
             } else {
                 !MESH_MULTIVIEW
             };
+    }
+    if features.available & PRIMITIVE_SHADING_RATE == 0 {
+        features.available &= !MESH_PRIMITIVE_SHADING_RATE;
     }
     if instance.wayland_enabled() {
         let support = super::presentation::support_native(instance, physical)?;
@@ -707,6 +719,8 @@ pub(super) fn snapshot(
         integer_dot,
         mesh_limits,
         generated_limits,
+        shading_rate_limits,
+        shading_rates,
         memory_budget_supported: instance
             .supports_extension(physical, c"VK_EXT_memory_budget")
             .map_err(loader_error)?,
@@ -718,6 +732,7 @@ pub struct Device {
     physical: vk::VkPhysicalDevice,
     handle: vk::VkDevice,
     f: Functions,
+    shading_rate_function: vk::PFN_vkCmdSetFragmentShadingRateKHR,
     mesh_functions: Option<mesh::MeshFunctions>,
     generated_functions: Option<generated::GeneratedFunctions>,
     pub(super) snapshot: Snapshot,
@@ -779,6 +794,11 @@ impl Device {
             physical: adapter.physical,
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
+            shading_rate_function: if enabled & shading_rate::INPUTS != 0 {
+                shading_rate::load(&adapter.instance)?
+            } else {
+                None
+            },
             mesh_functions: if enabled & MESH_SHADER != 0 {
                 Some(mesh::MeshFunctions::load(&adapter.instance)?)
             } else {
@@ -979,6 +999,9 @@ impl Device {
             meshShader: u32::from(enabled & MESH_SHADER != 0),
             multiviewMeshShader: u32::from(enabled & MESH_MULTIVIEW != 0),
             taskShader: u32::from(enabled & TASK_SHADER != 0),
+            primitiveFragmentShadingRateMeshShader: u32::from(
+                enabled & MESH_PRIMITIVE_SHADING_RATE != 0,
+            ),
             ..Default::default()
         };
         if enabled & MESH_SHADER != 0 {
@@ -986,6 +1009,14 @@ impl Device {
         }
         let previous = if enabled & MESH_SHADER != 0 {
             ptr::from_ref(&mesh).cast()
+        } else {
+            previous
+        };
+        let mut shading = shading_rate::requested(enabled);
+        shading.pNext = previous.cast_mut();
+        let previous = if enabled & shading_rate::INPUTS != 0 {
+            extensions.push(c"VK_KHR_fragment_shading_rate".as_ptr());
+            ptr::from_ref(&shading).cast()
         } else {
             previous
         };
