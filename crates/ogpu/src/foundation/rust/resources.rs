@@ -355,3 +355,25 @@ pub unsafe fn copy_descriptors(
             .copy_descriptors(count(copies.len())?, copies.as_ptr(), scratch)
     }
 }
+
+/// Fill tightly packed native group handles; caller owns table placement and padding.
+/// # Safety
+/// Live executable/device; writable disjoint output and exclusive native host access.
+pub unsafe fn ray_group_handles(
+    executable: ExecutableHandle,
+    first: u32,
+    count: u32,
+    output: HostSpan,
+) -> Result<()> {
+    unsafe { executable.get().ray_group_handles(first, count, output) }
+}
+/// Query one present member: 0 general, 1 closest hit, 2 any hit, 3 intersection.
+/// # Safety
+/// Live executable/device. The application computes the required whole-call stack.
+pub unsafe fn ray_group_stack_size(
+    executable: ExecutableHandle,
+    group: u32,
+    member: u32,
+) -> Result<u64> {
+    unsafe { executable.get() }.ray_group_stack_size(group, member)
+}

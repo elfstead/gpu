@@ -4,6 +4,8 @@ use super::*;
 use std::ffi::CStr;
 #[path = "graphics_pipeline.rs"]
 mod graphics_pipeline;
+#[path = "ray_pipeline.rs"]
+mod ray_pipeline;
 #[path = "subgroups.rs"]
 mod subgroups;
 
@@ -16,6 +18,7 @@ pub struct Executable {
     pub(super) indirect_bindable: bool,
     pub(super) dynamic_state: u64,
     pub(super) vertex_bindings: Box<[u32]>,
+    pub(super) ray_groups: Box<[u8]>,
 }
 impl Drop for Executable {
     fn drop(&mut self) {
@@ -113,7 +116,7 @@ impl Executable {
         if !ptr::eq(layout.device, d)
             || !matches!(
                 (desc.kind, layout.execution_class),
-                (1, ARGUMENT_COMPUTE) | (2, ARGUMENT_GRAPHICS)
+                (1, ARGUMENT_COMPUTE) | (2, ARGUMENT_GRAPHICS) | (3, ARGUMENT_RAY)
             )
         {
             return Err(INVALID);
@@ -123,6 +126,9 @@ impl Executable {
             desc.compile_flags,
             desc.reserved,
         )?;
+        if desc.kind == 3 {
+            return unsafe { ray_pipeline::prepare(d, desc, pipeline_flags, layout) };
+        }
         if desc.kind == 2 {
             return unsafe { graphics_pipeline::prepare(d, desc, pipeline_flags, layout) };
         }
@@ -209,6 +215,7 @@ impl Executable {
             indirect_bindable: desc.compile_flags & 2 != 0,
             dynamic_state: 0,
             vertex_bindings: Box::new([]),
+            ray_groups: Box::new([]),
         });
         let mapping = layout.mapping_info(
             shader.stage,

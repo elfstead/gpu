@@ -931,6 +931,7 @@ pub(super) unsafe fn prepare(
         indirect_bindable: desc.compile_flags & 2 != 0,
         dynamic_state: desc.dynamic_state,
         vertex_bindings: vertex_bindings.iter().map(|b| b.binding).collect(),
+        ray_groups: Box::new([]),
     });
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(

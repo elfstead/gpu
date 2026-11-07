@@ -407,3 +407,9 @@ next AccelerationDesc ogpu_next_acceleration_desc header kind reserved backing
 next AccelerationRange ogpu_next_acceleration_range primitive_count primitive_offset first_vertex transform_offset
 next AccelerationBuild ogpu_next_acceleration_build description source destination update indirect_stride scratch ranges indirect
 next AccelerationInstance ogpu_next_acceleration_instance transform custom_index_and_mask table_offset_and_flags reference
+
+next RayGroup ogpu_next_ray_group kind general closest_hit any_hit intersection
+next RayState ogpu_next_ray_state header group_count max_recursion groups flags reserved
+next RayTable ogpu_next_ray_table range stride
+next RayTables ogpu_next_ray_tables raygen miss hit callable
+next RayIndirect ogpu_next_ray_indirect raygen_address raygen_size miss_address miss_size miss_stride hit_address hit_size hit_stride callable_address callable_size callable_stride width height depth

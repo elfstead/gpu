@@ -100,7 +100,8 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                     | GEOMETRY_STAGE
                     | CAPTURE_STAGE
                     | ACCELERATION_BUILD_STAGE
-                    | ACCELERATION_COPY_STAGE),
+                    | ACCELERATION_COPY_STAGE
+                    | STAGE_RAY),
         ),
         (
             GRAPHICS | COMPUTE,
@@ -113,7 +114,8 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                 | GEOMETRY
                 | TRANSFORM_FEEDBACK
                 | ACCELERATION_STRUCTURE
-                | RAY_MAINTENANCE,
+                | RAY_MAINTENANCE
+                | RAY_PIPELINE,
             KNOWN_SCOPES & !256,
         ),
     ] {

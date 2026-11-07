@@ -873,7 +873,8 @@ void ogpu_next_commands_cancel(ogpu_next_encoder *);
  * EARLY_DEPTH/LATE_DEPTH; VERTEX_INPUT combines INDEX_INPUT/VERTEX_FETCH.
  * Aggregate scopes are choices, never automatically added to narrower scopes.
  * COMPUTE/VERTEX/FRAGMENT/MESH/TASK/TESS_CONTROL/TESS_EVALUATION/GEOMETRY
- * are shader stages too; the remaining bits are synchronization-only. */
+ * are shader stages too. Ray shaders instead use SHADER_* IDs and ARGUMENT_*
+ * visibility bits; STAGE_RAY is their aggregate synchronization scope. */
 #define OGPU_NEXT_STAGE_TRANSFER UINT64_C(2)
 #define OGPU_NEXT_STAGE_COMPUTE UINT64_C(4)
 #define OGPU_NEXT_STAGE_VERTEX UINT64_C(8)
@@ -1459,7 +1460,7 @@ void ogpu_next_executable_cache_destroy(ogpu_next_executable_cache *);
  * GENERATED_COMMANDS and matching pipeline_binding_stages, and may be combined
  * with FAIL_IF_REQUIRED. It is never silently added to an ordinary executable.
  * FAIL_IF_REQUIRED requires enabled
- * CACHE_CONTROL and applies to compute and graphics, with or without a cache.
+ * CACHE_CONTROL and applies to compute, graphics and ray pipelines, with or without a cache.
  * If native compilation is needed, returns COMPILE_REQUIRED and a NULL executable;
  * no automatic retry, background work, or deferred compilation is scheduled.
  * Caller may retry explicitly with flags=0. This is not an allocation-free or
@@ -1470,7 +1471,7 @@ ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next
 void ogpu_next_executable_destroy(ogpu_next_executable *);
 /* Binding borrows the executable and layout through all recorded/pending uses.
  * It does not restore arguments. Use argument_layout_info for native reuse rules.
- * Vulkan shares one preserving push-data domain across compute and graphics. */
+ * Vulkan shares one preserving push-data domain across compute, graphics and rays. */
 void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
 /* The layout must belong to the executable
  * currently bound for its execution class. Record values now, pointees never.
@@ -1884,6 +1885,7 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_DYNAMIC_RASTERIZATION_STREAM (UINT64_C(1) << 50)
 #define OGPU_NEXT_QUERY_CAPTURE_STREAM UINT32_C(4)
 
+
 /* Explicit native acceleration data. Device addresses are borrowed, never registered. */
 typedef struct ogpu_next_acceleration ogpu_next_acceleration;
 typedef struct ogpu_next_device_range {
@@ -1963,6 +1965,118 @@ typedef struct ogpu_next_acceleration_instance {
     uint32_t table_offset_and_flags;
     uint64_t reference;
 } ogpu_next_acceleration_instance;
+#define OGPU_NEXT_GENERATED_TRACE_RAYS UINT32_C(13)
+/* Ray execution: prepared native groups, caller-owned shader tables.
+ * executable.kind=EXECUTABLE_RAY, static_state=ray_state, arguments class=ARGUMENT_RAY.
+ * Shader.stage takes SHADER_RAYGEN/MISS/CLOSEST_HIT/ANY_HIT/INTERSECTION/CALLABLE;
+ * argument-field visibility takes the corresponding ARGUMENT_* bits. These are
+ * deliberately distinct from aggregate synchronization STAGE_RAY. Requirements
+ * use local_size={1,1,1}, shared_memory=0 and explicit shader capabilities.
+ * Groups index the shader array; unused members are RAY_UNUSED_SHADER. GENERAL
+ * has one raygen/miss/callable member; TRIANGLES has optional any/closest hit;
+ * PROCEDURAL adds a required intersection member. Multiple raygen groups and
+ * shared shaders are valid. max_recursion is explicit; no hidden stack policy.
+ * dynamic_state=DYNAMIC_RAY_STACK selects caller stack commands; zero asks the
+ * native pipeline for its static policy. Stack queries select 0 general, 1 closest
+ * hit, 2 any hit, 3 intersection, and require a present member. The application
+ * computes sufficient depth/callable stack from its shader call graph.
+ * Flags express native skip/no-null promises, never emulation. Shader code,
+ * specialization, tables and no-null promises remain caller validated.
+ */
+typedef struct ogpu_next_ray_group {
+    uint32_t kind;
+    uint32_t general;
+    uint32_t closest_hit;
+    uint32_t any_hit;
+    uint32_t intersection;
+} ogpu_next_ray_group;
+typedef struct ogpu_next_ray_state {
+    ogpu_next_record header;
+    uint32_t group_count;
+    uint32_t max_recursion;
+    const ogpu_next_ray_group * groups;
+    uint32_t flags;
+    uint32_t reserved;
+} ogpu_next_ray_state;
+typedef struct ogpu_next_ray_table {
+    ogpu_next_device_range range;
+    uint64_t stride;
+} ogpu_next_ray_table;
+typedef struct ogpu_next_ray_tables {
+    ogpu_next_ray_table raygen;
+    ogpu_next_ray_table miss;
+    ogpu_next_ray_table hit;
+    ogpu_next_ray_table callable;
+} ogpu_next_ray_tables;
+typedef struct ogpu_next_ray_indirect {
+    uint64_t raygen_address;
+    uint64_t raygen_size;
+    uint64_t miss_address;
+    uint64_t miss_size;
+    uint64_t miss_stride;
+    uint64_t hit_address;
+    uint64_t hit_size;
+    uint64_t hit_stride;
+    uint64_t callable_address;
+    uint64_t callable_size;
+    uint64_t callable_stride;
+    uint32_t width;
+    uint32_t height;
+    uint32_t depth;
+} ogpu_next_ray_indirect;
+#define OGPU_NEXT_RAY_STATE UINT32_C(149)
+#define OGPU_NEXT_EXECUTABLE_RAY UINT32_C(3)
+#define OGPU_NEXT_ARGUMENT_RAY UINT32_C(2)
+#define OGPU_NEXT_STAGE_RAY UINT64_C(1073741824)
+#define OGPU_NEXT_DYNAMIC_RAY_STACK UINT64_C(1)
+#define OGPU_NEXT_RAY_GROUP_GENERAL UINT32_C(0)
+#define OGPU_NEXT_RAY_GROUP_TRIANGLES UINT32_C(1)
+#define OGPU_NEXT_RAY_GROUP_PROCEDURAL UINT32_C(2)
+#define OGPU_NEXT_RAY_UNUSED_SHADER UINT32_C(4294967295)
+#define OGPU_NEXT_RAY_SKIP_TRIANGLES UINT32_C(1)
+#define OGPU_NEXT_RAY_SKIP_AABBS UINT32_C(2)
+#define OGPU_NEXT_RAY_NO_NULL_ANY_HIT UINT32_C(4)
+#define OGPU_NEXT_RAY_NO_NULL_CLOSEST_HIT UINT32_C(8)
+#define OGPU_NEXT_RAY_NO_NULL_MISS UINT32_C(16)
+#define OGPU_NEXT_RAY_NO_NULL_INTERSECTION UINT32_C(32)
+#define OGPU_NEXT_USAGE_RAY_TABLE UINT64_C(8192)
+#define OGPU_NEXT_ACCESS_RAY_TABLE_READ UINT64_C(1073741824)
+#define OGPU_NEXT_SHADER_RAYGEN UINT32_C(2147483649)
+#define OGPU_NEXT_ARGUMENT_RAYGEN UINT64_C(4294967296)
+#define OGPU_NEXT_SHADER_MISS UINT32_C(2147483650)
+#define OGPU_NEXT_ARGUMENT_MISS UINT64_C(8589934592)
+#define OGPU_NEXT_SHADER_CLOSEST_HIT UINT32_C(2147483651)
+#define OGPU_NEXT_ARGUMENT_CLOSEST_HIT UINT64_C(17179869184)
+#define OGPU_NEXT_SHADER_ANY_HIT UINT32_C(2147483652)
+#define OGPU_NEXT_ARGUMENT_ANY_HIT UINT64_C(34359738368)
+#define OGPU_NEXT_SHADER_INTERSECTION UINT32_C(2147483653)
+#define OGPU_NEXT_ARGUMENT_INTERSECTION UINT64_C(68719476736)
+#define OGPU_NEXT_SHADER_CALLABLE UINT32_C(2147483654)
+#define OGPU_NEXT_ARGUMENT_CALLABLE UINT64_C(137438953472)
+/* Group handles are tightly packed native bytes in caller output, not portable
+ * artifacts. Range/capacity checks precede the driver call. Applications add shader
+ * record data and padding, and keep both executable and table contents alive.
+ * Trace tables require USAGE_RAY_TABLE and queried base/handle alignment. Raygen
+ * size equals stride; other tables permit zero stride (repeat one record). An
+ * absent non-raygen table uses address=0. Reachable indices, record contents,
+ * no-null promises, native memory usage and sufficient storage are caller duties.
+ * Trace dimensions may be zero; nonzero axes/product must fit queried limits.
+ * Indirect dimensions are three u32 values; indirect-table data is RayIndirect.
+ * Raw indirect addresses require USAGE_INDIRECT, 4-byte alignment, explicit
+ * producer dependencies and valid GPU contents at execution. No CPU readback.
+ * GENERATED_TRACE_RAYS consumes RayIndirect in an existing generated sequence;
+ * it requires RAY_PIPELINE, RAY_MAINTENANCE and advertised generated ray stages.
+ * Pipeline selection additionally requires advertised pipeline_binding_stages.
+ * These independent profiles are never inferred from one another.
+ */
+ogpu_next_status ogpu_next_ray_group_handles(const ogpu_next_executable *, uint32_t first, uint32_t count, ogpu_next_host_span output);
+ogpu_next_status ogpu_next_ray_group_stack_size(const ogpu_next_executable *, uint32_t group, uint32_t member, uint64_t *);
+void ogpu_next_set_ray_stack_size(ogpu_next_encoder *, uint32_t bytes);
+void ogpu_next_trace_rays(ogpu_next_encoder *, const ogpu_next_ray_tables *, ogpu_next_extent dimensions);
+void ogpu_next_trace_rays_indirect(ogpu_next_encoder *, const ogpu_next_ray_tables *, ogpu_next_device_range dimensions);
+void ogpu_next_trace_rays_indirect_table(ogpu_next_encoder *, ogpu_next_device_range tables_and_dimensions);
+
+
 
 #define OGPU_NEXT_ACCELERATION_BUILD_DESC UINT32_C(147)
 #define OGPU_NEXT_ACCELERATION_DESC UINT32_C(148)

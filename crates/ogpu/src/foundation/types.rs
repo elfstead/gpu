@@ -2427,3 +2427,86 @@ pub const INSTANCE_DISABLE_CULL: u32 = 1;
 pub const INSTANCE_FRONT_COUNTERCLOCKWISE: u32 = 2;
 pub const INSTANCE_FORCE_OPAQUE: u32 = 4;
 pub const INSTANCE_FORCE_NON_OPAQUE: u32 = 8;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RayGroup {
+    pub kind: u32,
+    pub general: u32,
+    pub closest_hit: u32,
+    pub any_hit: u32,
+    pub intersection: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RayState {
+    pub header: Record,
+    pub group_count: u32,
+    pub max_recursion: u32,
+    pub groups: *const RayGroup,
+    pub flags: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RayTable {
+    pub range: DeviceRange,
+    pub stride: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RayTables {
+    pub raygen: RayTable,
+    pub miss: RayTable,
+    pub hit: RayTable,
+    pub callable: RayTable,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RayIndirect {
+    pub raygen_address: u64,
+    pub raygen_size: u64,
+    pub miss_address: u64,
+    pub miss_size: u64,
+    pub miss_stride: u64,
+    pub hit_address: u64,
+    pub hit_size: u64,
+    pub hit_stride: u64,
+    pub callable_address: u64,
+    pub callable_size: u64,
+    pub callable_stride: u64,
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
+}
+pub const RAY_STATE: u32 = 149;
+pub const EXECUTABLE_RAY: u32 = 3;
+pub const ARGUMENT_RAY: u32 = 2;
+pub const STAGE_RAY: u64 = 1073741824;
+pub const DYNAMIC_RAY_STACK: u64 = 1;
+pub const RAY_GROUP_GENERAL: u32 = 0;
+pub const RAY_GROUP_TRIANGLES: u32 = 1;
+pub const RAY_GROUP_PROCEDURAL: u32 = 2;
+pub const RAY_UNUSED_SHADER: u32 = 4294967295;
+pub const RAY_SKIP_TRIANGLES: u32 = 1;
+pub const RAY_SKIP_AABBS: u32 = 2;
+pub const RAY_NO_NULL_ANY_HIT: u32 = 4;
+pub const RAY_NO_NULL_CLOSEST_HIT: u32 = 8;
+pub const RAY_NO_NULL_MISS: u32 = 16;
+pub const RAY_NO_NULL_INTERSECTION: u32 = 32;
+pub const USAGE_RAY_TABLE: u64 = 8192;
+pub const ACCESS_RAY_TABLE_READ: u64 = 1073741824;
+pub const SHADER_RAYGEN: u32 = 2147483649;
+pub const ARGUMENT_RAYGEN: u64 = 4294967296;
+pub const SHADER_MISS: u32 = 2147483650;
+pub const ARGUMENT_MISS: u64 = 8589934592;
+pub const SHADER_CLOSEST_HIT: u32 = 2147483651;
+pub const ARGUMENT_CLOSEST_HIT: u64 = 17179869184;
+pub const SHADER_ANY_HIT: u32 = 2147483652;
+pub const ARGUMENT_ANY_HIT: u64 = 34359738368;
+pub const SHADER_INTERSECTION: u32 = 2147483653;
+pub const ARGUMENT_INTERSECTION: u64 = 68719476736;
+pub const SHADER_CALLABLE: u32 = 2147483654;
+pub const ARGUMENT_CALLABLE: u64 = 137438953472;
+
+pub const GENERATED_TRACE_RAYS: u32 = 13;

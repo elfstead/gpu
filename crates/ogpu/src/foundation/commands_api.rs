@@ -1617,3 +1617,54 @@ pub unsafe extern "C" fn ogpu_next_acceleration_properties(
         });
     }
 }
+/// # Safety
+/// Live recording slot on a compute-capable queue; caller satisfies native stack sizing.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_ray_stack_size(encoder: *mut List, bytes: u32) {
+    unsafe {
+        encode(encoder, |e| e.set_ray_stack_size(bytes));
+    }
+}
+/// # Safety
+/// Live bound ray executable, readable tables, valid table contents/ranges and lifetimes.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_trace_rays(
+    encoder: *mut List,
+    tables: *const RayTables,
+    dimensions: Extent,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.trace_rays(tables.as_ref().ok_or(INVALID)?, dimensions, None)
+        });
+    }
+}
+/// # Safety
+/// As direct trace; dimensions address contains a native u32 triplet with indirect usage.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_trace_rays_indirect(
+    encoder: *mut List,
+    tables: *const RayTables,
+    dimensions: DeviceRange,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.trace_rays(
+                tables.as_ref().ok_or(INVALID)?,
+                Extent { x: 0, y: 0, z: 0 },
+                Some(dimensions),
+            )
+        });
+    }
+}
+/// # Safety
+/// Live bound ray executable; address contains valid RayIndirect data and shader tables.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_trace_rays_indirect_table(
+    encoder: *mut List,
+    args: DeviceRange,
+) {
+    unsafe {
+        encode(encoder, |e| e.trace_rays_indirect_table(args));
+    }
+}

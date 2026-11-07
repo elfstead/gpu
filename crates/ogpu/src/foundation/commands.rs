@@ -7,6 +7,8 @@ mod acceleration_commands;
 mod capture_commands;
 #[path = "generated_commands.rs"]
 mod generated_commands;
+#[path = "ray_commands.rs"]
+mod ray_commands;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
 #[path = "dependencies.rs"]
 pub(super) mod dependencies;
@@ -76,6 +78,7 @@ pub struct List {
     error: Cell<Status>,
     executable: Cell<*const Executable>,
     graphics: Cell<*const Executable>,
+    ray: Cell<*const Executable>,
     rendering: Cell<bool>,
     view_mask: Cell<u32>,
     render_colors: Cell<u32>,
@@ -174,6 +177,7 @@ impl Arena {
                 error: Cell::new(OK),
                 executable: Cell::new(ptr::null()),
                 graphics: Cell::new(ptr::null()),
+                ray: Cell::new(ptr::null()),
                 rendering: Cell::new(false),
                 view_mask: Cell::new(0),
                 render_colors: Cell::new(0),
@@ -285,6 +289,7 @@ impl Arena {
         slot.error.set(OK);
         slot.executable.set(ptr::null());
         slot.graphics.set(ptr::null());
+        slot.ray.set(ptr::null());
         slot.continuation = continuation;
         slot.rendering.set(slot.continuation);
         slot.view_mask.set(view_mask);
@@ -340,7 +345,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 30) - 1;
+const KNOWN_SCOPES: u64 = (1 << 31) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -369,7 +374,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
     }
     if mask & RASTER_SCOPES != 0 && (flags & GRAPHICS == 0 || !raster)
         || mask & (RESOLVE_SCOPE | BLIT_SCOPE) != 0 && flags & GRAPHICS == 0
-        || mask & (4 | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE) != 0
+        || mask & (4 | STAGE_RAY | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE) != 0
             && flags & COMPUTE == 0
         || mask & (32 | PREPROCESS_STAGE) != 0 && flags & (COMPUTE | GRAPHICS) == 0
         || mask & (2 | COPY_SCOPE | CLEAR_SCOPE) != 0
@@ -409,13 +414,15 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT,
         vk::VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
         vk::VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR,
+        vk::VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
 fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
-    if mask & ACCELERATION_BUILD_STAGE != 0 && enabled & ACCELERATION_STRUCTURE == 0
+    if mask & STAGE_RAY != 0 && enabled & RAY_PIPELINE == 0
+        || mask & ACCELERATION_BUILD_STAGE != 0 && enabled & ACCELERATION_STRUCTURE == 0
         || mask & ACCELERATION_COPY_STAGE != 0 && enabled & RAY_MAINTENANCE == 0
         || mask & (TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE) != 0 && enabled & TESSELLATION == 0
         || mask & CAPTURE_STAGE != 0 && enabled & TRANSFORM_FEEDBACK == 0
@@ -446,7 +453,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 30) - 1) != 0 {
+    if mask & !((1 << 31) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -460,7 +467,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         | TASK_STAGE
         | TESS_CONTROL_STAGE
         | TESS_EVALUATION_STAGE
-        | GEOMETRY_STAGE;
+        | GEOMETRY_STAGE
+        | STAGE_RAY;
     let transfer_read = 1
         | 2
         | COPY_SCOPE
@@ -500,6 +508,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         1 | GRAPHICS_SCOPE | CAPTURE_STAGE,
         shaders | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE,
         1 | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE,
+        1 | STAGE_RAY,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -532,6 +541,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT,
         vk::VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR,
         vk::VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+        vk::VK_ACCESS_2_SHADER_BINDING_TABLE_READ_BIT_KHR,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -546,6 +556,14 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
 }
 
 fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u64, Status> {
+    if mask & (ACCELERATION_READ | ACCELERATION_WRITE) != 0
+        && d.snapshot.features.enabled & ACCELERATION_STRUCTURE == 0
+    {
+        return Err(UNSUPPORTED);
+    }
+    if mask & ACCESS_RAY_TABLE_READ != 0 && d.snapshot.features.enabled & RAY_PIPELINE == 0 {
+        return Err(UNSUPPORTED);
+    }
     if mask & (CAPTURE_WRITE | CAPTURE_COUNTER_READ | CAPTURE_COUNTER_WRITE) != 0
         && d.snapshot.features.enabled & TRANSFORM_FEEDBACK == 0
     {
@@ -570,6 +588,15 @@ fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u
         }
         if flags & COMPUTE != 0 {
             scope |= 4 | 32;
+            if d.snapshot.features.enabled & RAY_PIPELINE != 0 {
+                scope |= STAGE_RAY;
+            }
+            if d.snapshot.features.enabled & ACCELERATION_STRUCTURE != 0 {
+                scope |= ACCELERATION_BUILD_STAGE;
+            }
+            if d.snapshot.features.enabled & RAY_MAINTENANCE != 0 {
+                scope |= ACCELERATION_COPY_STAGE;
+            }
         }
         if flags & GRAPHICS != 0 {
             scope |= 8 | 16 | 32 | 64 | 128 | INPUT_SCOPE;
@@ -633,7 +660,7 @@ impl List {
         executable: &Executable,
     ) -> Result<(), Status> {
         let d = self.recording()?;
-        if executable.stages != 4 && self.capture_active.get() {
+        if executable.stages != 4 && executable.stages != STAGE_RAY && self.capture_active.get() {
             return Err(INVALID);
         }
         stages(d, self.domain, executable.stages, false)?;
@@ -643,7 +670,9 @@ impl List {
         unsafe {
             (d.f.vkCmdBindPipeline.unwrap())(
                 self.command,
-                if executable.stages == 4 {
+                if executable.stages == STAGE_RAY {
+                    vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR
+                } else if executable.stages == 4 {
                     vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE
                 } else {
                     vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS
@@ -651,7 +680,9 @@ impl List {
                 executable.pipeline,
             );
         }
-        if executable.stages == 4 {
+        if executable.stages == STAGE_RAY {
+            self.ray.set(executable);
+        } else if executable.stages == 4 {
             self.executable.set(executable);
         } else {
             self.graphics.set(executable);
@@ -665,6 +696,7 @@ impl List {
         stage_features(d.snapshot.features.enabled, scope)?;
         let p = match scope {
             4 => self.executable.get(),
+            STAGE_RAY => self.ray.get(),
             value
                 if value != 0
                     && value
@@ -691,7 +723,9 @@ impl List {
         data: *const c_void,
     ) -> Result<(), Status> {
         self.recording()?;
-        let bound = if layout.execution_class == ARGUMENT_COMPUTE {
+        let bound = if layout.execution_class == ARGUMENT_RAY {
+            self.ray.get()
+        } else if layout.execution_class == ARGUMENT_COMPUTE {
             self.executable.get()
         } else {
             self.graphics.get()
@@ -2489,7 +2523,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 30, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 31, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

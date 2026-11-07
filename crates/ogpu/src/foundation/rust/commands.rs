@@ -193,3 +193,7 @@ record!(fn serialize_acceleration(list, dst:DeviceRange, src:AccelerationHandle)
 record!(fn deserialize_acceleration(list, dst:AccelerationHandle, src:DeviceRange) |e| e.serialize_acceleration(dst.get(),src,false));
 record!(fn acceleration_properties(list, objects:&[AccelerationHandle], pool:QueryPoolHandle, first:u32, scratch:HostSpan) |e|
     e.acceleration_properties(std::slice::from_raw_parts(objects.as_ptr().cast(),objects.len()),pool.get(),first,scratch));
+record!(fn set_ray_stack_size(list,bytes:u32) |e| e.set_ray_stack_size(bytes));
+record!(fn trace_rays(list,tables:&RayTables,dimensions:Extent) |e| e.trace_rays(tables,dimensions,None));
+record!(fn trace_rays_indirect(list,tables:&RayTables,dimensions:DeviceRange) |e| e.trace_rays(tables,Extent {x:0,y:0,z:0},Some(dimensions)));
+record!(fn trace_rays_indirect_table(list,tables_and_dimensions:DeviceRange) |e| e.trace_rays_indirect_table(tables_and_dimensions));

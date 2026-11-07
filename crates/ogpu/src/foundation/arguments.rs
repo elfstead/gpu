@@ -3,7 +3,7 @@
 use super::*;
 use std::ffi::c_void;
 
-const SHADER_STAGES: [u64; 8] = [
+const SHADER_STAGES: [u64; 14] = [
     4,
     8,
     16,
@@ -12,6 +12,12 @@ const SHADER_STAGES: [u64; 8] = [
     TESS_CONTROL_STAGE,
     TESS_EVALUATION_STAGE,
     GEOMETRY_STAGE,
+    ARGUMENT_RAYGEN,
+    ARGUMENT_MISS,
+    ARGUMENT_CLOSEST_HIT,
+    ARGUMENT_ANY_HIT,
+    ARGUMENT_INTERSECTION,
+    ARGUMENT_CALLABLE,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -29,7 +35,7 @@ pub struct ArgumentLayout {
     pub(super) device: *const Device,
     pub(super) execution_class: u32,
     byte_size: u32,
-    mappings: [Vec<vk::VkDescriptorSetAndBindingMappingEXT>; 8],
+    mappings: [Vec<vk::VkDescriptorSetAndBindingMappingEXT>; 14],
     addresses: Vec<AddressField>,
     boundaries: Vec<Boundary>,
     sequence_fields: Vec<u32>,
@@ -81,6 +87,7 @@ impl ArgumentLayout {
         }
         let permitted = match desc.execution_class {
             ARGUMENT_COMPUTE => 4,
+            ARGUMENT_RAY if enabled & RAY_PIPELINE != 0 => ray::ARGUMENT_STAGES,
             ARGUMENT_GRAPHICS if enabled & RASTER != 0 => {
                 8 | 16
                     | if enabled & TESSELLATION != 0 {
@@ -344,7 +351,7 @@ impl ArgumentLayout {
     ) -> Result<vk::VkShaderDescriptorSetAndBindingMappingInfoEXT, Status> {
         let index = SHADER_STAGES
             .iter()
-            .position(|&s| s == u64::from(stage))
+            .position(|&s| s == ray::shader_visibility(stage))
             .ok_or(UNSUPPORTED)?;
         let mappings = &self.mappings[index];
         Ok(vk::VkShaderDescriptorSetAndBindingMappingInfoEXT {
@@ -569,6 +576,50 @@ mod tests {
         );
     }
 
+    #[test]
+    fn ray_stage_mappings_share_bytes_without_collapsing_binding_roles() {
+        let fields = [
+            ArgumentField {
+                stages: ARGUMENT_RAYGEN,
+                ..field(0, ARGUMENT_INLINE, 2)
+            },
+            ArgumentField {
+                stages: ARGUMENT_CLOSEST_HIT,
+                ..field(8, ARGUMENT_READ_ADDRESS, 2)
+            },
+        ];
+        let mut description = desc(&fields, 16);
+        description.execution_class = ARGUMENT_RAY;
+        let layout =
+            ArgumentLayout::prepare(ptr::null(), &description, &fields, 256, RAY_PIPELINE, 16)
+                .unwrap();
+        let gen = layout.mapping_info(SHADER_RAYGEN, ptr::null()).unwrap();
+        let hit = layout
+            .mapping_info(SHADER_CLOSEST_HIT, ptr::null())
+            .unwrap();
+        assert_eq!(gen.mappingCount, 1);
+        assert_eq!(hit.mappingCount, 1);
+        assert_eq!(unsafe { (*gen.pMappings).sourceData.pushDataOffset }, 0);
+        assert_eq!(unsafe { (*hit.pMappings).sourceData.pushAddressOffset }, 8);
+        assert_eq!(
+            layout
+                .mapping_info(SHADER_MISS, ptr::null())
+                .unwrap()
+                .mappingCount,
+            0
+        );
+        assert!(matches!(
+            ArgumentLayout::prepare(
+                ptr::null(),
+                &description,
+                &fields,
+                256,
+                FeatureBits::ZERO,
+                16
+            ),
+            Err(UNSUPPORTED)
+        ));
+    }
     #[test]
     fn native_mapping_preserves_resource_role_stage_and_byte_offset() {
         let fields = [

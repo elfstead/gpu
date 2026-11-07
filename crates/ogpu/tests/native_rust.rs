@@ -22,6 +22,12 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        ray_group_handles,
+        ray_group_stack_size,
+        set_ray_stack_size,
+        trace_rays,
+        trace_rays_indirect,
+        trace_rays_indirect_table,
         acceleration_scratch_requirements,
         acceleration_requirements,
         acceleration_create,

@@ -26,3 +26,16 @@ The small source-level AS conversion intrinsic works around an unnecessary
 ray-pipeline extension emitted by Slang 2026.14.1's built-in constructor. It performs
 no shader rewriting and does not add a runtime feature dependency. Reproduce the
 artifact with `cargo xtask foundation-shaders --check`.
+
+The pipeline variant additionally exercises callable shaders, shader-record data,
+explicit stack sizing, and direct/indirect dimensions/table dispatch. Both variants
+now use two geometries and verify geometry identity as well as instance/primitive
+identity. Outputs are cleared before every dispatch, including generated commands.
+
+Add `OGPU_RAY_GENERATED=1` to select integrated and explicitly preprocessed ray
+sequences when advertised; preprocessing has separate caller allocations. The
+`feature-only` value enables generated commands without constructing or executing
+a generated layout, for composition diagnosis. Local pipeline selection remains
+unavailable even though fixed-pipeline generated rays execute. A combined
+preprocess/AS/table buffer failed in the explicit emulation diagnostic; this is an
+open memory-profile issue, not a restriction imposed by OGPU.

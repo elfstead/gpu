@@ -10715,8 +10715,20 @@ pub type VkPipelineCreateFlags2 = VkFlags64;
 pub type VkPipelineCreateFlagBits2 = VkFlags64;
 pub const VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT: VkPipelineCreateFlagBits2 = 256;
 pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits2 = 68719476736;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_BUILT_IN_PRIMITIVES_BIT_KHR: VkPipelineCreateFlagBits2 = 4096;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_OPACITY_MICROMAP_BIT_EXT: VkPipelineCreateFlagBits2 = 16777216;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_ALLOW_SPHERES_AND_LINEAR_SWEPT_SPHERES_BIT_NV: VkPipelineCreateFlagBits2 = 8589934592;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_TRIANGLES_BIT_KHR: VkPipelineCreateFlagBits2 = 4096;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_AABBS_BIT_KHR: VkPipelineCreateFlagBits2 = 8192;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR: VkPipelineCreateFlagBits2 = 16384;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR: VkPipelineCreateFlagBits2 = 32768;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR: VkPipelineCreateFlagBits2 = 65536;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR: VkPipelineCreateFlagBits2 = 131072;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR: VkPipelineCreateFlagBits2 = 524288;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_ALLOW_MOTION_BIT_NV: VkPipelineCreateFlagBits2 = 1048576;
 pub const VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkPipelineCreateFlagBits2 = 2097152;
 pub const VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT: VkPipelineCreateFlagBits2 = 274877906944;
+pub const VK_PIPELINE_CREATE_2_RAY_TRACING_OPACITY_MICROMAP_BIT_KHR: VkPipelineCreateFlagBits2 = 16777216;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceVulkan14Features {
@@ -12987,6 +12999,92 @@ impl Default for VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkTraceRaysIndirectCommand2KHR {
+    pub raygenShaderRecordAddress: VkDeviceAddress,
+    pub raygenShaderRecordSize: VkDeviceSize,
+    pub missShaderBindingTableAddress: VkDeviceAddress,
+    pub missShaderBindingTableSize: VkDeviceSize,
+    pub missShaderBindingTableStride: VkDeviceSize,
+    pub hitShaderBindingTableAddress: VkDeviceAddress,
+    pub hitShaderBindingTableSize: VkDeviceSize,
+    pub hitShaderBindingTableStride: VkDeviceSize,
+    pub callableShaderBindingTableAddress: VkDeviceAddress,
+    pub callableShaderBindingTableSize: VkDeviceSize,
+    pub callableShaderBindingTableStride: VkDeviceSize,
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkTraceRaysIndirectCommand2KHR",
+    ][::std::mem::size_of::<VkTraceRaysIndirectCommand2KHR>() - 104usize];
+    [
+        "Alignment of VkTraceRaysIndirectCommand2KHR",
+    ][::std::mem::align_of::<VkTraceRaysIndirectCommand2KHR>() - 8usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::raygenShaderRecordAddress",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, raygenShaderRecordAddress)
+        - 0usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::raygenShaderRecordSize",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, raygenShaderRecordSize)
+        - 8usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::missShaderBindingTableAddress",
+    ][::std::mem::offset_of!(
+        VkTraceRaysIndirectCommand2KHR, missShaderBindingTableAddress
+    ) - 16usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::missShaderBindingTableSize",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, missShaderBindingTableSize)
+        - 24usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::missShaderBindingTableStride",
+    ][::std::mem::offset_of!(
+        VkTraceRaysIndirectCommand2KHR, missShaderBindingTableStride
+    ) - 32usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::hitShaderBindingTableAddress",
+    ][::std::mem::offset_of!(
+        VkTraceRaysIndirectCommand2KHR, hitShaderBindingTableAddress
+    ) - 40usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::hitShaderBindingTableSize",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, hitShaderBindingTableSize)
+        - 48usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::hitShaderBindingTableStride",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, hitShaderBindingTableStride)
+        - 56usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::callableShaderBindingTableAddress",
+    ][::std::mem::offset_of!(
+        VkTraceRaysIndirectCommand2KHR, callableShaderBindingTableAddress
+    ) - 64usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::callableShaderBindingTableSize",
+    ][::std::mem::offset_of!(
+        VkTraceRaysIndirectCommand2KHR, callableShaderBindingTableSize
+    ) - 72usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::callableShaderBindingTableStride",
+    ][::std::mem::offset_of!(
+        VkTraceRaysIndirectCommand2KHR, callableShaderBindingTableStride
+    ) - 80usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::width",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, width) - 88usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::height",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, height) - 92usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommand2KHR::depth",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommand2KHR, depth) - 96usize];
+};
 pub type PFN_vkCmdTraceRaysIndirect2KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -19418,6 +19516,31 @@ impl Default for VkPhysicalDeviceRayTracingPipelinePropertiesKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkTraceRaysIndirectCommandKHR {
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkTraceRaysIndirectCommandKHR",
+    ][::std::mem::size_of::<VkTraceRaysIndirectCommandKHR>() - 12usize];
+    [
+        "Alignment of VkTraceRaysIndirectCommandKHR",
+    ][::std::mem::align_of::<VkTraceRaysIndirectCommandKHR>() - 4usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommandKHR::width",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommandKHR, width) - 0usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommandKHR::height",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommandKHR, height) - 4usize];
+    [
+        "Offset of field: VkTraceRaysIndirectCommandKHR::depth",
+    ][::std::mem::offset_of!(VkTraceRaysIndirectCommandKHR, depth) - 8usize];
+};
 pub type PFN_vkCmdTraceRaysKHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,

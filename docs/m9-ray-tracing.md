@@ -111,3 +111,42 @@ records the compiler's current choice; reassess when updating Slang.
 [Receipt](results/m9-acceleration-query-2026-11-07.json): 126 host tests,
 32 normal native tests, full C regression and the explicit emulation diagnostic
 pass; ABI/surface/Clippy checks pass. No hardware ray-performance claim is made.
+
+## Ray-pipeline tranche — implemented 2026-11-07
+
+Ray executables reuse `executable_create`, layouts, binding and argument updates.
+A static record supplies shader groups/recursion/promises. Group handle and stack
+queries write caller storage; no table builder or stack calculator lives in core.
+Distinct stage IDs map to distinct argument visibility bits; one aggregate RAY
+scope describes synchronization and generated ray pipelines. Bindings for compute,
+raster and rays remain independent while sharing the native push-data domain.
+Direct, dimensions-indirect, table-indirect and generated trace commands lower to
+one native operation each. Generated pipeline selection is independently gated.
+
+The updated consumer has two BLAS geometries, verifies their identity, and uses
+five scene states with four rays each in both query and pipeline variants. Each
+result is overwritten from a fresh sentinel. Pipeline execution includes a callable
+shader, a closest-hit shader-record bias of 0.125, repeated hit records through
+native zero stride, explicit stack sizing and both indirect forms. Generated
+integrated/explicit preprocessing also executes when selected, using ordinary
+caller allocations. The [receipt](results/m9-ray-pipelines-2026-11-07.json) records
+40 rays, geometry/instance identity, compaction from 576 to 448 bytes and native
+serialization round-trip under explicit RADV emulation. These are correctness
+observations, not native ray performance or cross-driver acceptance.
+
+One composition remains open. A single memory object combining PREPROCESS usage
+with AS input/storage and shader-table usage left the first **ordinary direct**
+ray dispatch output untouched; no generated command had executed yet. No Vulkan
+validation error was emitted. Omitting generated-layout creation while retaining
+the combined usage reproduced it. Enabling generated commands without that buffer
+usage passed. Separately allocated preprocessing storage then passed both generated
+modes. This isolates a usage/placement interaction in the local diagnostic, not
+its ultimate cause: a direct native reproducer is still needed before assigning
+blame to RADV or OGPU. M10 owns that reproduction and combined-backing acceptance.
+The implementation neither rejects the combination nor silently splits allocations.
+
+AABBs, procedural/any-hit execution, batched builds and the final M9 contract/SDK
+consolidation are next. Native indirect AS builds remain unavailable locally.
+Ray libraries/capture-replay/vendor primitive families need separate capability
+and artifact dispositions; pipeline binaries belong to M11. No software fallback
+or native Metal/DX12 ray acceptance is implied by this tranche.

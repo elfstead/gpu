@@ -6,3 +6,9 @@ mod consumer;
 fn gpu_ray_query_consumer() {
     consumer::run().unwrap();
 }
+
+#[test]
+#[ignore = "requires native ray pipeline and both indirect profiles; emulation is diagnostic only"]
+fn gpu_ray_pipeline_consumer() {
+    consumer::run_profile(true).unwrap();
+}

@@ -15,7 +15,7 @@ struct Control { uint2 scene; Result* results; };
 [numthreads(4,1,1)]
 void queryMain(uint3 id : SV_DispatchThreadID) {
     RayDesc ray;
-    ray.Origin = float3(id.x == 0 ? 0.25 : id.x == 1 ? 2.0 : 0.1, 0.25, -1.0);
+    ray.Origin = float3(id.x == 0 ? 0.25 : id.x == 1 ? 4.0 : id.x == 3 ? 2.25 : 0.1, 0.25, -1.0);
     ray.Direction = float3(0, 0, 1);
     ray.TMin = 0.0;
     ray.TMax = id.x == 2 ? 0.5 : 10.0;
@@ -27,7 +27,7 @@ void queryMain(uint3 id : SV_DispatchThreadID) {
         r.hit = 1;
         r.distance = query.CommittedRayT();
         r.instance = query.CommittedInstanceID();
-        r.primitive = query.CommittedPrimitiveIndex();
+        r.primitive = query.CommittedPrimitiveIndex() | (query.CommittedGeometryIndex()<<16);
     }
     control.results[id.x] = r;
 }

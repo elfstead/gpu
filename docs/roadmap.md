@@ -683,7 +683,10 @@ command features retain explicit native-test debt.
 Active [implementation brief](m9-ray-tracing.md). AS requirements/backing, build/update,
 clone/compact, properties, serialization and inline queries are implemented in C
 and native Rust; the [explicit emulation diagnostic](results/m9-acceleration-query-2026-11-07.json)
-passes. Ray pipelines/tables are next; native hardware acceptance remains open.
+passes. Ray pipelines/tables, explicit stack controls and direct/indirect/generated
+trace commands are now implemented; [pipeline diagnostics](results/m9-ray-pipelines-2026-11-07.json)
+pass. Procedural geometry and consolidation remain before M10; native hardware
+acceptance remains open.
 
 **Deliver:** the non-derivable hardware boundary for acceleration structures and
 ray execution, reusing ordinary memory, arguments, commands and dependencies.
@@ -711,7 +714,9 @@ import/export with device identity and initial/final state contracts; virtual
 address reservation, map/unmap/access, sparse image binding and explicit residency
 operations only where the composition audit establishes a missing primitive.
 Allocators, streaming/eviction policy and interop convenience wrappers stay outside
-core. Audit raw-address command endpoints so foreign resources are not forced
+core. Reproduce the [M9 combined preprocessing/AS/table backing failure](m9-ray-tracing.md#ray-pipeline-tranche--implemented-2026-11-07)
+before accepting that usage combination; separate caller allocations pass and no
+runtime workaround is installed. Audit raw-address command endpoints so foreign resources are not forced
 through unnecessary allocation or registration strategies.
 
 **Consumers:** an external native presenter or GPU producer sharing resources with

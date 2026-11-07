@@ -10,6 +10,11 @@ SDK profile. Foundation packaging is default; `--legacy` adds ABI20 files explic
 This is a migration boundary, not
 two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
+M9 continuation, 2026-11-07: [ray execution](m9-ray-tracing.md) now includes caller-backed
+AS objects/builds, inline queries, native ray groups, caller shader tables, stack
+controls and direct/indirect/generated traces in C and native Rust. The explicit
+RADV emulation diagnostic passes; native ray acceleration is not accepted.
+
 Current preview revision 13 adds [ordered geometry capture](geometry-capture.md),
 independent streams, counters and native byte-count draws. Existing query begin/end
 operations now take an explicit stream argument (zero for occlusion/statistics);

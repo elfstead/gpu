@@ -150,6 +150,154 @@ pub(super) fn snapshot(
         },
     ))
 }
+pub(super) const ARGUMENT_STAGES: u64 = ARGUMENT_RAYGEN
+    | ARGUMENT_MISS
+    | ARGUMENT_CLOSEST_HIT
+    | ARGUMENT_ANY_HIT
+    | ARGUMENT_INTERSECTION
+    | ARGUMENT_CALLABLE;
+pub(super) fn shader_visibility(stage: u32) -> u64 {
+    match stage {
+        SHADER_RAYGEN => ARGUMENT_RAYGEN,
+        SHADER_MISS => ARGUMENT_MISS,
+        SHADER_CLOSEST_HIT => ARGUMENT_CLOSEST_HIT,
+        SHADER_ANY_HIT => ARGUMENT_ANY_HIT,
+        SHADER_INTERSECTION => ARGUMENT_INTERSECTION,
+        SHADER_CALLABLE => ARGUMENT_CALLABLE,
+        _ => u64::from(stage),
+    }
+}
+pub(super) fn shader_stage(stage: u32) -> Result<u32, Status> {
+    match stage {
+        SHADER_RAYGEN => Ok(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_RAYGEN_BIT_KHR),
+        SHADER_MISS => Ok(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MISS_BIT_KHR),
+        SHADER_CLOSEST_HIT => Ok(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR),
+        SHADER_ANY_HIT => Ok(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_ANY_HIT_BIT_KHR),
+        SHADER_INTERSECTION => Ok(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_INTERSECTION_BIT_KHR),
+        SHADER_CALLABLE => Ok(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_CALLABLE_BIT_KHR),
+        _ => Err(UNSUPPORTED),
+    }
+}
+pub(super) struct Commands {
+    pub create: vk::PFN_vkCreateRayTracingPipelinesKHR,
+    pub handles: vk::PFN_vkGetRayTracingShaderGroupHandlesKHR,
+    pub stack: vk::PFN_vkGetRayTracingShaderGroupStackSizeKHR,
+    pub set_stack: vk::PFN_vkCmdSetRayTracingPipelineStackSizeKHR,
+    pub trace: vk::PFN_vkCmdTraceRaysKHR,
+    pub indirect: vk::PFN_vkCmdTraceRaysIndirectKHR,
+    pub indirect_table: vk::PFN_vkCmdTraceRaysIndirect2KHR,
+}
+impl Commands {
+    pub fn load(instance: &Instance, enabled: FeatureBits) -> Result<Self, Status> {
+        macro_rules! get {
+            ($name:literal,$ty:ty,$feature:expr) => {{
+                if enabled & $feature == 0 {
+                    None
+                } else {
+                    let f = unsafe {
+                        std::mem::transmute::<vk::PFN_vkVoidFunction, $ty>(instance.proc($name))
+                    };
+                    if f.is_none() {
+                        return Err(UNSUPPORTED);
+                    }
+                    f
+                }
+            }};
+        }
+        Ok(Self {
+            create: get!(
+                c"vkCreateRayTracingPipelinesKHR",
+                vk::PFN_vkCreateRayTracingPipelinesKHR,
+                RAY_PIPELINE
+            ),
+            handles: get!(
+                c"vkGetRayTracingShaderGroupHandlesKHR",
+                vk::PFN_vkGetRayTracingShaderGroupHandlesKHR,
+                RAY_PIPELINE
+            ),
+            stack: get!(
+                c"vkGetRayTracingShaderGroupStackSizeKHR",
+                vk::PFN_vkGetRayTracingShaderGroupStackSizeKHR,
+                RAY_PIPELINE
+            ),
+            set_stack: get!(
+                c"vkCmdSetRayTracingPipelineStackSizeKHR",
+                vk::PFN_vkCmdSetRayTracingPipelineStackSizeKHR,
+                RAY_PIPELINE
+            ),
+            trace: get!(
+                c"vkCmdTraceRaysKHR",
+                vk::PFN_vkCmdTraceRaysKHR,
+                RAY_PIPELINE
+            ),
+            indirect: get!(
+                c"vkCmdTraceRaysIndirectKHR",
+                vk::PFN_vkCmdTraceRaysIndirectKHR,
+                RAY_INDIRECT
+            ),
+            indirect_table: get!(
+                c"vkCmdTraceRaysIndirect2KHR",
+                vk::PFN_vkCmdTraceRaysIndirect2KHR,
+                RAY_INDIRECT_TABLE
+            ),
+        })
+    }
+}
+impl Executable {
+    pub(in crate::foundation) unsafe fn ray_group_handles(
+        &self,
+        first: u32,
+        count: u32,
+        output: HostSpan,
+    ) -> Result<(), Status> {
+        let d = unsafe { &*self.device };
+        d.ready()?;
+        if self.stages != STAGE_RAY {
+            return Err(INVALID);
+        }
+        if count == 0 || first.checked_add(count).ok_or(INVALID)? as usize > self.ray_groups.len() {
+            return Err(INVALID);
+        }
+        let size = u64::from(count) * u64::from(d.snapshot.ray_limits.group_handle_size);
+        if output.size < size {
+            return Err(CAPACITY);
+        }
+        if output.data.is_null() || size > isize::MAX as u64 {
+            return Err(INVALID);
+        }
+        unsafe {
+            d.result((d.ray_commands.handles.ok_or(UNSUPPORTED)?)(
+                d.handle,
+                self.pipeline,
+                first,
+                count,
+                size as usize,
+                output.data,
+            ))
+        }
+    }
+    pub(in crate::foundation) fn ray_group_stack_size(
+        &self,
+        group: u32,
+        member: u32,
+    ) -> Result<u64, Status> {
+        let d = unsafe { &*self.device };
+        d.ready()?;
+        if self.stages != STAGE_RAY
+            || member > 3
+            || self
+                .ray_groups
+                .get(group as usize)
+                .is_none_or(|m| m & (1 << member) == 0)
+        {
+            return Err(INVALID);
+        }
+        Ok(unsafe {
+            (d.ray_commands.stack.ok_or(UNSUPPORTED)?)(d.handle, self.pipeline, group, member)
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

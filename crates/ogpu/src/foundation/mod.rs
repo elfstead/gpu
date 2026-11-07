@@ -2,7 +2,9 @@
 //! No execution, allocation, completion-retention or scheduler policy is borrowed
 //! from ABI 20. Both paths currently share only the native instance/query loader.
 mod acceleration_api;
+mod ray_api;
 pub use acceleration_api::*;
+pub use ray_api::*;
 mod commands_api;
 mod descriptors_api;
 mod executables_api;

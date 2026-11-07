@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M9 ray pipelines, shader tables and generated traces",
+  "revision": 13,
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "native_ray_hardware_accepted": false,
+  "environment": {
+    "RADV_EXPERIMENTAL": "emulate_rt",
+    "OGPU_RAY_GENERATED": "1",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1"
+  },
+  "consumer": {
+    "variants": [
+      "inline query",
+      "ray pipeline"
+    ],
+    "states": [
+      "original",
+      "geometry update",
+      "clone original",
+      "compacted clone",
+      "deserialized clone"
+    ],
+    "rays_per_variant": 20,
+    "instance_id": 37,
+    "geometry_ids": [
+      0,
+      1
+    ],
+    "primitive_id": 0,
+    "fresh_output_sentinel_each_dispatch": true,
+    "guard_check": "pass",
+    "ray_pipeline_profiles": [
+      "direct",
+      "indirect dimensions",
+      "indirect table",
+      "generated integrated",
+      "generated explicit preprocess"
+    ],
+    "group_handle_bytes": 32,
+    "table_stride": 48,
+    "hit_table_stride": 0,
+    "shader_record_bias": 0.125,
+    "explicit_stack_bytes": 32,
+    "preprocess_bytes_each": 768,
+    "preprocess_alignment": 256,
+    "bottom_storage_bytes": 576,
+    "compacted_bytes": 448,
+    "serialized_bytes": 576,
+    "validation_errors": 0
+  },
+  "checks": {
+    "host_tests": 130,
+    "normal_native_tests": 32,
+    "full_c_regression": "pass",
+    "strict_clippy": "pass",
+    "abi_values": 2478,
+    "surface_operations": 215,
+    "surface_records": 180,
+    "surface_constants": 385,
+    "surface_values": 1771,
+    "bindings_reproduction": "pass",
+    "shaders_reproduction": "pass"
+  },
+  "open_composition": {
+    "description": "Combined preprocessing/AS/table buffer left ordinary direct ray output untouched; separate preprocessing backing passes. Root cause unassigned.",
+    "feature_only": "pass",
+    "combined_usage_without_generated_layout": "failed",
+    "separate_preprocessing_generated_execution": "pass",
+    "followup": "M10 direct-native reproducer and mixed-backing acceptance"
+  },
+  "unaccepted": [
+    "native ray acceleration/performance",
+    "ray pipeline generated selection (not advertised)",
+    "indirect AS builds (not advertised)",
+    "procedural/any-hit and batched builds (next tranche)",
+    "Metal/DX12 native mappings",
+    "ray pipeline libraries/capture replay/vendor families"
+  ],
+  "logs": [
+    "/tmp/ogpu-m9-ray-pipeline-validation.log",
+    "/tmp/ogpu-m9-ray-generated-isolation.log",
+    "/tmp/ogpu-m9-ray-generated-feature-only.log",
+    "/tmp/ogpu-m9-ray-generated-separate.log",
+    "/tmp/ogpu-m9-ray-host.log",
+    "/tmp/ogpu-m9-ray-native.log",
+    "/tmp/ogpu-m9-ray-full-c.log",
+    "/tmp/ogpu-m9-ray-abi.log",
+    "/tmp/ogpu-m9-ray-surface.log",
+    "/tmp/ogpu-m9-ray-shaders-check.log"
+  ]
+}

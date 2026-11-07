@@ -98,7 +98,7 @@ impl List {
         if !ptr::eq(self.executable(layout.stages)?, initial) {
             return Err(INVALID);
         }
-        if layout.stages == 4 {
+        if layout.stages == 4 || layout.stages == STAGE_RAY {
             self.outside_render()?;
         } else if layout.stages & MESH_STAGE != 0 {
             self.mesh_drawing()?;
@@ -118,7 +118,9 @@ impl List {
             self.index_count.set(None);
         }
         if layout.selection {
-            if layout.stages == 4 {
+            if layout.stages == STAGE_RAY {
+                self.ray.set(ptr::null());
+            } else if layout.stages == 4 {
                 self.executable.set(ptr::null());
             } else {
                 self.graphics.set(ptr::null());

@@ -85,6 +85,15 @@ pub(super) fn functions(d: &Device) -> Result<&GeneratedFunctions, Status> {
 }
 pub(super) fn native_stages(stages: u64) -> u32 {
     [
+        (
+            STAGE_RAY,
+            vk::VkShaderStageFlagBits_VK_SHADER_STAGE_RAYGEN_BIT_KHR
+                | vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MISS_BIT_KHR
+                | vk::VkShaderStageFlagBits_VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+                | vk::VkShaderStageFlagBits_VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+                | vk::VkShaderStageFlagBits_VK_SHADER_STAGE_INTERSECTION_BIT_KHR
+                | vk::VkShaderStageFlagBits_VK_SHADER_STAGE_CALLABLE_BIT_KHR,
+        ),
         (4, vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT),
         (8, vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT),
         (16, vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT),
@@ -116,6 +125,7 @@ pub(super) fn native_stages(stages: u64) -> u32 {
 }
 pub(super) fn public_stages(stages: u32) -> u64 {
     [
+        STAGE_RAY,
         4,
         8,
         16,
@@ -127,7 +137,7 @@ pub(super) fn public_stages(stages: u32) -> u64 {
     ]
     .into_iter()
     .fold(0, |r, bit| {
-        r | if stages & native_stages(bit) != 0 {
+        r | if stages & native_stages(bit) == native_stages(bit) {
             bit
         } else {
             0
@@ -171,6 +181,9 @@ pub(super) fn snapshot(
     let mut tokens = ((1u64 << 8) - 2) | (1 << GENERATED_VERTEX_BUFFER); // Base action/argument tokens plus vertex binding.
     if p.deviceGeneratedCommandsMultiDrawIndirectCount != 0 {
         tokens |= 7 << 8;
+    }
+    if public_stages(p.supportedIndirectCommandsShaderStages) & STAGE_RAY != 0 {
+        tokens |= 1 << GENERATED_TRACE_RAYS;
     }
     if vulkan_indices || dxgi_indices {
         tokens |= 1 << GENERATED_INDEX_BUFFER;
@@ -241,15 +254,17 @@ fn layout_contract(
         return Err(UNSUPPORTED);
     }
     let compute = desc.stages == 4;
+    let ray = desc.stages == STAGE_RAY;
     let vertex = raster_stages::traditional(desc.stages);
     let mesh = matches!(desc.stages, MESH_STAGE)
         || desc.stages == MESH_STAGE | 16
         || desc.stages == MESH_STAGE | TASK_STAGE
         || desc.stages == MESH_STAGE | TASK_STAGE | 16;
-    if !compute && !vertex && !mesh {
+    if !compute && !vertex && !mesh && !ray {
         return Err(UNSUPPORTED);
     }
-    if !compute && enabled & RASTER == 0
+    if !compute && !ray && enabled & RASTER == 0
+        || ray && enabled & (RAY_PIPELINE | RAY_MAINTENANCE) != RAY_PIPELINE | RAY_MAINTENANCE
         // Native generated mesh tokens require both enables (VUID 11126), even
         // when the executable itself has no task stage. Ordinary mesh draws do not.
         || mesh && enabled & (MESH_SHADER | TASK_SHADER) != MESH_SHADER | TASK_SHADER
@@ -259,7 +274,8 @@ fn layout_contract(
     }
     raster_stages::enables(enabled, desc.stages, 0)?;
     let action = tokens.last().unwrap().kind;
-    if !matches!(action, 4..=10)
+    if !(matches!(action, 4..=10) || action == GENERATED_TRACE_RAYS)
+        || ray && action != GENERATED_TRACE_RAYS
         || compute && action != 4
         || vertex && !matches!(action, 5 | 6 | 8 | 9)
         || mesh && !matches!(action, 7 | 10)
@@ -270,7 +286,7 @@ fn layout_contract(
     let mut argument_end = 0;
     let mut sequence = false;
     for (i, t) in tokens.iter().enumerate() {
-        if t.kind > 12 || t.kind == 0 || p.tokens & (1 << t.kind) == 0 {
+        if t.kind > GENERATED_TRACE_RAYS || t.kind == 0 || p.tokens & (1 << t.kind) == 0 {
             return Err(UNSUPPORTED);
         }
         if t.offset % 4 != 0 || i != 0 && t.offset < tokens[i - 1].offset {
@@ -282,7 +298,7 @@ fn layout_contract(
         if t.kind == 1 && (i != 0 || desc.stages & !p.pipeline_binding_stages != 0) {
             return Err(UNSUPPORTED);
         }
-        if matches!(t.kind, 4..=10) && i != tokens.len() - 1 {
+        if (matches!(t.kind, 4..=10) || t.kind == GENERATED_TRACE_RAYS) && i != tokens.len() - 1 {
             return Err(INVALID);
         }
         let size = if matches!(t.kind, 2 | 3) {
@@ -332,6 +348,7 @@ fn layout_contract(
                 4 | 7 => 12,
                 5 | 8..=10 => 16,
                 6 => 20,
+                GENERATED_TRACE_RAYS => size_of::<RayIndirect>() as u32,
                 _ => unreachable!(),
             }
         };
@@ -348,7 +365,9 @@ impl GeneratedLayout {
         desc.header
             .validate::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC)?;
         let arguments = unsafe { desc.arguments.as_ref() }.ok_or(INVALID)?;
-        let class = if desc.stages == 4 {
+        let class = if desc.stages == STAGE_RAY {
+            ARGUMENT_RAY
+        } else if desc.stages == 4 {
             ARGUMENT_COMPUTE
         } else {
             ARGUMENT_GRAPHICS
@@ -416,6 +435,7 @@ impl GeneratedLayout {
                 8 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_COUNT_EXT,
                 9 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_COUNT_EXT,
                 10 => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_MESH_TASKS_COUNT_EXT,
+                GENERATED_TRACE_RAYS => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_TRACE_RAYS2_EXT,
                 GENERATED_VERTEX_BUFFER => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_EXT,
                 GENERATED_INDEX_BUFFER => vk::VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_EXT,
                 _ => unreachable!(),
@@ -608,7 +628,8 @@ pub(super) unsafe fn work<'a>(
     if work.max_sequences > d.snapshot.generated_limits.max_sequences {
         return Err(UNSUPPORTED);
     }
-    if layout.action >= 8 && u64::from(work.max_sequences) * u64::from(work.max_draws) >= (1 << 24)
+    if matches!(layout.action, 8..=10)
+        && u64::from(work.max_sequences) * u64::from(work.max_draws) >= (1 << 24)
     {
         return Err(INVALID);
     }
@@ -833,6 +854,48 @@ mod tests {
                 28 | MESH_STAGE | TASK_STAGE | raster_stages::TESS_STAGES | GEOMETRY_STAGE
             )),
             28 | MESH_STAGE | TASK_STAGE | raster_stages::TESS_STAGES | GEOMETRY_STAGE
+        );
+    }
+    #[test]
+    fn ray_tokens_require_maintenance_and_preserve_native_record_shape() {
+        let limits = GeneratedLimits {
+            stages: STAGE_RAY,
+            tokens: 1 << GENERATED_TRACE_RAYS,
+            max_tokens: 1,
+            max_stride: 104,
+            ..Default::default()
+        };
+        let token = [GeneratedToken {
+            kind: GENERATED_TRACE_RAYS,
+            ..Default::default()
+        }];
+        let desc = GeneratedLayoutDesc {
+            header: Record::new::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC),
+            arguments: ptr::null_mut(),
+            stages: STAGE_RAY,
+            flags: 0,
+            stride: 104,
+            token_count: 1,
+            reserved: 0,
+            tokens: token.as_ptr(),
+        };
+        let enabled = GENERATED_COMMANDS | RAY_PIPELINE | RAY_MAINTENANCE;
+        assert_eq!(
+            layout_contract(&limits, enabled, 0, &desc, &token),
+            Ok((104, 0))
+        );
+        assert_eq!(
+            layout_contract(&limits, enabled & !RAY_MAINTENANCE, 0, &desc, &token),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            layout_contract(&limits, enabled & !RAY_PIPELINE, 0, &desc, &token),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(public_stages(native_stages(STAGE_RAY)), STAGE_RAY);
+        assert_eq!(
+            public_stages(vk::VkShaderStageFlagBits_VK_SHADER_STAGE_RAYGEN_BIT_KHR),
+            0
         );
     }
     #[test]
