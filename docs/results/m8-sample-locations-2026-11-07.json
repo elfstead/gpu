@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 12,
+  "implementation": "73090ddc8e32b71e9287fe1e24a51102ecac11ba",
+  "source_dirty": false,
+  "runtime_sha256": "ae7fffdb46926ecd29638be9564e5e9bc2dbb6581257de844d910a738b54dedc",
+  "header_sha256": "bd7964c3c480c301606e5a2b9e466edbe1d4e24d9c027a4c90473962d50b8527",
+  "checks": {
+    "host_tests": 107,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "tool_tests": 21,
+    "scene_oracle_tests": 47,
+    "clippy": "pass",
+    "abi_values": 2304,
+    "surface": {
+      "operations": 164,
+      "records": 151,
+      "constants": 240,
+      "values": 1423
+    },
+    "bindings": "reproduce",
+    "shader_artifacts": "reproduce and validate",
+    "sample_locations": {
+      "profiles": 9,
+      "submissions": 18,
+      "color_depth_pixel_pairs": 2304,
+      "rejected_preparations": 5,
+      "rejected_recordings": 5
+    },
+    "validation_errors": 0,
+    "new_profile_validation_warnings": 0,
+    "full_fixture_preexisting_unused_output_warnings": 4,
+    "installed_public_c": "compute, graphics, 36 textured and 180 advanced raster frames",
+    "integrations": "isolated GGML and libplacebo: build, dependency/runtime identity, missing-loader rejection and selected GPU correctness",
+    "installed_optimized_fixture": "full C regression, 68 artifact inputs, new sample profiles",
+    "native_rust": "isolated build, correspondence, missing loader and headless execution"
+  },
+  "discovered": {
+    "samples": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "max_grid": [
+      2,
+      2
+    ],
+    "coordinate_range": [
+      0,
+      0.9375
+    ],
+    "subpixel_bits": 4,
+    "variable": true,
+    "dynamic_enable": true
+  },
+  "executed_samples": [
+    4
+  ],
+  "build_environment_findings": [
+    "initial libplacebo upstream build lacked Jinja2; isolated libplacebo check passed after selecting installed Jinja2/MarkupSafe via PYTHONPATH"
+  ],
+  "initial_fixture_findings": [
+    "split event reset-to-signal race: fixed with explicit execution dependency",
+    "subsequent depth transition write hazard: fixed with complete source access scope"
+  ],
+  "unverified": [
+    "sample counts other than four",
+    "fixed-pattern devices",
+    "coordinate-clamping execution",
+    "shader interpolation restriction cases",
+    "secondary/continuation/multiview custom-pattern composition",
+    "ownership-transfer custom-pattern metadata",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "next_implementation": [
+    "complete dynamic vertex input/divisors",
+    "remaining native dynamic raster controls",
+    "extension-specific raster-format inventory",
+    "geometry capture and dynamic patch state"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-sample-locations-sdk/share/ogpu/manifest.json": "e6a60c5e6ec247f2d3c60e6c611ef2d5166e657e2eac75d7fb18ae68c618f7c9",
+    "/tmp/m8-samples-host.log": "f70f332d8979955d5171ed88ab447c11b3751210da4bf50eea5e3442eebd434a",
+    "/tmp/m8-samples-native.log": "7eee0d95e07711135b3207438fcefac8ce7d49f8fcfc6603f0054c549bfc6bb3",
+    "/tmp/m8-samples-feature.log": "88e942ea038f5c1e87b90993d1521b1c21d2ceca714f0a10bd93f33a1d7d6023",
+    "/tmp/m8-samples-gpu.log": "eca6be732e10427138e92c919ca5f87a54d6557945ee8f1588385d8f435166c2",
+    "/tmp/m8-samples-clippy.log": "68b81a28642b547d2bb28e0d713701d2e09d6006c8e9ce5db9b3f5d85479ab8f",
+    "/tmp/m8-samples-abi.log": "bf5a53e6e23491fd315c0ea856216950dd5c7bff5509c15dc8a8fb08543f1dbe",
+    "/tmp/m8-samples-surface.log": "014a69a1eeb3af16de406c8d7b066ae1bc5a016f7f939a970ab73e3a26f144da",
+    "/tmp/m8-samples-tool-tests.log": "4757db50606d3dbf5a38ef4291e5b16d822b37fd9fe4ccfcbf553aa2aadf4dfa",
+    "/tmp/m8-samples-scene-tests.log": "d52020e2b1e961b7f25e3852c2799eb5adf08ed984ed8c8dd7a2fa563cd4fed4",
+    "/tmp/m8-samples-bindings-check.log": "75bca5fedb59757c68c8add1d7e77595fafe5a36afe20e3962142fb3bbca86f4",
+    "/tmp/m8-samples-shaders-check.log": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+    "/tmp/m8-samples-install.log": "a7e391da757ae5b2400fe2429b2b276bc732e8895331832a264bd11bf67c2139",
+    "/tmp/m8-samples-sdk.log": "daceb2f43e7760b97bd6d618e1657afdb5731ceb02f2ac229890564774a73520",
+    "/tmp/m8-samples-libplacebo-sdk.log": "3253aaea96518c299688cf44ae53557310a5c4e1c62eb67f43233e77b6750137",
+    "/tmp/m8-samples-rust-sdk.log": "1b5afd111cb561ff7869b70b35e57361ef9c75aee9b01c68f710df5432001b4f",
+    "/tmp/m8-samples-installed-fixture.log": "f46f4dc45326c75b660efc4eaa83632d26c6e3a9015047d10691beb09ddf28e9",
+    "/tmp/m8-samples-installed-surface.log": "8b12aefc3fbb70ba7f9a726fe203eb4f1048839f5cadfbc71d8356be2aceec3d",
+    "/tmp/ogpu-run-samples-installed.py": "42954c5ed5b3aa5b8a2856eb7244cb1f663883fe51a374e24e38db7129c9914f",
+    "/tmp/ogpu-rust-external-rx9ri2jg/report.json": "c1a491ac424edb935b455958859750ecabd6c9465600d6e20b9d26a339a3d7bd",
+    "/tmp/ogpu-foundation-external-ru51buku/independent ggml/run-k40oqzuu/report.json": "abaf9e9b8b56172f2a6c534837f691e7e172e48c5f9edc5bb77a4775000abc57",
+    "/tmp/ogpu-foundation-external-ru51buku/independent ggml/run-7hfoe1at/report.json": "e57312f3f9f9c89a6c37c0f3d742254c3dce22ff33281bc38cb03e1d6ae4299e",
+    "/tmp/ogpu-foundation-external-ru51buku/independent textured-scene/run-7zpm9o6l/report.json": "82813258271655394f9411b30d6cc8faf9cf46d05d2bd45c492cd42de9679120",
+    "/tmp/ogpu-foundation-external-ru51buku/independent textured-scene/run-f8wv99td/report.json": "99cf59385c9849267a52e6e82faf024d253326f48378ba0c88191a39c0932172",
+    "/tmp/ogpu-foundation-external-ru51buku/independent advanced-raster/run-yfulvwt2/report.json": "74ef61262f38ec10a21f21e0adaab9deca9661a06aadecac98d3017d0afb5ad7",
+    "/tmp/ogpu-foundation-external-ru51buku/independent advanced-raster/run-lz43wblh/report.json": "7302f57e124df7adb806c17315aa207a6d14ac922c732784191bdcf6320fffc5",
+    "/tmp/ogpu-foundation-external-ciluwrnl/independent libplacebo/run-lt22zuq6/report.json": "cb5364b3f43e1c31e0aa74c0b3a899f0fe8632038ecb0a280a066b6141309be0",
+    "/tmp/ogpu-foundation-external-ciluwrnl/independent libplacebo/run-5t5ds5em/report.json": "6dd04a920f6c975784970e6d4c0b3cbfa509a7b1d1c1b9f24ba3c58cae1cd20f",
+    "/tmp/ogpu-foundation-external-ciluwrnl/independent libplacebo/run-8enky_eq/report.json": "e63ce40dd1a32725dd6b71cd715c00c03d03b54757da6c8c18a05d7eee424aea"
+  }
+}

@@ -44,7 +44,7 @@ remains execution debt:
    supported profiles from unavailable dynamic extra overestimation and stipple
    variants. [Programmable sample positions](sample-locations.md) now include
    depth-image compatibility and explicit ordinary/split transition metadata in
-   revision 12, with local coverage/depth/LOAD evidence. **Next:** complete dynamic
+   revision 12, with [local coverage/depth/LOAD and clean SDK evidence](results/m8-sample-locations-2026-11-07.md). **Next:** complete dynamic
    vertex input/divisor descriptions and remaining native dynamic raster controls;
    inventory the pinned
    registry's extension-specific raster formats. These remain in this batch, not

@@ -81,3 +81,25 @@ represents those combinations but this fixture does not claim their acceptance.
 Next M8 work is complete dynamic vertex input/divisors, remaining native dynamic
 raster controls and the extension-format inventory, then capture/dynamic patch
 and consolidation before M9.
+
+## Clean installed acceptance
+
+Implementation `73090ddc8e32b71e9287fe1e24a51102ecac11ba` installed with
+`source_dirty=false` into `/tmp/ogpu-m8-sample-locations-sdk`. Release runtime
+SHA-256: `ae7fffdb46926ecd29638be9564e5e9bc2dbb6581257de844d910a738b54dedc`.
+
+The full optimized C fixture passes using the installed header/runtime and 68
+shader-artifact inputs, including the nine new sample-position profiles. Exact
+exports match the reviewed surface. Relocated C compute/graphics, 36 textured
+frames and 180 advanced-raster frames pass with independent source/runtime checks.
+Isolated GGML and libplacebo builds and their selected GPU correctness checks pass,
+including missing-loader rejection. The initial libplacebo upstream build lacked
+Jinja2; its isolated rerun used the installed Python 3.14 Jinja2/MarkupSafe packages
+via `PYTHONPATH`, without changing source or relaxing a check. The initial log is
+retained alongside the passing rerun. The isolated native Rust source bundle builds
+and passes correspondence and headless execution below the C boundary.
+
+The [machine-readable receipt](m8-sample-locations-2026-11-07.json) records exact
+identities, evidence hashes and expected negative-run reports. This adds no new
+Wayland/human interaction, full MNIST-data run, performance or external-backend
+acceptance. Remaining implementation follows the [M8 audit](../m8-coverage.md).

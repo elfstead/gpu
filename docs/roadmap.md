@@ -631,7 +631,8 @@ and local GPU acceptance](results/m8-raster-mechanisms-2026-11-07.md) at `92c118
 [Programmable sample positions](sample-locations.md) now implement explicit
 patterns, independent dynamic enable, compatible-depth images and ordinary/split
 transition metadata in revision 12; [local evidence](results/m8-sample-locations-2026-11-07.md)
-checks coverage and depth preservation. Next complete dynamic vertex input/divisors
+checks coverage and depth preservation. Clean installed C/native Rust and
+GGML/libplacebo acceptance passes at `73090dd`. Next complete dynamic vertex input/divisors
 and remaining raster controls, plus the extension-format inventory. Geometry capture/dynamic patch and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
