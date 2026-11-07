@@ -78,8 +78,8 @@ queries are implemented through C and direct Rust. Local primary compute/draw
 predication and primitive queries without transform feedback pass; inherited
 conditional execution is unavailable on this device. The selected shader profiles are now implemented (32 independent native enables;
 four bounded artifact consumers pass). The [launch/matrix audit](m11-launch-mapping.md) is recorded and native dispatch
-origins now pass. Extended matrix profiles, the accelerated ML consumer and binaries
-are next; native execution graphs remain an explicit subsequent package. No
+origins now pass. Extended matrix profiles and exact fixed/flexible discovery
+are implemented; the accelerated ML consumer and binaries are next; native execution graphs remain an explicit subsequent package. No
 hardware-matrix acceptance is claimed.
 The remaining rows are scheduled work, not implemented claims or vague examples.
 
@@ -191,3 +191,38 @@ native interoperability, primary execution controls and four shader-profile
 artifacts passed with validation, as did host and missing-loader checks.
 This checkpoint predates the dispatch-origin addition and is not M11 completion.
 [Receipt](results/m11-profiles-sdk-2026-11-07.json).
+
+## Extended matrix profiles (2026-11-07)
+
+Feature IDs 180–192 expose workgroup scope, flexible dimensions, reductions,
+accumulator conversions, per-element operations, tensor addressing, block loads,
+BF16 type/dot/matrix permissions, FP8 type/matrix permissions, and opt-in native
+matrix robustness. The native feature chain sets exactly the requested fields;
+an extension dependency does not silently enable a shader capability. Scalar
+arithmetic/storage and the original cooperative-matrix feature remain independent.
+These are shader permissions, not a host tensor object or a numerical selector.
+
+Fixed tuples now preserve subgroup/workgroup scope and BF16/E4M3/E5M2 component
+IDs; supported shader stages use the existing public stage mapping. New physical
+queries expose flexible tuples with joint dimensional granularities, component
+and saturation constraints, and exact workgroup invocation counts. A separate
+limit record exposes maximum dimension, workgroup invocation limit and reserved
+shared bytes. The caller/compiler checks native artifact constraints, including
+subgroup multiples and shared storage; OGPU does not round dimensions, pad inputs,
+choose precision or allocate scratch. Existing fixed tuple layout is unchanged.
+The public component IDs are independent of native enum values.
+
+Host checks cover exact feature fields, extension dependencies, preservation of
+low-precision components and joint flexible constraints, and bounded enumeration
+with initialized native headers/retries. Local RADV exposes none of IDs 180–192:
+all thirteen requests correctly return UNSUPPORTED; fixed/flexible tuples are
+empty and the profile limits are zero. This establishes discovery/rejection,
+**not native enablement or matrix execution acceptance**. Future hardware must
+validate those paths and low-precision numerical behavior separately.
+
+Native references: [matrix profiles](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceCooperativeMatrix2FeaturesNV.html),
+[flexible tuples](https://docs.vulkan.org/refpages/latest/refpages/source/VkCooperativeMatrixFlexibleDimensionsPropertiesNV.html),
+[BF16](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderBfloat16FeaturesKHR.html),
+[FP8](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderFloat8FeaturesEXT.html).
+
+[Matrix profile receipt](results/m11-matrix-profiles-2026-11-07.json).

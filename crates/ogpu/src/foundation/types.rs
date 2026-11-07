@@ -28,6 +28,20 @@ pub mod image_formats {
 pub const VERSION: u32 = 13;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const MATRIX_WORKGROUP: u32 = 180;
+    pub const MATRIX_FLEXIBLE: u32 = 181;
+    pub const MATRIX_REDUCTIONS: u32 = 182;
+    pub const MATRIX_CONVERSIONS: u32 = 183;
+    pub const MATRIX_PER_ELEMENT: u32 = 184;
+    pub const MATRIX_TENSOR_ADDRESSING: u32 = 185;
+    pub const MATRIX_BLOCK_LOADS: u32 = 186;
+    pub const BFLOAT16_TYPE: u32 = 187;
+    pub const BFLOAT16_DOT: u32 = 188;
+    pub const BFLOAT16_MATRIX: u32 = 189;
+    pub const FLOAT8_TYPE: u32 = 190;
+    pub const FLOAT8_MATRIX: u32 = 191;
+    pub const MATRIX_ROBUST: u32 = 192;
+
     pub const SPARSE_BINDING: u32 = 132;
     pub const SPARSE_BUFFER: u32 = 133;
     pub const SPARSE_IMAGE_2D: u32 = 134;
@@ -909,6 +923,49 @@ pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(),
         Ok(())
     }
 }
+
+pub const MATRIX_PROFILE_LIMITS: u32 = 35;
+pub const MATRIX_FLEXIBLE_TUPLES: u32 = 36;
+pub const MATRIX_SCOPE_WORKGROUP: u32 = 2;
+pub const MATRIX_SCOPE_SUBGROUP: u32 = 3;
+pub const COMPONENT_FLOAT16: u32 = 0;
+pub const COMPONENT_FLOAT32: u32 = 1;
+pub const COMPONENT_FLOAT64: u32 = 2;
+pub const COMPONENT_SINT8: u32 = 3;
+pub const COMPONENT_SINT16: u32 = 4;
+pub const COMPONENT_SINT32: u32 = 5;
+pub const COMPONENT_SINT64: u32 = 6;
+pub const COMPONENT_UINT8: u32 = 7;
+pub const COMPONENT_UINT16: u32 = 8;
+pub const COMPONENT_UINT32: u32 = 9;
+pub const COMPONENT_UINT64: u32 = 10;
+pub const COMPONENT_BFLOAT16: u32 = 11;
+pub const COMPONENT_FLOAT8_E4M3: u32 = 12;
+pub const COMPONENT_FLOAT8_E5M2: u32 = 13;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct MatrixProfileLimits {
+    pub workgroup_max_invocations: u32,
+    pub max_dimension: u32,
+    pub workgroup_reserved_shared_bytes: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct MatrixFlexibleTuple {
+    pub m_granularity: u32,
+    pub n_granularity: u32,
+    pub k_granularity: u32,
+    pub a: u32,
+    pub b: u32,
+    pub c: u32,
+    pub result: u32,
+    pub saturating: u32,
+    pub scope: u32,
+    pub workgroup_invocations: u32,
+    pub stages: u64,
+}
+
 pub const MATRIX_TUPLES: u32 = 14;
 pub const INTEGER_DOT_INFO: u32 = 15;
 pub const MEMORY_BUDGETS: u32 = 16;

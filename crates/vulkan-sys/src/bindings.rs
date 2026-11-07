@@ -20017,6 +20017,231 @@ impl Default for VkPipelineViewportDepthClampControlCreateInfoEXT {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkCooperativeMatrixFlexibleDimensionsPropertiesNV {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub MGranularity: u32,
+    pub NGranularity: u32,
+    pub KGranularity: u32,
+    pub AType: VkComponentTypeKHR,
+    pub BType: VkComponentTypeKHR,
+    pub CType: VkComponentTypeKHR,
+    pub ResultType: VkComponentTypeKHR,
+    pub saturatingAccumulation: VkBool32,
+    pub scope: VkScopeKHR,
+    pub workgroupInvocations: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCooperativeMatrixFlexibleDimensionsPropertiesNV",
+    ][::std::mem::size_of::<VkCooperativeMatrixFlexibleDimensionsPropertiesNV>()
+        - 56usize];
+    [
+        "Alignment of VkCooperativeMatrixFlexibleDimensionsPropertiesNV",
+    ][::std::mem::align_of::<VkCooperativeMatrixFlexibleDimensionsPropertiesNV>()
+        - 8usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::sType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixFlexibleDimensionsPropertiesNV, sType)
+        - 0usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::pNext",
+    ][::std::mem::offset_of!(VkCooperativeMatrixFlexibleDimensionsPropertiesNV, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::MGranularity",
+    ][::std::mem::offset_of!(
+        VkCooperativeMatrixFlexibleDimensionsPropertiesNV, MGranularity
+    ) - 16usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::NGranularity",
+    ][::std::mem::offset_of!(
+        VkCooperativeMatrixFlexibleDimensionsPropertiesNV, NGranularity
+    ) - 20usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::KGranularity",
+    ][::std::mem::offset_of!(
+        VkCooperativeMatrixFlexibleDimensionsPropertiesNV, KGranularity
+    ) - 24usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::AType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixFlexibleDimensionsPropertiesNV, AType)
+        - 28usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::BType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixFlexibleDimensionsPropertiesNV, BType)
+        - 32usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::CType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixFlexibleDimensionsPropertiesNV, CType)
+        - 36usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::ResultType",
+    ][::std::mem::offset_of!(
+        VkCooperativeMatrixFlexibleDimensionsPropertiesNV, ResultType
+    ) - 40usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::saturatingAccumulation",
+    ][::std::mem::offset_of!(
+        VkCooperativeMatrixFlexibleDimensionsPropertiesNV, saturatingAccumulation
+    ) - 44usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::scope",
+    ][::std::mem::offset_of!(VkCooperativeMatrixFlexibleDimensionsPropertiesNV, scope)
+        - 48usize];
+    [
+        "Offset of field: VkCooperativeMatrixFlexibleDimensionsPropertiesNV::workgroupInvocations",
+    ][::std::mem::offset_of!(
+        VkCooperativeMatrixFlexibleDimensionsPropertiesNV, workgroupInvocations
+    ) - 52usize];
+};
+impl Default for VkCooperativeMatrixFlexibleDimensionsPropertiesNV {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceCooperativeMatrix2FeaturesNV {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub cooperativeMatrixWorkgroupScope: VkBool32,
+    pub cooperativeMatrixFlexibleDimensions: VkBool32,
+    pub cooperativeMatrixReductions: VkBool32,
+    pub cooperativeMatrixConversions: VkBool32,
+    pub cooperativeMatrixPerElementOperations: VkBool32,
+    pub cooperativeMatrixTensorAddressing: VkBool32,
+    pub cooperativeMatrixBlockLoads: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceCooperativeMatrix2FeaturesNV",
+    ][::std::mem::size_of::<VkPhysicalDeviceCooperativeMatrix2FeaturesNV>() - 48usize];
+    [
+        "Alignment of VkPhysicalDeviceCooperativeMatrix2FeaturesNV",
+    ][::std::mem::align_of::<VkPhysicalDeviceCooperativeMatrix2FeaturesNV>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceCooperativeMatrix2FeaturesNV, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceCooperativeMatrix2FeaturesNV, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixWorkgroupScope",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV, cooperativeMatrixWorkgroupScope
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixFlexibleDimensions",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV, cooperativeMatrixFlexibleDimensions
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixReductions",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV, cooperativeMatrixReductions
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixConversions",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV, cooperativeMatrixConversions
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixPerElementOperations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV,
+        cooperativeMatrixPerElementOperations
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixTensorAddressing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV, cooperativeMatrixTensorAddressing
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2FeaturesNV::cooperativeMatrixBlockLoads",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2FeaturesNV, cooperativeMatrixBlockLoads
+    ) - 40usize];
+};
+impl Default for VkPhysicalDeviceCooperativeMatrix2FeaturesNV {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceCooperativeMatrix2PropertiesNV {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub cooperativeMatrixWorkgroupScopeMaxWorkgroupSize: u32,
+    pub cooperativeMatrixFlexibleDimensionsMaxDimension: u32,
+    pub cooperativeMatrixWorkgroupScopeReservedSharedMemory: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceCooperativeMatrix2PropertiesNV",
+    ][::std::mem::size_of::<VkPhysicalDeviceCooperativeMatrix2PropertiesNV>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceCooperativeMatrix2PropertiesNV",
+    ][::std::mem::align_of::<VkPhysicalDeviceCooperativeMatrix2PropertiesNV>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2PropertiesNV::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceCooperativeMatrix2PropertiesNV, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2PropertiesNV::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceCooperativeMatrix2PropertiesNV, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2PropertiesNV::cooperativeMatrixWorkgroupScopeMaxWorkgroupSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2PropertiesNV,
+        cooperativeMatrixWorkgroupScopeMaxWorkgroupSize
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2PropertiesNV::cooperativeMatrixFlexibleDimensionsMaxDimension",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2PropertiesNV,
+        cooperativeMatrixFlexibleDimensionsMaxDimension
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrix2PropertiesNV::cooperativeMatrixWorkgroupScopeReservedSharedMemory",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrix2PropertiesNV,
+        cooperativeMatrixWorkgroupScopeReservedSharedMemory
+    ) - 24usize];
+};
+impl Default for VkPhysicalDeviceCooperativeMatrix2PropertiesNV {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pPropertyCount: *mut u32,
+        pProperties: *mut VkCooperativeMatrixFlexibleDimensionsPropertiesNV,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,

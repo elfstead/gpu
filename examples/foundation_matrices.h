@@ -13,10 +13,10 @@ static int matrix_discovery(ogpu_next_device *device) {
         TRY(ogpu_next_device_query(device,&q)); REQUIRE(q.count == count);
         for (uint32_t i = 0; i < count; ++i) {
             REQUIRE(tuples[i].m && tuples[i].n && tuples[i].k);
-            REQUIRE(tuples[i].a <= OGPU_NEXT_COMPONENT_UINT64 && tuples[i].b <= OGPU_NEXT_COMPONENT_UINT64
-                && tuples[i].c <= OGPU_NEXT_COMPONENT_UINT64 && tuples[i].result <= OGPU_NEXT_COMPONENT_UINT64);
+            REQUIRE(tuples[i].a <= OGPU_NEXT_COMPONENT_FLOAT8_E5M2 && tuples[i].b <= OGPU_NEXT_COMPONENT_FLOAT8_E5M2
+                && tuples[i].c <= OGPU_NEXT_COMPONENT_FLOAT8_E5M2 && tuples[i].result <= OGPU_NEXT_COMPONENT_FLOAT8_E5M2);
             REQUIRE(tuples[i].saturating <= 1 && tuples[i].reserved == 0);
-            REQUIRE(tuples[i].scope == OGPU_NEXT_MATRIX_SCOPE_SUBGROUP && tuples[i].stages == OGPU_NEXT_STAGE_COMPUTE);
+            REQUIRE((tuples[i].scope == OGPU_NEXT_MATRIX_SCOPE_SUBGROUP || tuples[i].scope == OGPU_NEXT_MATRIX_SCOPE_WORKGROUP) && tuples[i].stages != 0);
             printf("Matrix tuple %u: %ux%ux%u types=%u/%u/%u/%u saturation=%u\n",i,tuples[i].m,tuples[i].n,tuples[i].k,
                 tuples[i].a,tuples[i].b,tuples[i].c,tuples[i].result,tuples[i].saturating);
         }

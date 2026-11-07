@@ -72,6 +72,8 @@ struct Snapshot {
     subgroup_limits: SubgroupLimits,
     float_controls: FloatControls,
     matrix_tuples: Vec<MatrixTuple>,
+    matrix_profile_limits: MatrixProfileLimits,
+    matrix_flexible_tuples: Vec<MatrixFlexibleTuple>,
     integer_dot: IntegerDotInfo,
     mesh_limits: MeshLimits,
     generated_limits: GeneratedLimits,
@@ -161,6 +163,10 @@ impl Snapshot {
                 SUBGROUP_LIMITS => copy_out(query, std::slice::from_ref(&self.subgroup_limits)),
                 FLOAT_CONTROLS => copy_out(query, std::slice::from_ref(&self.float_controls)),
                 MATRIX_TUPLES => copy_out(query, &self.matrix_tuples),
+                MATRIX_PROFILE_LIMITS => {
+                    copy_out(query, std::slice::from_ref(&self.matrix_profile_limits))
+                }
+                MATRIX_FLEXIBLE_TUPLES => copy_out(query, &self.matrix_flexible_tuples),
                 INTEGER_DOT_INFO => copy_out(query, std::slice::from_ref(&self.integer_dot)),
                 MESH_LIMITS => copy_out(query, std::slice::from_ref(&self.mesh_limits)),
                 DEPENDENCY_LIMITS if self.features.device_scope != 0 => {

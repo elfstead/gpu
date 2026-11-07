@@ -45,6 +45,8 @@ fn fixture() -> Snapshot {
         subgroup_limits: SubgroupLimits::default(),
         float_controls: FloatControls::default(),
         matrix_tuples: vec![],
+        matrix_profile_limits: MatrixProfileLimits::default(),
+        matrix_flexible_tuples: vec![],
         integer_dot: IntegerDotInfo::default(),
         mesh_limits: MeshLimits::default(),
         generated_limits: GeneratedLimits::default(),

@@ -298,6 +298,20 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD UINT32_C(44)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX UINT32_C(45)
 #define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT32_C(46)
+#define OGPU_NEXT_FEATURE_MATRIX_WORKGROUP UINT32_C(180)
+#define OGPU_NEXT_FEATURE_MATRIX_FLEXIBLE UINT32_C(181)
+#define OGPU_NEXT_FEATURE_MATRIX_REDUCTIONS UINT32_C(182)
+#define OGPU_NEXT_FEATURE_MATRIX_CONVERSIONS UINT32_C(183)
+#define OGPU_NEXT_FEATURE_MATRIX_PER_ELEMENT UINT32_C(184)
+#define OGPU_NEXT_FEATURE_MATRIX_TENSOR_ADDRESSING UINT32_C(185)
+#define OGPU_NEXT_FEATURE_MATRIX_BLOCK_LOADS UINT32_C(186)
+#define OGPU_NEXT_FEATURE_BFLOAT16_TYPE UINT32_C(187)
+#define OGPU_NEXT_FEATURE_BFLOAT16_DOT UINT32_C(188)
+#define OGPU_NEXT_FEATURE_BFLOAT16_MATRIX UINT32_C(189)
+#define OGPU_NEXT_FEATURE_FLOAT8_TYPE UINT32_C(190)
+#define OGPU_NEXT_FEATURE_FLOAT8_MATRIX UINT32_C(191)
+#define OGPU_NEXT_FEATURE_MATRIX_ROBUST UINT32_C(192)
+
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT32_C(47)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT32_C(48)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_CHAINS UINT32_C(56)
@@ -1351,7 +1365,8 @@ enum {
     OGPU_NEXT_COMPONENT_SINT16 = 4, OGPU_NEXT_COMPONENT_SINT32 = 5,
     OGPU_NEXT_COMPONENT_SINT64 = 6, OGPU_NEXT_COMPONENT_UINT8 = 7,
     OGPU_NEXT_COMPONENT_UINT16 = 8, OGPU_NEXT_COMPONENT_UINT32 = 9,
-    OGPU_NEXT_COMPONENT_UINT64 = 10
+    OGPU_NEXT_COMPONENT_UINT64 = 10, OGPU_NEXT_COMPONENT_BFLOAT16 = 11,
+    OGPU_NEXT_COMPONENT_FLOAT8_E4M3 = 12, OGPU_NEXT_COMPONENT_FLOAT8_E5M2 = 13
 };
 enum {
     OGPU_NEXT_DOT_8_UNSIGNED = 1,
@@ -1382,7 +1397,17 @@ typedef struct ogpu_next_integer_dot_info {
  * Packed 4x8 operates on 32-bit values and needs no INT8/STORAGE8 enabling.
  * Caller/compiler chooses packing, signedness, accumulation and overflow policy;
  * OGPU neither rewrites kernels nor allocates quantization metadata/workspace. */
-enum { OGPU_NEXT_MATRIX_SCOPE_SUBGROUP = 3 };
+enum { OGPU_NEXT_MATRIX_SCOPE_WORKGROUP = 2, OGPU_NEXT_MATRIX_SCOPE_SUBGROUP = 3 };
+
+enum { OGPU_NEXT_QUERY_MATRIX_PROFILE_LIMITS = 35, OGPU_NEXT_QUERY_MATRIX_FLEXIBLE_TUPLES = 36 };
+typedef struct ogpu_next_matrix_profile_limits {
+    uint32_t workgroup_max_invocations, max_dimension, workgroup_reserved_shared_bytes, reserved;
+} ogpu_next_matrix_profile_limits;
+typedef struct ogpu_next_matrix_flexible_tuple {
+    uint32_t m_granularity, n_granularity, k_granularity, a, b, c, result, saturating, scope, workgroup_invocations;
+    ogpu_next_stages stages;
+} ogpu_next_matrix_flexible_tuple;
+
 typedef struct ogpu_next_matrix_tuple {
     uint32_t m, n, k, a, b, c, result, saturating, scope, reserved;
     ogpu_next_stages stages;
@@ -1392,16 +1417,31 @@ typedef struct ogpu_next_matrix_tuple {
  * A[M,K] * B[K,N] + C[M,N] -> result[M,N]; component enums are not image formats.
  * saturating=0/1 is the exact required integer saturation operand, not permission
  * to freely choose either. All shape/type/scope fields match one tuple together;
- * maxima from different tuples cannot be combined. This implemented profile is
- * KHR subgroup-scope, COMPUTE-stage, core component types only. Later workgroup,
- * flexible-size, BF16/FP8 and tensor-resource profiles are not inferred from it.
+ * maxima from different tuples cannot be combined. Scope, stage and component
+ * permissions remain independent enabled/required shader features. Workgroup scope
+ * requires MATRIX_WORKGROUP; BF16/FP8 matrix types require their MATRIX profiles.
  * No supported tuples returns count=0, not a synthetic scalar fallback.
  * COOPERATIVE_MATRIX must be explicitly enabled and declared in shader requirements.
  * Scalar features needed by the artifact (e.g. FLOAT16/INT8) remain independent.
  * The caller/compiler verifies exact native matrix types/operands and tuple support,
  * converged participation, memory alignment/layout/stride/bounds and synchronization.
  * OGPU does not reflect/rewrite code, choose subgroup size, pad tensors, allocate
- * workspace, or promise tensor-core throughput. Robust matrix access is not enabled.
+ * workspace, or promise tensor-core throughput. MATRIX_ROBUST is explicitly opt-in.
+ * QUERY_MATRIX_FLEXIBLE_TUPLES reports dimensional granularities, not fixed sizes;
+ * each chosen dimension must be a positive multiple of its granularity, within
+ * MATRIX_PROFILE_LIMITS.max_dimension. All tuple fields must match together, with
+ * exact workgroup_invocations for workgroup scope. Fixed tuples remain valid when
+ * MATRIX_FLEXIBLE is enabled. The compiler/caller checks these artifact constraints.
+ * For workgroup matrix operations local X is a multiple of effective subgroup size;
+ * total invocations are a power-of-two multiple of that size, bounded by
+ * workgroup_max_invocations. Declared workgroup storage plus native reserved bytes
+ * must fit the ordinary shared-memory limit. OGPU does not subtract or allocate
+ * workgroup_reserved_shared_bytes on the caller's behalf.
+ * Reductions, accumulator conversions, per-element operations, tensor addressing
+ * and block loads are independently declared shader permissions, not host tensor
+ * objects. BFLOAT16_TYPE/DOT/MATRIX and FLOAT8_TYPE/MATRIX map distinct capabilities.
+ * No feature silently enables another: declare every capability the artifact uses.
+ * Unsupported flexible tuples return count=0; limits return zero when unavailable.
  */
 enum {
     OGPU_NEXT_SUBGROUP_BASIC = 1, OGPU_NEXT_SUBGROUP_VOTE = 2,

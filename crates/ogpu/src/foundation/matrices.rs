@@ -1,35 +1,42 @@
 //! Immutable native matrix tuples, not a tensor allocator or launch policy.
 use super::*;
 
-fn tuple(p: &vk::VkCooperativeMatrixPropertiesKHR, stages: u32) -> Option<MatrixTuple> {
-    // This profile enables KHR subgroup scope and core component types only.
-    // Workgroup/flexible-dimension and newer low-bit formats need their own enabling.
-    if p.scope != vk::VkScopeKHR_VK_SCOPE_SUBGROUP_KHR
-        || [p.AType, p.BType, p.CType, p.ResultType]
-            .iter()
-            .any(|t| !(0..=10).contains(t))
-        || stages & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT == 0
-    {
+fn component(native: u32) -> Option<u32> {
+    Some(match native {
+        0..=10 => native,
+        vk::VkComponentTypeKHR_VK_COMPONENT_TYPE_BFLOAT16_KHR => COMPONENT_BFLOAT16,
+        vk::VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT8_E4M3_EXT => COMPONENT_FLOAT8_E4M3,
+        vk::VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT8_E5M2_EXT => COMPONENT_FLOAT8_E5M2,
+        _ => return None,
+    })
+}
+pub(super) fn tuple(p: &vk::VkCooperativeMatrixPropertiesKHR, stages: u32) -> Option<MatrixTuple> {
+    if ![MATRIX_SCOPE_SUBGROUP, MATRIX_SCOPE_WORKGROUP].contains(&p.scope) {
+        return None;
+    }
+    let stages = generated::public_stages(stages);
+    if stages == 0 {
         return None;
     }
     Some(MatrixTuple {
         m: p.MSize,
         n: p.NSize,
         k: p.KSize,
-        a: p.AType,
-        b: p.BType,
-        c: p.CType,
-        result: p.ResultType,
+        a: component(p.AType)?,
+        b: component(p.BType)?,
+        c: component(p.CType)?,
+        result: component(p.ResultType)?,
         saturating: u32::from(p.saturatingAccumulation != 0),
-        scope: 3,
+        scope: p.scope,
         reserved: 0,
-        stages: 4,
+        stages,
     })
 }
 
-fn enumerate(
-    mut call: impl FnMut(&mut u32, *mut vk::VkCooperativeMatrixPropertiesKHR) -> vk::VkResult,
-) -> Result<Vec<vk::VkCooperativeMatrixPropertiesKHR>, Status> {
+pub(super) fn enumerate<T: Clone>(
+    initial: T,
+    mut call: impl FnMut(&mut u32, *mut T) -> vk::VkResult,
+) -> Result<Vec<T>, Status> {
     for _ in 0..8 {
         let mut count = 0;
         let result = call(&mut count, ptr::null_mut());
@@ -44,13 +51,7 @@ fn enumerate(
         values
             .try_reserve_exact(count as usize)
             .map_err(|_| OUT_OF_MEMORY)?;
-        values.resize(
-            count as usize,
-            vk::VkCooperativeMatrixPropertiesKHR {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_KHR,
-                ..Default::default()
-            },
-        );
+        values.resize(count as usize, initial.clone());
         let result = call(&mut count, values.as_mut_ptr());
         if result == vk::VkResult_VK_INCOMPLETE {
             continue;
@@ -92,6 +93,26 @@ pub(super) fn snapshot(
     if matrix.cooperativeMatrix == 0 {
         return Ok((FeatureBits::ZERO, Vec::new()));
     }
+    let stages = supported_stages(physical, f);
+    // Optional physical-device function is loaded only when the extension exists.
+    let get: vk::PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = unsafe {
+        std::mem::transmute(instance.proc(c"vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR"))
+    };
+    let get = get.ok_or(BACKEND_ERROR)?;
+    let native = enumerate(initial(), |count, out| unsafe { get(physical, count, out) })?;
+    Ok((
+        COOPERATIVE_MATRIX,
+        native.iter().filter_map(|p| tuple(p, stages)).collect(),
+    ))
+}
+
+fn initial() -> vk::VkCooperativeMatrixPropertiesKHR {
+    vk::VkCooperativeMatrixPropertiesKHR {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_KHR,
+        ..Default::default()
+    }
+}
+pub(super) fn supported_stages(physical: vk::VkPhysicalDevice, f: &Functions) -> u32 {
     let mut matrix_props = vk::VkPhysicalDeviceCooperativeMatrixPropertiesKHR {
         sType:
             vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_PROPERTIES_KHR,
@@ -105,19 +126,7 @@ pub(super) fn snapshot(
     unsafe {
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut props);
     }
-    // Optional physical-device function is loaded only when the extension exists.
-    let get: vk::PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = unsafe {
-        std::mem::transmute(instance.proc(c"vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR"))
-    };
-    let get = get.ok_or(BACKEND_ERROR)?;
-    let native = enumerate(|count, out| unsafe { get(physical, count, out) })?;
-    Ok((
-        COOPERATIVE_MATRIX,
-        native
-            .iter()
-            .filter_map(|p| tuple(p, matrix_props.cooperativeMatrixSupportedStages))
-            .collect(),
-    ))
+    matrix_props.cooperativeMatrixSupportedStages
 }
 
 #[cfg(test)]
@@ -164,8 +173,15 @@ mod tests {
             assert_eq!([got.a, got.b, got.c, got.result], [t; 4]);
             assert_eq!(got.saturating, 1);
         }
-        assert!(tuple(&p, 16).is_none());
-        assert!(tuple(&vk::VkCooperativeMatrixPropertiesKHR { scope: 2, ..p }, 32).is_none());
+        assert!(tuple(&p, 0).is_none());
+        assert_eq!(tuple(&p, 16).unwrap().stages, 16);
+        assert_eq!(
+            tuple(&vk::VkCooperativeMatrixPropertiesKHR { scope: 2, ..p }, 32)
+                .unwrap()
+                .scope,
+            MATRIX_SCOPE_WORKGROUP
+        );
+        assert!(tuple(&vk::VkCooperativeMatrixPropertiesKHR { scope: 1, ..p }, 32).is_none());
         assert!(tuple(
             &vk::VkCooperativeMatrixPropertiesKHR {
                 AType: 1000491000,
@@ -178,7 +194,7 @@ mod tests {
     #[test]
     fn matrix_enumeration_initializes_headers_retries_and_bounds_counts() {
         let mut calls = 0;
-        let result = enumerate(|count, out| {
+        let result = enumerate(initial(), |count, out| {
             calls += 1;
             if out.is_null() {
                 *count = 2;
@@ -207,21 +223,21 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].MSize, 16);
         assert!(matches!(
-            enumerate(|_, _| vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY),
+            enumerate(initial(), |_, _| vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY),
             Err(OUT_OF_MEMORY)
         ));
         assert!(matches!(
-            enumerate(|_, _| vk::VkResult_VK_INCOMPLETE),
+            enumerate(initial(), |_, _| vk::VkResult_VK_INCOMPLETE),
             Err(BACKEND_ERROR)
         ));
         assert!(matches!(
-            enumerate(|n, p| {
+            enumerate(initial(), |n, p| {
                 *n = if p.is_null() { 1 } else { 2 };
                 vk::VkResult_VK_SUCCESS
             }),
             Err(BACKEND_ERROR)
         ));
-        assert!(enumerate(|_, _| vk::VkResult_VK_SUCCESS)
+        assert!(enumerate(initial(), |_, _| vk::VkResult_VK_SUCCESS)
             .unwrap()
             .is_empty());
     }

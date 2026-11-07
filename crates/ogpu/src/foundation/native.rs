@@ -34,6 +34,8 @@ mod core_raster;
 mod execution_controls;
 #[path = "extended_raster.rs"]
 mod extended_raster;
+#[path = "matrix_profiles.rs"]
+mod matrix_profiles;
 #[path = "raster_profiles.rs"]
 mod raster_profiles;
 #[path = "shader_profiles.rs"]
@@ -375,6 +377,9 @@ pub(super) fn snapshot(
     let (shader_features, shader_profile_limits) =
         shader_profiles::snapshot(instance, physical, &f)?;
     features.available |= shader_features;
+    let (matrix_features, matrix_profile_limits, matrix_flexible_tuples) =
+        matrix_profiles::snapshot(instance, physical, &f)?;
+    features.available |= matrix_features;
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -925,6 +930,8 @@ pub(super) fn snapshot(
         viewport_limits,
         capture_limits,
         shader_profile_limits,
+        matrix_profile_limits,
+        matrix_flexible_tuples,
         ray_limits,
         shading_rate_limits,
         shading_rates,
@@ -1063,15 +1070,8 @@ impl Device {
                 ..Default::default()
             })
             .collect();
-        let mut matrix = vk::VkPhysicalDeviceCooperativeMatrixFeaturesKHR {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_KHR,
-            cooperativeMatrix: 1, ..Default::default()
-        };
-        let matrix_next = if enabled & COOPERATIVE_MATRIX != 0 {
-            ptr::from_mut(&mut matrix).cast()
-        } else {
-            ptr::null_mut()
-        };
+        let mut matrix = matrix_profiles::Native::new(enabled);
+        let matrix_next = matrix.link(ptr::null_mut(), enabled);
         let (mut float_atomic, mut float_atomic2) = float_atomics::requested(enabled);
         float_atomic.pNext = matrix_next;
         float_atomic2.pNext = matrix_next;
@@ -1274,9 +1274,7 @@ impl Device {
         if enabled & float_atomics::FLOAT2 != 0 {
             extensions.push(c"VK_EXT_shader_atomic_float2".as_ptr());
         }
-        if enabled & COOPERATIVE_MATRIX != 0 {
-            extensions.push(c"VK_KHR_cooperative_matrix".as_ptr());
-        }
+        matrix_profiles::extensions(enabled, &mut extensions);
         let presentation = vk::VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
             pNext: ptr::from_ref(&draw_parameters).cast_mut().cast(),

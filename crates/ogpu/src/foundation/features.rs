@@ -253,7 +253,27 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::COMPUTE_DERIVATIVE_LINEAR;
+const MAX_ID: u32 = feature_ids::MATRIX_ROBUST;
+pub(super) const MATRIX_WORKGROUP: FeatureBits =
+    FeatureBits::bit(feature_ids::MATRIX_WORKGROUP - 1);
+pub(super) const MATRIX_FLEXIBLE: FeatureBits = FeatureBits::bit(feature_ids::MATRIX_FLEXIBLE - 1);
+pub(super) const MATRIX_REDUCTIONS: FeatureBits =
+    FeatureBits::bit(feature_ids::MATRIX_REDUCTIONS - 1);
+pub(super) const MATRIX_CONVERSIONS: FeatureBits =
+    FeatureBits::bit(feature_ids::MATRIX_CONVERSIONS - 1);
+pub(super) const MATRIX_PER_ELEMENT: FeatureBits =
+    FeatureBits::bit(feature_ids::MATRIX_PER_ELEMENT - 1);
+pub(super) const MATRIX_TENSOR_ADDRESSING: FeatureBits =
+    FeatureBits::bit(feature_ids::MATRIX_TENSOR_ADDRESSING - 1);
+pub(super) const MATRIX_BLOCK_LOADS: FeatureBits =
+    FeatureBits::bit(feature_ids::MATRIX_BLOCK_LOADS - 1);
+pub(super) const BFLOAT16_TYPE: FeatureBits = FeatureBits::bit(feature_ids::BFLOAT16_TYPE - 1);
+pub(super) const BFLOAT16_DOT: FeatureBits = FeatureBits::bit(feature_ids::BFLOAT16_DOT - 1);
+pub(super) const BFLOAT16_MATRIX: FeatureBits = FeatureBits::bit(feature_ids::BFLOAT16_MATRIX - 1);
+pub(super) const FLOAT8_TYPE: FeatureBits = FeatureBits::bit(feature_ids::FLOAT8_TYPE - 1);
+pub(super) const FLOAT8_MATRIX: FeatureBits = FeatureBits::bit(feature_ids::FLOAT8_MATRIX - 1);
+pub(super) const MATRIX_ROBUST: FeatureBits = FeatureBits::bit(feature_ids::MATRIX_ROBUST - 1);
+
 const _: () = assert!(MAX_ID <= FeatureBits::CAPACITY);
 pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     let mut mask = FeatureBits::ZERO;

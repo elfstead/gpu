@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-07",
+  "base_commit": "e4d7194",
+  "profile_ids": [
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192
+  ],
+  "local_device": "AMD Radeon RX 5700 XT / RADV 26.2.5",
+  "local_acceptance": {
+    "enabled": [],
+    "unsupported": [
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192
+    ],
+    "fixed_tuples": 0,
+    "flexible_tuples": 0,
+    "limits": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "validation_errors": 0
+  },
+  "checks": {
+    "host": 138,
+    "surface_host": 2,
+    "strict_clippy": "pass",
+    "foundation_c": "pass",
+    "surface": {
+      "operations": 233,
+      "records": 201,
+      "constants": 498,
+      "values": 2028
+    },
+    "abi_values": 2601,
+    "bindings": "reproduce exactly"
+  },
+  "acceptance_gaps": [
+    "Native matrix feature enablement and execution",
+    "BF16/FP8 numerical behavior",
+    "Workgroup/flexible matrix shaders and reserved shared-memory behavior"
+  ],
+  "notes": [
+    "ABI standalone check passed sequentially; initial concurrent build/check encountered transient rlib linker inconsistency.",
+    "No scalar replacement, automatic precision selection, or workspace allocation."
+  ]
+}

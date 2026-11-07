@@ -2,8 +2,9 @@
 
 Proposed 2026-09-18; sequence revised 2026-10-30. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
-**C1, C2 and C3 Vulkan/Linux acceptance complete. Active: remaining M8,
-M9 implementation/diagnostic handoff is complete; M10 is active, followed by M11. External backend and native ray hardware acceptance remain open.** C1–C3
+**C1–C3 and M8 Vulkan/Linux acceptance are complete within their recorded scopes.
+M9 implementation/diagnostic handoff and M10 local consolidation are complete;
+M11 is active. External backend and native ray hardware acceptance remain open.** C1–C3
 are defined [below](#minimal-core-revision). Windows correctness fixes can proceed
 independently; unavailable Windows/Mac acceptance does not block later local
 coverage. M6 stays deferred until a Mac is available; M7 remains ongoing.

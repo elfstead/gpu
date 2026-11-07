@@ -395,7 +395,8 @@ Inheritance is locally unavailable; abandoned-scope reset has a separately recor
 VVL diagnostic. Thirty-two remaining shader capability profiles now have exact
 native enablement; four public Rust artifacts pass rotation/derivative/narrow-storage
 checks. The launch/matrix mapping audit is recorded; native workgroup origins now
-pass without shader-ID rewriting. Extended matrix profiles, accelerated ML consumer,
+pass without shader-ID rewriting. Extended matrix profiles and fixed/flexible discovery
+are implemented with local unsupported rejection; accelerated ML consumer,
 pipeline artifacts and native execution-graph profiles precede media. See the
 [concrete mapping packages](m11-launch-mapping.md).
 
