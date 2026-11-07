@@ -83,10 +83,25 @@ pub(in crate::foundation::native) fn format_snapshot(
     Ok(result)
 }
 pub(super) fn image_flags(flags: u32) -> Result<u32, Status> {
-    if flags & !15 != 0 {
+    if flags & !127 != 0 {
         return Err(UNSUPPORTED);
     }
-    Ok(if flags & 1 != 0 {
+    if flags & (IMAGE_SPARSE_RESIDENCY | IMAGE_SPARSE_ALIAS) != 0 && flags & IMAGE_SPARSE == 0 {
+        return Err(INVALID);
+    }
+    Ok(if flags & IMAGE_SPARSE != 0 {
+        vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_BINDING_BIT
+    } else {
+        0
+    } | if flags & IMAGE_SPARSE_RESIDENCY != 0 {
+        vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT
+    } else {
+        0
+    } | if flags & IMAGE_SPARSE_ALIAS != 0 {
+        vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_ALIASED_BIT
+    } else {
+        0
+    } | if flags & 1 != 0 {
         vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT
     } else {
         0
@@ -122,6 +137,7 @@ impl Device {
                 return Err(INVALID);
             }
         }
+        sparse::image_features(self, profile.image_flags, profile.dimension, 1)?;
         let format = format(profile.format)?;
         sample_locations::image_flags(
             profile.image_flags,
@@ -158,7 +174,7 @@ impl Device {
             return Err(UNSUPPORTED);
         }
         self.result(result)?;
-        let samples = if profile.usage & (8 | IMAGE_SHADING_RATE) != 0
+        let mut samples = if profile.usage & (8 | IMAGE_SHADING_RATE) != 0
             || profile.dimension != 2
             || profile.image_flags & 2 != 0
         {
@@ -166,6 +182,14 @@ impl Device {
         } else {
             p.sampleCounts
         };
+        if profile.image_flags & IMAGE_SPARSE_RESIDENCY != 0 {
+            samples &= [1, 2, 4, 8, 16]
+                .into_iter()
+                .filter(|&n| {
+                    sparse::image_features(self, profile.image_flags, profile.dimension, n).is_ok()
+                })
+                .fold(0, |bits, n| bits | n);
+        }
         if samples == 0 {
             return Err(UNSUPPORTED);
         }
@@ -360,6 +384,11 @@ mod tests {
                 | vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
                 | vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_ALIAS_BIT)
         );
-        assert_eq!(image_flags(16), Err(UNSUPPORTED));
+        assert_eq!(image_flags(128), Err(UNSUPPORTED));
+        assert_eq!(
+            image_flags(IMAGE_SPARSE),
+            Ok(vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
+        );
+        assert_eq!(image_flags(IMAGE_SPARSE_RESIDENCY), Err(INVALID));
     }
 }

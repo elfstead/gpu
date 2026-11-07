@@ -716,7 +716,9 @@ validation pass. Typed native interoperability now passes a native producer/OGPU
 consumer with borrowed device/instance, resource adoption and explicit timeline/binary
 handoff. Linux opaque-FD memory/timeline composition now passes a two-logical-device
 roundtrip; the brief separates core validation from the explicit SyncVal control.
-Sparse/virtual coverage follows. Other OS/handle profiles remain separate acceptance lanes.
+Sparse buffers/images, explicit binding batches and page/tail queries now pass four
+local native profiles. The M9 combined-usage control and clean SDK consolidation
+remain. Other OS/handle/sparse profiles retain separate acceptance lanes.
 
 **Deliver:** mixed buffer/image backing where native placement allows it; typed
 owned/borrowed device/resource handles; external memory and synchronization

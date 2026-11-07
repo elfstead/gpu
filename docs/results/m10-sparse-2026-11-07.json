@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-07",
+  "foundation_revision": 13,
+  "device": "AMD Radeon RX 5700 XT",
+  "driver": "RADV Mesa 26.2.5",
+  "validation": "1.4.357 synchronization enabled",
+  "profiles": {
+    "buffer_binding": {
+      "page_bytes": 65536,
+      "verified_bytes": 393216,
+      "stable_address_after_permutation": true
+    },
+    "buffer_residency": {
+      "verified_bytes": 393216,
+      "partial_resident_pages": 2,
+      "partial_unbound_pages": 1
+    },
+    "opaque_image": {
+      "layers": 2,
+      "mips": 9,
+      "verified_pixels": 130
+    },
+    "tiled_image": {
+      "granularity": [
+        128,
+        128,
+        1
+      ],
+      "tiled_regions": 4,
+      "opaque_tail_regions": 2,
+      "tail_first_mip": 2,
+      "tail_size": 65536,
+      "tail_stride": 393216,
+      "verified_pixels": 130
+    }
+  },
+  "validation_errors": 0,
+  "whole_call_rejection_retry": true,
+  "unmap_retirement": true,
+  "hot_path_native_calls": 1,
+  "hot_path_allocations": 0,
+  "host_tests": 134,
+  "gpu_regression_tests": 32,
+  "c_rust_operations": 231,
+  "c_rust_records": 196,
+  "c_rust_constants": 419,
+  "abi_values": 2574,
+  "unaccepted": [
+    "full-bound hint after permutation (VUID 13097 in initial diagnostic fixture)",
+    "sparse residency shader instructions",
+    "metadata-bearing sparse images",
+    "3D/MSAA sparse images",
+    "simultaneous sparse aliasing",
+    "sparse descriptor heaps",
+    "other devices/backends"
+  ],
+  "logs": [
+    "/tmp/ogpu-m10-sparse-validation.log",
+    "/tmp/ogpu-m10-sparse-host.log",
+    "/tmp/ogpu-m10-sparse-gpu-regression.log",
+    "/tmp/ogpu-m10-sparse-clippy.log",
+    "/tmp/ogpu-m10-sparse-independent.log"
+  ]
+}

@@ -5,6 +5,22 @@ use super::types::*;
 #[path = "feature_bits.rs"]
 mod storage;
 pub(super) use storage::FeatureBits;
+pub(super) const SPARSE_BINDING: FeatureBits = FeatureBits::bit(feature_ids::SPARSE_BINDING - 1);
+pub(super) const SPARSE_BUFFER: FeatureBits = FeatureBits::bit(feature_ids::SPARSE_BUFFER - 1);
+pub(super) const SPARSE_IMAGE_2D: FeatureBits = FeatureBits::bit(feature_ids::SPARSE_IMAGE_2D - 1);
+pub(super) const SPARSE_IMAGE_3D: FeatureBits = FeatureBits::bit(feature_ids::SPARSE_IMAGE_3D - 1);
+pub(super) const SPARSE_IMAGE_2_SAMPLES: FeatureBits =
+    FeatureBits::bit(feature_ids::SPARSE_IMAGE_2_SAMPLES - 1);
+pub(super) const SPARSE_IMAGE_4_SAMPLES: FeatureBits =
+    FeatureBits::bit(feature_ids::SPARSE_IMAGE_4_SAMPLES - 1);
+pub(super) const SPARSE_IMAGE_8_SAMPLES: FeatureBits =
+    FeatureBits::bit(feature_ids::SPARSE_IMAGE_8_SAMPLES - 1);
+pub(super) const SPARSE_IMAGE_16_SAMPLES: FeatureBits =
+    FeatureBits::bit(feature_ids::SPARSE_IMAGE_16_SAMPLES - 1);
+pub(super) const SPARSE_ALIAS: FeatureBits = FeatureBits::bit(feature_ids::SPARSE_ALIAS - 1);
+pub(super) const SHADER_SPARSE_RESIDENCY: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_SPARSE_RESIDENCY - 1);
+pub(super) const SHADER_MIN_LOD: FeatureBits = FeatureBits::bit(feature_ids::SHADER_MIN_LOD - 1);
 pub(super) const ACCELERATION_STRUCTURE: FeatureBits =
     FeatureBits::bit(feature_ids::ACCELERATION_STRUCTURE - 1);
 pub(super) const RAY_QUERY: FeatureBits = FeatureBits::bit(feature_ids::RAY_QUERY - 1);
@@ -237,7 +253,7 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::RAY_PRIMITIVE_CULLING;
+const MAX_ID: u32 = feature_ids::SHADER_MIN_LOD;
 const _: () = assert!(MAX_ID <= FeatureBits::CAPACITY);
 pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     let mut mask = FeatureBits::ZERO;

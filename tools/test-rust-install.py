@@ -21,10 +21,11 @@ def main():
     parser.add_argument("--prefix", required=True, type=Path)
     parser.add_argument("--no-gpu", action="store_true")
     parser.add_argument("--external", action="store_true", help="require Linux opaque-FD memory/timeline roundtrip; select any validation control explicitly in the environment")
+    parser.add_argument("--sparse", action="store_true", help="require native sparse buffer/image consumers")
     parser.add_argument("--ray", action="store_true", help="also require the four ray consumer profiles; emulation must be explicitly selected externally")
     parser.add_argument("--presentation", action="store_true", help="also open bounded Wayland windows")
     args = parser.parse_args()
-    require(not (args.no_gpu and (args.presentation or args.ray or args.external)), "GPU consumer options conflict with --no-gpu")
+    require(not (args.no_gpu and (args.presentation or args.ray or args.external or args.sparse)), "GPU consumer options conflict with --no-gpu")
     prefix = args.prefix.resolve()
     manifest = json.loads((prefix / "share/ogpu/manifest.json").read_text())
     description = manifest["native_rust"]
@@ -87,7 +88,7 @@ def main():
         run([cargo, "build", *common, "--release", "--bins"], "build")
         # Cargo's depfiles expose include_bytes! and build.rs-generated inputs as
         # well as Rust modules. No checkout, SDK library, or old target is allowed.
-        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native", "external"):
+        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native", "external", "sparse"):
             text = (target / "release" / (filename + ".d")).read_text()
             dependencies = shlex.split(text.split(": ", 1)[1].split("\n\n", 1)[0].replace("\\\n", ""))
             require(dependencies and all(Path(p).resolve().is_relative_to(bundle) for p in dependencies),
@@ -109,6 +110,9 @@ def main():
         if args.external:
             run([str(target / "release/external")], "external-fd", marker="EXTERNAL_FD_PASS", timeout=30)
             report["runs"].append("external-fd")
+        if args.sparse:
+            run([str(target / "release/sparse")], "sparse", marker="SPARSE_PASS", timeout=30)
+            report["runs"].append("sparse")
         ray = str(target / "release/ray")
         run([ray], "ray-missing-loader", env=dict(environment, OGPU_VULKAN_LIBRARY="/missing-ogpu-loader.so"), success=False, timeout=30)
         report["ray_environment"] = {name: environment.get(name) for name in ("RADV_EXPERIMENTAL", "OGPU_RAY_GENERATED")}

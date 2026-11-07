@@ -14,6 +14,8 @@ use features::*;
 mod generated_api;
 mod images_api;
 mod interop_api;
+mod sparse_api;
+pub use sparse_api::*;
 mod memory_api;
 pub use interop_api::*;
 mod native;
@@ -62,6 +64,7 @@ struct Snapshot {
     memory_budget_supported: bool,
     memory_limits: MemoryLimits,
     placement_limits: PlacementLimits,
+    sparse_limits: SparseLimits,
     descriptor_properties: NativeDescriptorProperties,
     execution_limits: ExecutionLimits,
     graphics_limits: GraphicsLimits,
@@ -144,6 +147,7 @@ impl Snapshot {
                 MEMORY_TYPES => copy_out(query, &self.memory_types),
                 MEMORY_HEAPS => copy_out(query, &self.memory_heaps),
                 FEATURES => copy_out(query, std::slice::from_ref(&self.feature_info())),
+                SPARSE_LIMITS => copy_out(query, std::slice::from_ref(&self.sparse_limits)),
                 PLACEMENT_LIMITS => copy_out(query, std::slice::from_ref(&self.placement_limits)),
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
                 DESCRIPTOR_LIMITS => copy_out(

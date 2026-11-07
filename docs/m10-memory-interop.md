@@ -176,4 +176,53 @@ This accepts the bounded opaque-FD composition, not cross-process transport,
 DMA-BUF/modifier images, foreign-driver domains, Win32 handles or multi-GPU peer
 execution. Those handle/format/OS profiles need their own capability and native
 acceptance lanes. Plane/modifier requirements intersect M11's media image work.
-Sparse/virtual resource mapping is the next M10 implementation tranche.
+Sparse/virtual resource mapping is implemented below.
+
+
+## Sparse/virtual tranche — implemented
+
+Three operations complete the native storage mechanism: an image block/tail query,
+a counted binding-scratch query and a queue binding call. `MEMORY_VIRTUAL` reserves
+buffer address space without physical allocation. The existing opaque allocation
+can request address-capable backing; existing spans select physical pages. Sparse
+image flags select opaque binding or tiled residency. Ordinary requirement queries
+still return compatible memory types, alignment and reserved size. Separate sparse
+image records expose granularity, mip tails, array strides and metadata.
+
+Binding submissions preserve caller batch boundaries and use caller storage in one
+`vkQueueBindSparse` call. All translation/validation precedes that call. Timeline
+and binary arrays are direct inputs; no bridge submission, resource registry,
+copy-based remapping or retention graph exists. Local rejection permits retry;
+native failures conservatively report UNKNOWN for the entire call and poison the
+device. The queue-submit OOM rollback guarantee is not inferred for this command.
+Caller policy owns reservation budget, physical placement, alias rights, ordering,
+eviction, migration and retirement. Native external backing requires matching
+resource handle declarations. Sparse binding does not perform queue ownership or
+resource-content visibility/layout transitions.
+
+The public consumer verifies stable addresses through page permutation, two copies
+of three 64-KiB pages, a real hole with reads of the remaining resident pages,
+whole-call rejection/retry, and explicit unmapping. Image tests cover both opaque
+binding and tiled residency across two array layers and nine mips. Queried 128×128
+blocks and separate per-layer mip tails produce 130 checked pixels per profile,
+with all surrounding readback bytes preserved. Four profiles pass on local RADV
+with zero validation/synchronization diagnostics. The SDK checker exposes these
+optional native profiles through `--sparse`.
+
+`MEMORY_FULLY_BOUND` is an explicit promise about every address-command range
+accessed through a virtual allocation. It enables the native optimization hint;
+OGPU never infers it by tracking page state. An early fixture using that hint
+reported VUID 13097 after permutation despite correct output. The matching VVL
+source checks current bound ranges during recording; precise attribution remains
+open. The accepted fixtures use the ordinary unhinted sparse path. This does not
+establish acceptance of the hinted permutation case or a performance difference.
+The hint remains available rather than being removed or enforced by a runtime
+residency walk. Native residency-instruction shaders, metadata-bearing images,
+3D/MSAA sparse profiles, simultaneous aliasing, sparse descriptor heaps and the
+hinted permutation case retain separate acceptance obligations. No unbound-read
+zero-value assertion is inferred from testing reads of resident pages.
+
+[Native sparse contract](https://docs.vulkan.org/spec/latest/chapters/sparsemem.html),
+[local receipt](results/m10-sparse-2026-11-07.json).
+The remaining M10 work is the direct-native M9 combined-usage reproducer and clean
+SDK/contract consolidation; M11 follows without waiting for another GPU.

@@ -262,6 +262,7 @@ pub struct Image {
     borrowed: bool,
     owned: bool,
     presentable: bool,
+    sparse_requirements: Vec<SparseImageRequirements>,
 }
 pub struct View {
     device: *const Device,
@@ -275,7 +276,7 @@ impl Device {
     pub(super) unsafe fn prepare_image(&self, desc: &ImageDesc) -> Result<Prepared, Status> {
         self.ready()?;
         desc.header.validate::<ImageDesc>(IMAGE_DESC)?;
-        if desc.flags & !15 != 0 {
+        if desc.flags & !127 != 0 {
             return Err(UNSUPPORTED);
         }
         if desc.usage & IMAGE_SHADING_RATE != 0
@@ -283,6 +284,7 @@ impl Device {
         {
             return Err(UNSUPPORTED);
         }
+        sparse::image_features(self, desc.flags, desc.dimension, desc.sample_count)?;
         let base = format(desc.format)?;
         sample_locations::image_flags(desc.flags, base.aspects, self.snapshot.features.enabled)?;
         let native_usage = usage(desc.usage, base.aspects)?;
@@ -441,12 +443,93 @@ impl Device {
         });
         if req.memoryRequirements.size == 0
             || !req.memoryRequirements.alignment.is_power_of_two()
-            || req.memoryRequirements.size > self.snapshot.memory_limits.max_allocation_size
+            || (p.desc.flags & IMAGE_SPARSE == 0
+                && req.memoryRequirements.size > self.snapshot.memory_limits.max_allocation_size)
             || req.memoryRequirements.size > p.max_resource_size
         {
             return Err(UNSUPPORTED);
         }
         Ok((req.memoryRequirements, dedicated))
+    }
+    fn sparse_image_requirements(
+        &self,
+        p: &Prepared,
+    ) -> Result<Vec<SparseImageRequirements>, Status> {
+        if p.desc.flags & IMAGE_SPARSE == 0 {
+            return Ok(Vec::new());
+        }
+        p.with_info(|info| {
+            let query = vk::VkDeviceImageMemoryRequirements {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS,
+                pCreateInfo: info,
+                ..Default::default()
+            };
+            let mut count = 0;
+            unsafe {
+                (self.f.vkGetDeviceImageSparseMemoryRequirements.unwrap())(
+                    self.handle,
+                    &query,
+                    &mut count,
+                    ptr::null_mut(),
+                );
+            }
+            let mut records = vec![
+                vk::VkSparseImageMemoryRequirements2 {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SPARSE_IMAGE_MEMORY_REQUIREMENTS_2,
+                    ..Default::default()
+                };
+                count as usize
+            ];
+            if count != 0 {
+                unsafe {
+                    (self.f.vkGetDeviceImageSparseMemoryRequirements.unwrap())(
+                        self.handle,
+                        &query,
+                        &mut count,
+                        records.as_mut_ptr(),
+                    );
+                }
+                if count as usize > records.len() {
+                    return Err(BACKEND_ERROR);
+                }
+                records.truncate(count as usize);
+            }
+            Ok(records
+                .iter()
+                .map(|r| {
+                    let r = &r.memoryRequirements;
+                    SparseImageRequirements {
+                        aspects: r.formatProperties.aspectMask,
+                        granularity: [
+                            r.formatProperties.imageGranularity.width,
+                            r.formatProperties.imageGranularity.height,
+                            r.formatProperties.imageGranularity.depth,
+                        ],
+                        flags: r.formatProperties.flags,
+                        mip_tail_first_lod: r.imageMipTailFirstLod,
+                        mip_tail_size: r.imageMipTailSize,
+                        mip_tail_offset: r.imageMipTailOffset,
+                        mip_tail_stride: r.imageMipTailStride,
+                    }
+                })
+                .collect())
+        })
+    }
+    pub(in crate::foundation) unsafe fn sparse_image_query(
+        &self,
+        desc: &ImageDesc,
+        query: &mut Query,
+    ) -> Result<(), Status> {
+        query.header.validate::<Query>(SPARSE_IMAGE_REQUIREMENTS)?;
+        if query.reserved != 0 {
+            return Err(INVALID);
+        }
+        let p = unsafe { self.prepare_image(desc)? };
+        if desc.flags & IMAGE_SPARSE == 0 {
+            return Err(INVALID);
+        }
+        let records = self.sparse_image_requirements(&p)?;
+        unsafe { super::super::copy_out(query, &records) }
     }
     pub(in crate::foundation) unsafe fn image_requirements(
         &self,
@@ -512,7 +595,11 @@ impl Image {
         let prepared = unsafe { d.prepare_image(desc)? };
         // Bound foreign images need no allocation requirements. Unbound imports
         // query the exact declared native profile for subsequent explicit binding.
-        let (requirements, dedicated) = if value.bound == 0 {
+        let sparse_requirements = d.sparse_image_requirements(&prepared)?;
+        if desc.flags & IMAGE_SPARSE != 0 && value.bound != 1 {
+            return Err(INVALID);
+        }
+        let (requirements, dedicated) = if value.bound == 0 || desc.flags & IMAGE_SPARSE != 0 {
             d.image_native_requirements(&prepared)?
         } else {
             Default::default()
@@ -527,7 +614,152 @@ impl Image {
             borrowed: false,
             owned: ownership == NATIVE_OWN,
             presentable: value.presentable != 0,
+            sparse_requirements,
         }))
+    }
+    pub(super) fn sparse_handle(&self, d: &Device) -> Result<vk::VkImage, Status> {
+        if !ptr::eq(self.device, d) || self.prepared.desc.flags & IMAGE_SPARSE == 0 {
+            return Err(INVALID);
+        }
+        Ok(self.handle)
+    }
+    pub(super) unsafe fn sparse_opaque_bind(
+        &self,
+        d: &Device,
+        b: &SparseMemoryBind,
+    ) -> Result<vk::VkSparseMemoryBind, Status> {
+        self.sparse_handle(d)?;
+        if b.reserved != 0
+            || b.flags & !SPARSE_BIND_METADATA != 0
+            || b.size == 0
+            || b.offset % self.requirements.alignment != 0
+        {
+            return Err(INVALID);
+        }
+        if b.flags & SPARSE_BIND_METADATA != 0 {
+            let r = self
+                .sparse_requirements
+                .iter()
+                .find(|r| r.aspects == ASPECT_METADATA)
+                .ok_or(INVALID)?;
+            if b.offset < r.mip_tail_offset {
+                return Err(INVALID);
+            }
+            let delta = b.offset - r.mip_tail_offset;
+            let within = if r.flags & SPARSE_SINGLE_MIPTAIL != 0 || r.mip_tail_stride == 0 {
+                delta
+            } else {
+                if delta / r.mip_tail_stride >= u64::from(self.prepared.desc.layer_count) {
+                    return Err(INVALID);
+                }
+                delta % r.mip_tail_stride
+            };
+            if within >= r.mip_tail_size || b.size > r.mip_tail_size - within {
+                return Err(INVALID);
+            }
+        } else if b.offset >= self.requirements.size || b.size > self.requirements.size - b.offset {
+            return Err(INVALID);
+        }
+        let (memory, offset) = unsafe {
+            Memory::sparse_physical(
+                d,
+                b.physical,
+                b.size,
+                self.requirements.alignment,
+                self.requirements.memoryTypeBits,
+                false,
+            )?
+        };
+        Ok(vk::VkSparseMemoryBind {
+            resourceOffset: b.offset,
+            size: b.size,
+            memory,
+            memoryOffset: offset,
+            flags: b.flags,
+        })
+    }
+    pub(super) unsafe fn sparse_image_bind(
+        &self,
+        d: &Device,
+        b: &SparseImageBind,
+    ) -> Result<vk::VkSparseImageMemoryBind, Status> {
+        self.sparse_handle(d)?;
+        let desc = &self.prepared.desc;
+        if b.reserved != 0
+            || desc.flags & IMAGE_SPARSE_RESIDENCY == 0
+            || b.mip >= desc.mip_count
+            || b.layer >= desc.layer_count
+            || b.aspect == ASPECT_METADATA
+        {
+            return Err(INVALID);
+        }
+        let r = self
+            .sparse_requirements
+            .iter()
+            .find(|r| r.aspects == b.aspect)
+            .ok_or(INVALID)?;
+        if b.mip >= r.mip_tail_first_lod {
+            return Err(INVALID);
+        }
+        let mut pages = 1u64;
+        for (i, (offset, extent, whole)) in [
+            (b.offset.x, b.extent.x, desc.extent.x),
+            (b.offset.y, b.extent.y, desc.extent.y),
+            (b.offset.z, b.extent.z, desc.extent.z),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let granularity = r.granularity[i];
+            let whole = whole.checked_shr(b.mip).unwrap_or(0).max(1);
+            if offset < 0 || granularity == 0 || extent == 0 {
+                return Err(INVALID);
+            }
+            let offset = offset as u32;
+            if offset >= whole
+                || extent > whole - offset
+                || offset % granularity != 0
+                || (extent % granularity != 0 && extent != whole - offset)
+            {
+                return Err(INVALID);
+            }
+            pages = pages
+                .checked_mul(u64::from(extent.div_ceil(granularity)))
+                .ok_or(INVALID)?;
+        }
+        let bytes = pages
+            .checked_mul(self.requirements.alignment)
+            .ok_or(INVALID)?;
+        let (memory, offset) = unsafe {
+            Memory::sparse_physical(
+                d,
+                b.physical,
+                bytes,
+                self.requirements.alignment,
+                self.requirements.memoryTypeBits,
+                false,
+            )?
+        };
+        Ok(vk::VkSparseImageMemoryBind {
+            subresource: vk::VkImageSubresource {
+                aspectMask: b.aspect,
+                mipLevel: b.mip,
+                arrayLayer: b.layer,
+            },
+            offset: vk::VkOffset3D {
+                x: b.offset.x,
+                y: b.offset.y,
+                z: b.offset.z,
+            },
+            extent: vk::VkExtent3D {
+                width: b.extent.x,
+                height: b.extent.y,
+                depth: b.extent.z,
+            },
+            memory,
+            memoryOffset: offset,
+            flags: 0,
+        })
     }
     pub(super) fn from_swapchain(d: &Device, handle: vk::VkImage, prepared: Prepared) -> Self {
         Self {
@@ -540,6 +772,7 @@ impl Image {
             borrowed: true,
             owned: false,
             presentable: true,
+            sparse_requirements: Vec::new(),
         }
     }
     pub(in crate::foundation) fn is_borrowed(&self) -> bool {
@@ -551,6 +784,7 @@ impl Image {
     ) -> Result<Box<Self>, Status> {
         let prepared = unsafe { d.prepare_image(desc)? };
         let (requirements, dedicated) = d.image_native_requirements(&prepared)?;
+        let sparse_requirements = d.sparse_image_requirements(&prepared)?;
         let mut handle = ptr::null_mut();
         prepared.with_info(|info| unsafe {
             d.result((d.f.vkCreateImage.unwrap())(
@@ -566,10 +800,11 @@ impl Image {
             prepared,
             requirements,
             dedicated,
-            bound: Cell::new(false),
+            bound: Cell::new(desc.flags & IMAGE_SPARSE != 0),
             borrowed: false,
             owned: true,
             presentable: false,
+            sparse_requirements,
         }))
     }
     pub(in crate::foundation) unsafe fn bind(&self, placement: Span) -> Result<(), Status> {

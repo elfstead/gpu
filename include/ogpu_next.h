@@ -509,18 +509,20 @@ typedef struct ogpu_next_mapping {
 /* size>0; alignment is a power of two (opaque requires 1). Linear alignment is
  * a GPU-address guarantee, implemented with bounded leading backing padding.
  * Requirements include this overhead. memory_type is ignored by requirements,
- * but creation selects exactly that compatible type. No first-fit substitution.
+ * but physical creation selects exactly that compatible type. Virtual reservations
+ * ignore it and allocate no physical memory. No first-fit substitution.
  * Requirements fill size/alignment/dedicated metadata/count even on CAPACITY;
  * capacity=0 is a successful count query, otherwise no partial type-array write.
  * Other errors leave output unchanged. requirements never allocates GPU storage.
  * Concurrent domains: 0 means exclusive sharing; >=2 unique valid adapter domains
  * means explicit concurrent sharing. One domain is INVALID, not silently ignored.
  * Opaque backing has no sharing/usage flags; placed resources specify their own.
- * Alignment/usage/sharing records are checked before native calls. flags=0 or
+ * Alignment/usage/sharing records are checked before native calls. Linear flags=0 or
  * MEMORY_ALLOW_IMAGES (linear only): permit compatible placed images; refuse
  * native buffer requirements that mandate dedicated allocation. No hidden split.
  * This flag prevents buffer dedication; default linear allocation stays dedicated.
  * Image-required dedicated backing still uses memory_create_dedicated_image.
+ * Opaque ADDRESSABLE and virtual reservation/page flags are documented below.
  */
 ogpu_next_status ogpu_next_memory_requirements(const ogpu_next_device *, const ogpu_next_memory_desc *, ogpu_next_requirements *);
 ogpu_next_status ogpu_next_memory_create(ogpu_next_device *, const ogpu_next_memory_desc *, ogpu_next_memory **);
@@ -3687,7 +3689,9 @@ typedef struct ogpu_next_vulkan_semaphore {
 /* Import creates a cold CPU wrapper only. Metadata is trusted: handles must
  * belong to the supplied native device, with the declared exact creation/usage/
  * sharing/type/size/offset properties and required features. These imports cover
- * ordinary nonsparse buffers/images; linear buffers must be fully bound. Import does not copy,
+ * ordinary and sparse buffers/images; linear buffers must be fully bound. Virtual
+ * imports declare exact sparse flags/size, buffer_offset=0 and no allocation
+ * handle/origin. Sparse images declare bound=1 (caller-managed bindings). Import does not copy,
  * bind, wait, transition, recreate or retain a native object. Initial/final state
  * stays caller-managed. A bound image import accepts its current native layout;
  * each recorded use/dependency must specify that layout explicitly.
@@ -3728,6 +3732,145 @@ ogpu_next_status ogpu_next_binary_import_vulkan(ogpu_next_device *, const ogpu_n
  * Native ownership uses BORROW/OWN and transfers only on successful import. */
 ogpu_next_status ogpu_next_discovery_import_vulkan(const ogpu_next_vulkan_instance *, ogpu_next_discovery **);
 ogpu_next_status ogpu_next_device_import_vulkan(const ogpu_next_adapter *, const ogpu_next_device_desc *, const ogpu_next_vulkan_device *, uint32_t ownership, ogpu_next_device **);
+
+/* Explicit sparse/virtual storage. Optional feature IDs; no emulated residency. */
+#define OGPU_NEXT_FEATURE_SPARSE_BINDING UINT32_C(132)
+#define OGPU_NEXT_FEATURE_SPARSE_BUFFER UINT32_C(133)
+#define OGPU_NEXT_FEATURE_SPARSE_IMAGE_2D UINT32_C(134)
+#define OGPU_NEXT_FEATURE_SPARSE_IMAGE_3D UINT32_C(135)
+#define OGPU_NEXT_FEATURE_SPARSE_IMAGE_2_SAMPLES UINT32_C(136)
+#define OGPU_NEXT_FEATURE_SPARSE_IMAGE_4_SAMPLES UINT32_C(137)
+#define OGPU_NEXT_FEATURE_SPARSE_IMAGE_8_SAMPLES UINT32_C(138)
+#define OGPU_NEXT_FEATURE_SPARSE_IMAGE_16_SAMPLES UINT32_C(139)
+#define OGPU_NEXT_FEATURE_SPARSE_ALIAS UINT32_C(140)
+#define OGPU_NEXT_FEATURE_SHADER_SPARSE_RESIDENCY UINT32_C(141)
+#define OGPU_NEXT_FEATURE_SHADER_MIN_LOD UINT32_C(142)
+#define OGPU_NEXT_MEMORY_ADDRESSABLE UINT32_C(2)
+#define OGPU_NEXT_MEMORY_SPARSE_RESIDENCY UINT32_C(4)
+#define OGPU_NEXT_MEMORY_SPARSE_ALIAS UINT32_C(8)
+#define OGPU_NEXT_MEMORY_FULLY_BOUND UINT32_C(16)
+#define OGPU_NEXT_MEMORY_VIRTUAL UINT32_C(3)
+#define OGPU_NEXT_QUERY_SPARSE_LIMITS UINT32_C(32)
+#define OGPU_NEXT_QUERY_SPARSE_IMAGE_REQUIREMENTS UINT32_C(33)
+#define OGPU_NEXT_QUEUE_SPARSE UINT32_C(8)
+#define OGPU_NEXT_IMAGE_SPARSE UINT32_C(16)
+#define OGPU_NEXT_IMAGE_SPARSE_RESIDENCY UINT32_C(32)
+#define OGPU_NEXT_IMAGE_SPARSE_ALIAS UINT32_C(64)
+#define OGPU_NEXT_SPARSE_BIND_METADATA UINT32_C(1)
+#define OGPU_NEXT_ASPECT_METADATA UINT32_C(8)
+#define OGPU_NEXT_SPARSE_SINGLE_MIPTAIL UINT32_C(1)
+#define OGPU_NEXT_SPARSE_ALIGNED_MIP_SIZE UINT32_C(2)
+#define OGPU_NEXT_SPARSE_NONSTANDARD_BLOCK UINT32_C(4)
+typedef struct ogpu_next_sparse_limits {
+    uint64_t address_space_size;
+    uint32_t standard_2d;
+    uint32_t standard_2d_multisample;
+    uint32_t standard_3d;
+    uint32_t aligned_mip_size;
+    uint32_t nonresident_strict;
+    uint32_t descriptor_heaps;
+} ogpu_next_sparse_limits;
+typedef struct ogpu_next_sparse_image_requirements {
+    uint32_t aspects;
+    uint32_t granularity[3];
+    uint32_t flags;
+    uint32_t mip_tail_first_lod;
+    uint64_t mip_tail_size;
+    uint64_t mip_tail_offset;
+    uint64_t mip_tail_stride;
+} ogpu_next_sparse_image_requirements;
+typedef struct ogpu_next_sparse_memory_bind {
+    uint64_t offset;
+    uint64_t size;
+    ogpu_next_span physical;
+    uint32_t flags;
+    uint32_t reserved;
+} ogpu_next_sparse_memory_bind;
+typedef struct ogpu_next_sparse_buffer_binds {
+    ogpu_next_memory *memory;
+    uint32_t count;
+    uint32_t reserved;
+    const ogpu_next_sparse_memory_bind *binds;
+} ogpu_next_sparse_buffer_binds;
+typedef struct ogpu_next_sparse_opaque_image_binds {
+    ogpu_next_image *image;
+    uint32_t count;
+    uint32_t reserved;
+    const ogpu_next_sparse_memory_bind *binds;
+} ogpu_next_sparse_opaque_image_binds;
+typedef struct ogpu_next_sparse_image_bind {
+    uint32_t aspect;
+    uint32_t mip;
+    uint32_t layer;
+    uint32_t reserved;
+    ogpu_next_offset offset;
+    ogpu_next_extent extent;
+    ogpu_next_span physical;
+} ogpu_next_sparse_image_bind;
+typedef struct ogpu_next_sparse_image_binds {
+    ogpu_next_image *image;
+    uint32_t count;
+    uint32_t reserved;
+    const ogpu_next_sparse_image_bind *binds;
+} ogpu_next_sparse_image_binds;
+typedef struct ogpu_next_sparse_submit {
+    uint32_t buffer_count;
+    uint32_t opaque_image_count;
+    uint32_t image_count;
+    uint32_t wait_count;
+    uint32_t signal_count;
+    uint32_t binary_wait_count;
+    uint32_t binary_signal_count;
+    uint32_t flags;
+    const ogpu_next_sparse_buffer_binds *buffers;
+    const ogpu_next_sparse_opaque_image_binds *opaque_images;
+    const ogpu_next_sparse_image_binds *images;
+    const ogpu_next_point *waits;
+    const ogpu_next_point *signals;
+    const ogpu_next_binary **binary_waits;
+    const ogpu_next_binary **binary_signals;
+} ogpu_next_sparse_submit;
+/* MEMORY_VIRTUAL reserves a stable GPU address; memory_type is ignored and
+ * MemoryInfo reports UINT32_MAX, allocation_size=0. Requirements reports page
+ * alignment, reserved extent and compatible physical types. No physical pages
+ * are allocated. Without SPARSE_RESIDENCY, bind the entire reserved extent before
+ * resource use. With it, only accessed pages need backing; nonresident read/write
+ * semantics follow SparseLimits.nonresident_strict and the native shader rules.
+ * FULLY_BOUND is a caller promise for every address-command use, enabling its
+ * native hint; it performs no check or allocation. Map physical backing, never
+ * virtual storage. MEMORY_ADDRESSABLE enables buffer-address backing on opaque
+ * allocations. Physical pages must be non-dedicated, non-lazy compatible memory;
+ * linear ALLOW_IMAGES or opaque allocations are eligible. Descriptor-heap sparse
+ * buffers additionally require SparseLimits.descriptor_heaps.
+ * IMAGE_SPARSE reserves an unbound native image. Do not use image_bind/dedicated
+ * memory creation for it. Query native block geometry/tails/metadata separately;
+ * sparse images report bound=1 in native export (bindings are caller-managed).
+ * Existing ImageDesc flags and format queries determine sparse format support.
+ * SPARSE_RESIDENCY requires SPARSE_BINDING; image sample features are independent
+ * optional limits. SPARSE_ALIAS must be enabled/declared on resources whose
+ * physical pages alias; ordinary buffer/image alias rules still apply.
+ * Null physical.memory with zero offset/size unmaps; otherwise physical.size
+ * covers the bound bytes. Buffer binds use page-multiple offsets AND sizes;
+ * image block regions follow reported granularity with edge exceptions. Opaque
+ * binds cover mip tails/full images; metadata tails require BIND_METADATA.
+ * Scratch query reads all nested arrays/counts, not resource handles. Translation
+ * uses caller scratch, no allocation. Each queue call preserves batch boundaries
+ * in one native bind call; outcomes has count elements. Local validation rejects
+ * the entire call before native effects. Native success accepts all batches;
+ * native failure reports UNKNOWN and poisons the device. UNKNOWN does not permit
+ * backing destruction/retry until independent retirement/device teardown.
+ * Caller externally synchronizes the queue, proves nonoverlap within each batch,
+ * orders bindings/uses/unbindings with semaphores, retains backing/resources until
+ * retirement, and respects total sparse address-space and aliasing restrictions.
+ * Native external backing additionally requires matching handle declarations on
+ * the resource; import metadata is trusted, not a capability substitution.
+ * Binding is not a transfer access or queue-family ownership transfer. It does
+ * not replace memory visibility/layout/access dependencies for resource contents.
+ * No paging policy, automatic migration, resident-page registry or wait exists.
+ */
+ogpu_next_status ogpu_next_image_sparse_requirements(const ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_query *);
+ogpu_next_status ogpu_next_sparse_scratch_requirements(const ogpu_next_device *, uint32_t count, const ogpu_next_sparse_submit *, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_queue_bind_sparse(ogpu_next_queue *, uint32_t count, const ogpu_next_sparse_submit *, ogpu_next_submit_outcome *, ogpu_next_host_span);
 
 #ifdef __cplusplus
 }

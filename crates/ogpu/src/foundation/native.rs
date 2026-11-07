@@ -65,6 +65,9 @@ mod shading_rate;
 #[path = "native_interop.rs"]
 mod native_interop;
 
+#[path = "sparse.rs"]
+pub(super) mod sparse;
+
 #[path = "memory.rs"]
 mod memory;
 pub use memory::Memory;
@@ -216,6 +219,8 @@ functions! {
     vkCmdFillBuffer: PFN_vkCmdFillBuffer,
     vkCmdPipelineBarrier2: PFN_vkCmdPipelineBarrier2,
     vkQueueSubmit2: PFN_vkQueueSubmit2,
+    vkQueueBindSparse: PFN_vkQueueBindSparse,
+    vkGetDeviceImageSparseMemoryRequirements: PFN_vkGetDeviceImageSparseMemoryRequirements,
     vkGetPhysicalDeviceImageFormatProperties: PFN_vkGetPhysicalDeviceImageFormatProperties,
     vkGetDeviceImageMemoryRequirements: PFN_vkGetDeviceImageMemoryRequirements,
     vkCreateImage: PFN_vkCreateImage, vkDestroyImage: PFN_vkDestroyImage,
@@ -348,6 +353,7 @@ pub(super) fn snapshot(
     let mut features = FeatureState::default();
     let mut memory_limits = MemoryLimits::default();
     let mut placement_limits = PlacementLimits::default();
+    let mut sparse_limits = SparseLimits::default();
     let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
     let mut raster_stage_limits = RasterStageLimits::default();
@@ -487,6 +493,9 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
+        features.available |= sparse::available(&root.features);
+        sparse_limits = sparse::limits(&properties.properties);
+        sparse_limits.descriptor_heaps = heaps.sparseDescriptorHeaps;
         raster_stage_limits = raster_stages::limits(&properties.properties.limits);
         raster_control_limits = RasterControlLimits {
             point_size_range: properties.properties.limits.pointSizeRange,
@@ -854,6 +863,7 @@ pub(super) fn snapshot(
         features,
         memory_limits,
         placement_limits,
+        sparse_limits,
         descriptor_properties,
         execution_limits,
         graphics_limits,
@@ -1127,6 +1137,17 @@ impl Device {
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            sparseBinding: u32::from(enabled & SPARSE_BINDING != 0),
+            sparseResidencyBuffer: u32::from(enabled & SPARSE_BUFFER != 0),
+            sparseResidencyImage2D: u32::from(enabled & SPARSE_IMAGE_2D != 0),
+            sparseResidencyImage3D: u32::from(enabled & SPARSE_IMAGE_3D != 0),
+            sparseResidency2Samples: u32::from(enabled & SPARSE_IMAGE_2_SAMPLES != 0),
+            sparseResidency4Samples: u32::from(enabled & SPARSE_IMAGE_4_SAMPLES != 0),
+            sparseResidency8Samples: u32::from(enabled & SPARSE_IMAGE_8_SAMPLES != 0),
+            sparseResidency16Samples: u32::from(enabled & SPARSE_IMAGE_16_SAMPLES != 0),
+            sparseResidencyAliased: u32::from(enabled & SPARSE_ALIAS != 0),
+            shaderResourceResidency: u32::from(enabled & SHADER_SPARSE_RESIDENCY != 0),
+            shaderResourceMinLod: u32::from(enabled & SHADER_MIN_LOD != 0),
             imageCubeArray: u32::from(enabled & CUBE_ARRAY != 0),
             drawIndirectFirstInstance: u32::from(enabled & INDIRECT_FIRST_INSTANCE != 0),
             independentBlend: u32::from(enabled & INDEPENDENT_BLEND != 0),

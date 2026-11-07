@@ -414,6 +414,41 @@ pub unsafe fn memory_info_query(memory: MemoryHandle) -> Result<MemoryInfo> {
     unsafe { memory.get() }.info()
 }
 
+/// Query sparse image block geometry, mip tails and metadata requirements.
+/// # Safety
+/// Live device, valid description arrays and writable query storage.
+pub unsafe fn image_sparse_requirements(
+    device: DeviceHandle,
+    desc: &ImageDesc,
+    query: &mut Query,
+) -> Result<()> {
+    unsafe { device.get().sparse_image_query(desc, query) }
+}
+/// # Safety
+/// Live device and readable nested submission arrays. No resource handles are read.
+pub unsafe fn sparse_scratch_requirements(
+    device: DeviceHandle,
+    descriptions: &[SparseSubmit],
+) -> Result<HostRequirements> {
+    unsafe { native::sparse::requirements(device.get(), descriptions) }
+}
+/// # Safety
+/// Exclusive live queue, live nested resources and disjoint scratch/output.
+/// Caller orders page bindings against all GPU accesses, preserves backing
+/// lifetimes, and proves nonoverlap and native sparse aliasing legality.
+pub unsafe fn queue_bind_sparse(
+    queue: QueueHandle,
+    descriptions: &[SparseSubmit],
+    outcomes: &mut [SubmitOutcome],
+    scratch: HostSpan,
+) -> Result<()> {
+    unsafe {
+        queue
+            .get()
+            .bind_sparse_to(descriptions, outcomes.as_mut_ptr(), outcomes.len(), scratch)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

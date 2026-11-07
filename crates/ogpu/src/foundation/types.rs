@@ -28,6 +28,17 @@ pub mod image_formats {
 pub const VERSION: u32 = 13;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const SPARSE_BINDING: u32 = 132;
+    pub const SPARSE_BUFFER: u32 = 133;
+    pub const SPARSE_IMAGE_2D: u32 = 134;
+    pub const SPARSE_IMAGE_3D: u32 = 135;
+    pub const SPARSE_IMAGE_2_SAMPLES: u32 = 136;
+    pub const SPARSE_IMAGE_4_SAMPLES: u32 = 137;
+    pub const SPARSE_IMAGE_8_SAMPLES: u32 = 138;
+    pub const SPARSE_IMAGE_16_SAMPLES: u32 = 139;
+    pub const SPARSE_ALIAS: u32 = 140;
+    pub const SHADER_SPARSE_RESIDENCY: u32 = 141;
+    pub const SHADER_MIN_LOD: u32 = 142;
     pub const ACCELERATION_STRUCTURE: u32 = 124;
     pub const RAY_QUERY: u32 = 125;
     pub const RAY_PIPELINE: u32 = 126;
@@ -697,6 +708,22 @@ pub const MEMORY_COHERENT: u32 = 4;
 pub const MEMORY_LINEAR: u32 = 1;
 pub const MEMORY_OPAQUE: u32 = 2;
 pub const MEMORY_ALLOW_IMAGES: u32 = 1;
+pub const MEMORY_ADDRESSABLE: u32 = 2;
+pub const MEMORY_SPARSE_RESIDENCY: u32 = 4;
+pub const MEMORY_SPARSE_ALIAS: u32 = 8;
+pub const MEMORY_FULLY_BOUND: u32 = 16;
+pub const MEMORY_VIRTUAL: u32 = 3;
+pub const SPARSE_LIMITS: u32 = 32;
+pub const SPARSE_IMAGE_REQUIREMENTS: u32 = 33;
+pub const QUEUE_SPARSE: u32 = 8;
+pub const IMAGE_SPARSE: u32 = 16;
+pub const IMAGE_SPARSE_RESIDENCY: u32 = 32;
+pub const IMAGE_SPARSE_ALIAS: u32 = 64;
+pub const SPARSE_BIND_METADATA: u32 = 1;
+pub const ASPECT_METADATA: u32 = 8;
+pub const SPARSE_SINGLE_MIPTAIL: u32 = 1;
+pub const SPARSE_ALIGNED_MIP_SIZE: u32 = 2;
+pub const SPARSE_NONSTANDARD_BLOCK: u32 = 4;
 pub const PLACEMENT_LIMITS: u32 = 31;
 pub const USAGE_COPY_SRC: u64 = 1;
 pub const USAGE_COPY_DST: u64 = 2;
@@ -759,6 +786,20 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
+    if required
+        & (SPARSE_BUFFER
+            | SPARSE_IMAGE_2D
+            | SPARSE_IMAGE_3D
+            | SPARSE_IMAGE_2_SAMPLES
+            | SPARSE_IMAGE_4_SAMPLES
+            | SPARSE_IMAGE_8_SAMPLES
+            | SPARSE_IMAGE_16_SAMPLES
+            | SPARSE_ALIAS)
+        != 0
+        && required & SPARSE_BINDING == 0
+    {
+        return Err(INVALID);
+    }
     if required & RAY_INDIRECT_TABLE != 0
         && required & (RAY_PIPELINE | RAY_MAINTENANCE) != (RAY_PIPELINE | RAY_MAINTENANCE)
     {
@@ -2577,4 +2618,90 @@ pub struct VulkanImage {
 #[derive(Clone, Copy, Default)]
 pub struct VulkanSemaphore {
     pub semaphore: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SparseLimits {
+    pub address_space_size: u64,
+    pub standard_2d: u32,
+    pub standard_2d_multisample: u32,
+    pub standard_3d: u32,
+    pub aligned_mip_size: u32,
+    pub nonresident_strict: u32,
+    pub descriptor_heaps: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SparseImageRequirements {
+    pub aspects: u32,
+    pub granularity: [u32; 3],
+    pub flags: u32,
+    pub mip_tail_first_lod: u32,
+    pub mip_tail_size: u64,
+    pub mip_tail_offset: u64,
+    pub mip_tail_stride: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SparseMemoryBind {
+    pub offset: u64,
+    pub size: u64,
+    pub physical: Span,
+    pub flags: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SparseBufferBinds {
+    pub memory: *mut super::Memory,
+    pub count: u32,
+    pub reserved: u32,
+    pub binds: *const SparseMemoryBind,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SparseOpaqueImageBinds {
+    pub image: *mut super::Image,
+    pub count: u32,
+    pub reserved: u32,
+    pub binds: *const SparseMemoryBind,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SparseImageBind {
+    pub aspect: u32,
+    pub mip: u32,
+    pub layer: u32,
+    pub reserved: u32,
+    pub offset: Offset,
+    pub extent: Extent,
+    pub physical: Span,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SparseImageBinds {
+    pub image: *mut super::Image,
+    pub count: u32,
+    pub reserved: u32,
+    pub binds: *const SparseImageBind,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SparseSubmit {
+    pub buffer_count: u32,
+    pub opaque_image_count: u32,
+    pub image_count: u32,
+    pub wait_count: u32,
+    pub signal_count: u32,
+    pub binary_wait_count: u32,
+    pub binary_signal_count: u32,
+    pub flags: u32,
+    pub buffers: *const SparseBufferBinds,
+    pub opaque_images: *const SparseOpaqueImageBinds,
+    pub images: *const SparseImageBinds,
+    pub waits: *const Point,
+    pub signals: *const Point,
+    pub binary_waits: *const *mut super::Binary,
+    pub binary_signals: *const *mut super::Binary,
 }

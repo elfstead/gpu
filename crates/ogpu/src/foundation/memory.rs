@@ -28,6 +28,11 @@ pub struct Memory {
     memory_type: u32,
     dedicated_image: vk::VkImage,
     allow_images: bool,
+    kind: u32,
+    flags: u32,
+    page_size: u64,
+    page_types: u32,
+    sparse_size: u64,
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
@@ -118,13 +123,35 @@ impl Device {
         {
             return Err(UNSUPPORTED);
         }
-        if desc.size == 0
-            || !desc.alignment.is_power_of_two()
-            || desc.flags & !MEMORY_ALLOW_IMAGES != 0
-            || (desc.flags != 0 && desc.kind != MEMORY_LINEAR)
-            || !(1..=2).contains(&desc.kind)
-        {
+        if desc.size == 0 || !desc.alignment.is_power_of_two() || !(1..=3).contains(&desc.kind) {
             return Err(INVALID);
+        }
+        let allowed = match desc.kind {
+            MEMORY_LINEAR => MEMORY_ALLOW_IMAGES,
+            MEMORY_OPAQUE => MEMORY_ADDRESSABLE,
+            MEMORY_VIRTUAL => MEMORY_SPARSE_RESIDENCY | MEMORY_SPARSE_ALIAS | MEMORY_FULLY_BOUND,
+            _ => return Err(INVALID),
+        };
+        if desc.flags & !allowed != 0 {
+            return Err(INVALID);
+        }
+        if desc.kind == MEMORY_VIRTUAL {
+            if desc.usage & 128 != 0 && self.snapshot.sparse_limits.descriptor_heaps == 0 {
+                return Err(UNSUPPORTED);
+            }
+            let mut required = SPARSE_BINDING;
+            if desc.flags & MEMORY_SPARSE_RESIDENCY != 0 {
+                required |= SPARSE_BUFFER;
+            }
+            if desc.flags & MEMORY_SPARSE_ALIAS != 0 {
+                required |= SPARSE_ALIAS;
+            }
+            if required & !self.snapshot.features.enabled != 0 {
+                return Err(UNSUPPORTED);
+            }
+            if desc.size > self.snapshot.sparse_limits.address_space_size {
+                return Err(UNSUPPORTED);
+            }
         }
         let concurrent = desc.concurrent_domain_count;
         if concurrent == 1
@@ -149,7 +176,7 @@ impl Device {
         if desc.kind == 2 && (desc.usage != 0 || desc.alignment != 1 || concurrent != 0) {
             return Err(INVALID);
         }
-        if desc.kind == MEMORY_LINEAR {
+        if desc.kind != MEMORY_OPAQUE {
             buffer_usage(desc.usage)?;
         }
         Ok(())
@@ -169,7 +196,7 @@ impl Device {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS,
             ..Default::default()
         };
-        if desc.kind == 1 {
+        if desc.kind != MEMORY_OPAQUE {
             // Ordinary alignments use the native guarantee, with no padding.
             // Only over-alignment needs a second (allocation-free) query.
             let padded = desc.size.checked_add(desc.alignment - 1).ok_or(INVALID)?;
@@ -178,6 +205,21 @@ impl Device {
             }
             buffer = vk::VkBufferCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                flags: if desc.kind == MEMORY_VIRTUAL {
+                    vk::VkBufferCreateFlagBits_VK_BUFFER_CREATE_SPARSE_BINDING_BIT
+                        | if desc.flags & MEMORY_SPARSE_RESIDENCY != 0 {
+                            vk::VkBufferCreateFlagBits_VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT
+                        } else {
+                            0
+                        }
+                        | if desc.flags & MEMORY_SPARSE_ALIAS != 0 {
+                            vk::VkBufferCreateFlagBits_VK_BUFFER_CREATE_SPARSE_ALIASED_BIT
+                        } else {
+                            0
+                        }
+                } else {
+                    0
+                },
                 size: desc.size,
                 usage: buffer_usage(desc.usage)?,
                 sharingMode: if concurrent == 0 {
@@ -194,6 +236,12 @@ impl Device {
                 ..Default::default()
             };
             (requirements, dedicated) = self.buffer_requirements(&buffer);
+            if desc.kind == MEMORY_VIRTUAL
+                && (desc.alignment > requirements.alignment
+                    || dedicated.requiresDedicatedAllocation != 0)
+            {
+                return Err(UNSUPPORTED);
+            }
             if desc.alignment > requirements.alignment {
                 if padded > self.snapshot.memory_limits.max_buffer_size {
                     return Err(UNSUPPORTED);
@@ -207,7 +255,8 @@ impl Device {
         }
         if requirements.size == 0
             || requirements.alignment == 0
-            || requirements.size > self.snapshot.memory_limits.max_allocation_size
+            || (desc.kind != MEMORY_VIRTUAL
+                && requirements.size > self.snapshot.memory_limits.max_allocation_size)
         {
             return Err(UNSUPPORTED);
         }
@@ -286,22 +335,29 @@ impl Memory {
         desc: &MemoryDesc,
     ) -> Result<Box<Self>, Status> {
         let p = unsafe { d.prepare_memory(desc)? };
-        if !p.types.contains(&desc.memory_type) {
+        if desc.kind != MEMORY_VIRTUAL && !p.types.contains(&desc.memory_type) {
             return Err(UNSUPPORTED);
         }
-        let properties = d
-            .snapshot
-            .memory_types
-            .iter()
-            .find(|m| m.id == desc.memory_type)
-            .ok_or(INVALID)?
-            .properties;
+        let properties = if desc.kind == MEMORY_VIRTUAL {
+            0
+        } else {
+            d.snapshot
+                .memory_types
+                .iter()
+                .find(|m| m.id == desc.memory_type)
+                .ok_or(INVALID)?
+                .properties
+        };
         let mut result = Box::new(Self {
             device: d,
             buffer: ptr::null_mut(),
             memory: ptr::null_mut(),
             size: desc.size,
-            allocated: p.size,
+            allocated: if desc.kind == MEMORY_VIRTUAL {
+                0
+            } else {
+                p.size
+            },
             prefix: 0,
             buffer_offset: 0,
             buffer_size: p.buffer.size,
@@ -310,9 +366,18 @@ impl Memory {
             properties,
             mapped: Cell::new(ptr::null_mut()),
             usage: desc.usage,
-            memory_type: desc.memory_type,
+            memory_type: if desc.kind == MEMORY_VIRTUAL {
+                u32::MAX
+            } else {
+                desc.memory_type
+            },
             dedicated_image: ptr::null_mut(),
             allow_images: desc.kind == MEMORY_OPAQUE || desc.flags & MEMORY_ALLOW_IMAGES != 0,
+            kind: desc.kind,
+            flags: desc.flags,
+            page_size: p.alignment,
+            page_types: p.types.iter().fold(0, |mask, &id| mask | (1 << id)),
+            sparse_size: p.size,
             domains: if desc.concurrent_domain_count == 0 {
                 Vec::new()
             } else {
@@ -325,7 +390,7 @@ impl Memory {
                 .to_vec()
             },
         });
-        if desc.kind == 1 {
+        if desc.kind != MEMORY_OPAQUE {
             let mut buffer = ptr::null_mut();
             let mut info = p.buffer;
             let usage = vk::VkBufferUsageFlags2CreateInfo {
@@ -347,6 +412,21 @@ impl Memory {
             }
             result.buffer = buffer;
         }
+        if desc.kind == MEMORY_VIRTUAL {
+            let query = vk::VkBufferDeviceAddressInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                buffer: result.buffer,
+                ..Default::default()
+            };
+            result.address = unsafe { (d.f.vkGetBufferDeviceAddress.unwrap())(d.handle, &query) };
+            if result.address == 0
+                || result.address % desc.alignment != 0
+                || result.address.checked_add(desc.size).is_none()
+            {
+                return Err(BACKEND_ERROR);
+            }
+            return Ok(result);
+        }
         let dedicated = vk::VkMemoryDedicatedAllocateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
             buffer: result.buffer,
@@ -354,7 +434,7 @@ impl Memory {
         };
         let flags = vk::VkMemoryAllocateFlagsInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-            pNext: if desc.flags & MEMORY_ALLOW_IMAGES == 0 {
+            pNext: if desc.kind == MEMORY_LINEAR && desc.flags & MEMORY_ALLOW_IMAGES == 0 {
                 ptr::from_ref(&dedicated).cast()
             } else {
                 ptr::null()
@@ -364,7 +444,7 @@ impl Memory {
         };
         let allocate = vk::VkMemoryAllocateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            pNext: if desc.kind == 1 {
+            pNext: if desc.kind == MEMORY_LINEAR || desc.flags & MEMORY_ADDRESSABLE != 0 {
                 ptr::from_ref(&flags).cast()
             } else {
                 ptr::null()
@@ -453,13 +533,24 @@ impl Memory {
         {
             return Err(INVALID);
         }
-        let properties = d
-            .snapshot
-            .memory_types
-            .iter()
-            .find(|m| m.id == desc.memory_type && m.properties & (32 | 64 | 128) == 0)
-            .ok_or(UNSUPPORTED)?
-            .properties;
+        let properties = if desc.kind == MEMORY_VIRTUAL {
+            0
+        } else {
+            d.snapshot
+                .memory_types
+                .iter()
+                .find(|m| m.id == desc.memory_type && m.properties & (32 | 64 | 128) == 0)
+                .ok_or(UNSUPPORTED)?
+                .properties
+        };
+        let sparse = if desc.kind == MEMORY_VIRTUAL {
+            if value.memory != 0 || value.buffer_offset != 0 || value.buffer_size != desc.size {
+                return Err(INVALID);
+            }
+            Some(unsafe { d.prepare_memory(desc)? })
+        } else {
+            None
+        };
         let address = if value.buffer != 0 {
             let query = vk::VkBufferDeviceAddressInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -504,11 +595,91 @@ impl Memory {
                 }
                 .to_vec()
             },
-            memory_type: desc.memory_type,
+            memory_type: if desc.kind == MEMORY_VIRTUAL {
+                u32::MAX
+            } else {
+                desc.memory_type
+            },
+            kind: desc.kind,
+            flags: desc.flags,
+            page_size: sparse.as_ref().map_or(0, |p| p.alignment),
+            page_types: sparse
+                .as_ref()
+                .map_or(0, |p| p.types.iter().fold(0, |mask, &id| mask | (1 << id))),
+            sparse_size: sparse.as_ref().map_or(0, |p| p.size),
             dedicated_image: ptr::null_mut(),
             allow_images: value.memory != 0
                 && (desc.kind == MEMORY_OPAQUE || desc.flags & MEMORY_ALLOW_IMAGES != 0),
         }))
+    }
+    pub(super) unsafe fn sparse_physical(
+        d: &Device,
+        span: Span,
+        bytes: u64,
+        alignment: u64,
+        types: u32,
+        addressable: bool,
+    ) -> Result<(vk::VkDeviceMemory, u64), Status> {
+        if span.memory.is_null() {
+            if span.offset != 0 || span.size != 0 {
+                return Err(INVALID);
+            }
+            return Ok((ptr::null_mut(), 0));
+        }
+        let m = unsafe { &*span.memory };
+        if !ptr::eq(m.device, d)
+            || m.memory.is_null()
+            || m.kind == MEMORY_VIRTUAL
+            || !m.allow_images
+            || !m.dedicated_image.is_null()
+            || span.size < bytes
+            || m.properties & 16 != 0
+        {
+            return Err(INVALID);
+        }
+        let offset = m.range(span.offset, span.size)?;
+        if offset % alignment != 0 {
+            return Err(INVALID);
+        }
+        if types & (1 << m.memory_type) == 0
+            || (addressable && m.kind == MEMORY_OPAQUE && m.flags & MEMORY_ADDRESSABLE == 0)
+        {
+            return Err(UNSUPPORTED);
+        }
+        Ok((m.memory, offset))
+    }
+    pub(super) fn sparse_handle(&self, d: &Device) -> Result<vk::VkBuffer, Status> {
+        if !ptr::eq(self.device, d) || self.kind != MEMORY_VIRTUAL {
+            return Err(INVALID);
+        }
+        Ok(self.buffer)
+    }
+    pub(super) unsafe fn sparse_bind(
+        &self,
+        d: &Device,
+        b: &SparseMemoryBind,
+    ) -> Result<vk::VkSparseMemoryBind, Status> {
+        self.sparse_handle(d)?;
+        if b.reserved != 0
+            || b.flags != 0
+            || b.size == 0
+            || b.offset >= self.sparse_size
+            || b.size > self.sparse_size - b.offset
+            || b.offset % self.page_size != 0
+            || b.size % self.page_size != 0
+        {
+            return Err(INVALID);
+        }
+        let (memory, offset) = unsafe {
+            Self::sparse_physical(d, b.physical, b.size, self.page_size, self.page_types, true)?
+        };
+        Ok(vk::VkSparseMemoryBind {
+            resourceOffset: b.offset,
+            size: b.size,
+            memory,
+            memoryOffset: offset,
+            flags: 0,
+        })
     }
     pub(in crate::foundation) fn info(&self) -> Result<MemoryInfo, Status> {
         unsafe { &*self.device }.ready()?;
@@ -517,11 +688,7 @@ impl Memory {
             allocation_size: self.allocated,
             allocation_offset: self.prefix,
             memory_type: self.memory_type,
-            flags: if self.allow_images && !self.buffer.is_null() {
-                MEMORY_ALLOW_IMAGES
-            } else {
-                0
-            },
+            flags: self.flags,
         })
     }
     fn range(&self, offset: u64, size: u64) -> Result<u64, Status> {
@@ -588,6 +755,11 @@ impl Memory {
             memory_type,
             dedicated_image: image,
             allow_images: true,
+            kind: MEMORY_OPAQUE,
+            flags: 0,
+            page_size: 0,
+            page_types: 0,
+            sparse_size: 0,
         });
         let dedicated = vk::VkMemoryDedicatedAllocateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
@@ -675,12 +847,15 @@ impl Memory {
             }
     }
     pub(super) fn address_flags(&self) -> u32 {
-        vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR
-            | if self.usage & 64 != 0 {
-                vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR
-            } else {
-                0
-            }
+        (if self.kind != MEMORY_VIRTUAL || self.flags & MEMORY_FULLY_BOUND != 0 {
+            vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR
+        } else {
+            0
+        }) | if self.usage & 64 != 0 {
+            vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR
+        } else {
+            0
+        }
     }
     pub(in crate::foundation) fn address(&self, offset: u64, size: u64) -> Result<u64, Status> {
         unsafe { &*self.device }.ready()?;
@@ -1057,6 +1232,11 @@ mod tests {
             memory_type: 0,
             dedicated_image: ptr::null_mut(),
             allow_images: true,
+            kind: MEMORY_LINEAR,
+            flags: MEMORY_ALLOW_IMAGES,
+            page_size: 0,
+            page_types: 0,
+            sparse_size: 0,
         });
         let req = vk::VkMemoryRequirements {
             size: 64,

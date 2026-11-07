@@ -173,3 +173,5 @@ VkExternalMemoryBufferCreateInfo
 VkExportMemoryAllocateInfo
 VkImportMemoryFdInfoKHR
 VkExportSemaphoreCreateInfo
+VkBufferCreateFlagBits
+VkTimelineSemaphoreSubmitInfo

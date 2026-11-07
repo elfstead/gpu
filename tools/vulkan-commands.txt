@@ -226,3 +226,5 @@ vkGetMemoryFdKHR
 vkGetSemaphoreFdKHR
 vkImportSemaphoreFdKHR
 vkCmdCopyBuffer2
+vkQueueBindSparse
+vkGetDeviceImageSparseMemoryRequirements

@@ -2711,6 +2711,8 @@ pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_NONE_KHR: VkImageAspectFlagBits 
 pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM: VkImageAspectFlagBits = 2147483647;
 pub type VkImageAspectFlagBits = ::std::os::raw::c_uint;
 pub type VkImageAspectFlags = VkFlags;
+pub type VkSparseImageFormatFlags = VkFlags;
+pub type VkSparseMemoryBindFlags = VkFlags;
 pub const VkFenceCreateFlagBits_VK_FENCE_CREATE_SIGNALED_BIT: VkFenceCreateFlagBits = 1;
 pub const VkFenceCreateFlagBits_VK_FENCE_CREATE_FLAG_BITS_MAX_ENUM: VkFenceCreateFlagBits = 2147483647;
 pub type VkFenceCreateFlagBits = ::std::os::raw::c_uint;
@@ -2726,6 +2728,17 @@ pub const VkQueryResultFlagBits_VK_QUERY_RESULT_WITH_STATUS_BIT_KHR: VkQueryResu
 pub const VkQueryResultFlagBits_VK_QUERY_RESULT_FLAG_BITS_MAX_ENUM: VkQueryResultFlagBits = 2147483647;
 pub type VkQueryResultFlagBits = ::std::os::raw::c_uint;
 pub type VkQueryResultFlags = VkFlags;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_SPARSE_BINDING_BIT: VkBufferCreateFlagBits = 1;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT: VkBufferCreateFlagBits = 2;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_SPARSE_ALIASED_BIT: VkBufferCreateFlagBits = 4;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_PROTECTED_BIT: VkBufferCreateFlagBits = 8;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT: VkBufferCreateFlagBits = 16;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_DESCRIPTOR_BUFFER_CAPTURE_REPLAY_BIT_EXT: VkBufferCreateFlagBits = 32;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_VIDEO_PROFILE_INDEPENDENT_BIT_KHR: VkBufferCreateFlagBits = 64;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT: VkBufferCreateFlagBits = 16;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR: VkBufferCreateFlagBits = 16;
+pub const VkBufferCreateFlagBits_VK_BUFFER_CREATE_FLAG_BITS_MAX_ENUM: VkBufferCreateFlagBits = 2147483647;
+pub type VkBufferCreateFlagBits = ::std::os::raw::c_uint;
 pub type VkBufferCreateFlags = VkFlags;
 pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_SRC_BIT: VkBufferUsageFlagBits = 1;
 pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT: VkBufferUsageFlagBits = 2;
@@ -4391,6 +4404,352 @@ const _: () = {
         "Offset of field: VkMemoryRequirements::memoryTypeBits",
     ][::std::mem::offset_of!(VkMemoryRequirements, memoryTypeBits) - 16usize];
 };
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkImageSubresource {
+    pub aspectMask: VkImageAspectFlags,
+    pub mipLevel: u32,
+    pub arrayLayer: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageSubresource",
+    ][::std::mem::size_of::<VkImageSubresource>() - 12usize];
+    [
+        "Alignment of VkImageSubresource",
+    ][::std::mem::align_of::<VkImageSubresource>() - 4usize];
+    [
+        "Offset of field: VkImageSubresource::aspectMask",
+    ][::std::mem::offset_of!(VkImageSubresource, aspectMask) - 0usize];
+    [
+        "Offset of field: VkImageSubresource::mipLevel",
+    ][::std::mem::offset_of!(VkImageSubresource, mipLevel) - 4usize];
+    [
+        "Offset of field: VkImageSubresource::arrayLayer",
+    ][::std::mem::offset_of!(VkImageSubresource, arrayLayer) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkSparseImageFormatProperties {
+    pub aspectMask: VkImageAspectFlags,
+    pub imageGranularity: VkExtent3D,
+    pub flags: VkSparseImageFormatFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseImageFormatProperties",
+    ][::std::mem::size_of::<VkSparseImageFormatProperties>() - 20usize];
+    [
+        "Alignment of VkSparseImageFormatProperties",
+    ][::std::mem::align_of::<VkSparseImageFormatProperties>() - 4usize];
+    [
+        "Offset of field: VkSparseImageFormatProperties::aspectMask",
+    ][::std::mem::offset_of!(VkSparseImageFormatProperties, aspectMask) - 0usize];
+    [
+        "Offset of field: VkSparseImageFormatProperties::imageGranularity",
+    ][::std::mem::offset_of!(VkSparseImageFormatProperties, imageGranularity) - 4usize];
+    [
+        "Offset of field: VkSparseImageFormatProperties::flags",
+    ][::std::mem::offset_of!(VkSparseImageFormatProperties, flags) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSparseImageMemoryBind {
+    pub subresource: VkImageSubresource,
+    pub offset: VkOffset3D,
+    pub extent: VkExtent3D,
+    pub memory: VkDeviceMemory,
+    pub memoryOffset: VkDeviceSize,
+    pub flags: VkSparseMemoryBindFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseImageMemoryBind",
+    ][::std::mem::size_of::<VkSparseImageMemoryBind>() - 64usize];
+    [
+        "Alignment of VkSparseImageMemoryBind",
+    ][::std::mem::align_of::<VkSparseImageMemoryBind>() - 8usize];
+    [
+        "Offset of field: VkSparseImageMemoryBind::subresource",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBind, subresource) - 0usize];
+    [
+        "Offset of field: VkSparseImageMemoryBind::offset",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBind, offset) - 12usize];
+    [
+        "Offset of field: VkSparseImageMemoryBind::extent",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBind, extent) - 24usize];
+    [
+        "Offset of field: VkSparseImageMemoryBind::memory",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBind, memory) - 40usize];
+    [
+        "Offset of field: VkSparseImageMemoryBind::memoryOffset",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBind, memoryOffset) - 48usize];
+    [
+        "Offset of field: VkSparseImageMemoryBind::flags",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBind, flags) - 56usize];
+};
+impl Default for VkSparseImageMemoryBind {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSparseImageMemoryBindInfo {
+    pub image: VkImage,
+    pub bindCount: u32,
+    pub pBinds: *const VkSparseImageMemoryBind,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseImageMemoryBindInfo",
+    ][::std::mem::size_of::<VkSparseImageMemoryBindInfo>() - 24usize];
+    [
+        "Alignment of VkSparseImageMemoryBindInfo",
+    ][::std::mem::align_of::<VkSparseImageMemoryBindInfo>() - 8usize];
+    [
+        "Offset of field: VkSparseImageMemoryBindInfo::image",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBindInfo, image) - 0usize];
+    [
+        "Offset of field: VkSparseImageMemoryBindInfo::bindCount",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBindInfo, bindCount) - 8usize];
+    [
+        "Offset of field: VkSparseImageMemoryBindInfo::pBinds",
+    ][::std::mem::offset_of!(VkSparseImageMemoryBindInfo, pBinds) - 16usize];
+};
+impl Default for VkSparseImageMemoryBindInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkSparseImageMemoryRequirements {
+    pub formatProperties: VkSparseImageFormatProperties,
+    pub imageMipTailFirstLod: u32,
+    pub imageMipTailSize: VkDeviceSize,
+    pub imageMipTailOffset: VkDeviceSize,
+    pub imageMipTailStride: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseImageMemoryRequirements",
+    ][::std::mem::size_of::<VkSparseImageMemoryRequirements>() - 48usize];
+    [
+        "Alignment of VkSparseImageMemoryRequirements",
+    ][::std::mem::align_of::<VkSparseImageMemoryRequirements>() - 8usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements::formatProperties",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements, formatProperties)
+        - 0usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements::imageMipTailFirstLod",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements, imageMipTailFirstLod)
+        - 20usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements::imageMipTailSize",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements, imageMipTailSize)
+        - 24usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements::imageMipTailOffset",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements, imageMipTailOffset)
+        - 32usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements::imageMipTailStride",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements, imageMipTailStride)
+        - 40usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSparseMemoryBind {
+    pub resourceOffset: VkDeviceSize,
+    pub size: VkDeviceSize,
+    pub memory: VkDeviceMemory,
+    pub memoryOffset: VkDeviceSize,
+    pub flags: VkSparseMemoryBindFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseMemoryBind",
+    ][::std::mem::size_of::<VkSparseMemoryBind>() - 40usize];
+    [
+        "Alignment of VkSparseMemoryBind",
+    ][::std::mem::align_of::<VkSparseMemoryBind>() - 8usize];
+    [
+        "Offset of field: VkSparseMemoryBind::resourceOffset",
+    ][::std::mem::offset_of!(VkSparseMemoryBind, resourceOffset) - 0usize];
+    [
+        "Offset of field: VkSparseMemoryBind::size",
+    ][::std::mem::offset_of!(VkSparseMemoryBind, size) - 8usize];
+    [
+        "Offset of field: VkSparseMemoryBind::memory",
+    ][::std::mem::offset_of!(VkSparseMemoryBind, memory) - 16usize];
+    [
+        "Offset of field: VkSparseMemoryBind::memoryOffset",
+    ][::std::mem::offset_of!(VkSparseMemoryBind, memoryOffset) - 24usize];
+    [
+        "Offset of field: VkSparseMemoryBind::flags",
+    ][::std::mem::offset_of!(VkSparseMemoryBind, flags) - 32usize];
+};
+impl Default for VkSparseMemoryBind {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSparseBufferMemoryBindInfo {
+    pub buffer: VkBuffer,
+    pub bindCount: u32,
+    pub pBinds: *const VkSparseMemoryBind,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseBufferMemoryBindInfo",
+    ][::std::mem::size_of::<VkSparseBufferMemoryBindInfo>() - 24usize];
+    [
+        "Alignment of VkSparseBufferMemoryBindInfo",
+    ][::std::mem::align_of::<VkSparseBufferMemoryBindInfo>() - 8usize];
+    [
+        "Offset of field: VkSparseBufferMemoryBindInfo::buffer",
+    ][::std::mem::offset_of!(VkSparseBufferMemoryBindInfo, buffer) - 0usize];
+    [
+        "Offset of field: VkSparseBufferMemoryBindInfo::bindCount",
+    ][::std::mem::offset_of!(VkSparseBufferMemoryBindInfo, bindCount) - 8usize];
+    [
+        "Offset of field: VkSparseBufferMemoryBindInfo::pBinds",
+    ][::std::mem::offset_of!(VkSparseBufferMemoryBindInfo, pBinds) - 16usize];
+};
+impl Default for VkSparseBufferMemoryBindInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSparseImageOpaqueMemoryBindInfo {
+    pub image: VkImage,
+    pub bindCount: u32,
+    pub pBinds: *const VkSparseMemoryBind,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseImageOpaqueMemoryBindInfo",
+    ][::std::mem::size_of::<VkSparseImageOpaqueMemoryBindInfo>() - 24usize];
+    [
+        "Alignment of VkSparseImageOpaqueMemoryBindInfo",
+    ][::std::mem::align_of::<VkSparseImageOpaqueMemoryBindInfo>() - 8usize];
+    [
+        "Offset of field: VkSparseImageOpaqueMemoryBindInfo::image",
+    ][::std::mem::offset_of!(VkSparseImageOpaqueMemoryBindInfo, image) - 0usize];
+    [
+        "Offset of field: VkSparseImageOpaqueMemoryBindInfo::bindCount",
+    ][::std::mem::offset_of!(VkSparseImageOpaqueMemoryBindInfo, bindCount) - 8usize];
+    [
+        "Offset of field: VkSparseImageOpaqueMemoryBindInfo::pBinds",
+    ][::std::mem::offset_of!(VkSparseImageOpaqueMemoryBindInfo, pBinds) - 16usize];
+};
+impl Default for VkSparseImageOpaqueMemoryBindInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBindSparseInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub waitSemaphoreCount: u32,
+    pub pWaitSemaphores: *const VkSemaphore,
+    pub bufferBindCount: u32,
+    pub pBufferBinds: *const VkSparseBufferMemoryBindInfo,
+    pub imageOpaqueBindCount: u32,
+    pub pImageOpaqueBinds: *const VkSparseImageOpaqueMemoryBindInfo,
+    pub imageBindCount: u32,
+    pub pImageBinds: *const VkSparseImageMemoryBindInfo,
+    pub signalSemaphoreCount: u32,
+    pub pSignalSemaphores: *const VkSemaphore,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkBindSparseInfo"][::std::mem::size_of::<VkBindSparseInfo>() - 96usize];
+    [
+        "Alignment of VkBindSparseInfo",
+    ][::std::mem::align_of::<VkBindSparseInfo>() - 8usize];
+    [
+        "Offset of field: VkBindSparseInfo::sType",
+    ][::std::mem::offset_of!(VkBindSparseInfo, sType) - 0usize];
+    [
+        "Offset of field: VkBindSparseInfo::pNext",
+    ][::std::mem::offset_of!(VkBindSparseInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkBindSparseInfo::waitSemaphoreCount",
+    ][::std::mem::offset_of!(VkBindSparseInfo, waitSemaphoreCount) - 16usize];
+    [
+        "Offset of field: VkBindSparseInfo::pWaitSemaphores",
+    ][::std::mem::offset_of!(VkBindSparseInfo, pWaitSemaphores) - 24usize];
+    [
+        "Offset of field: VkBindSparseInfo::bufferBindCount",
+    ][::std::mem::offset_of!(VkBindSparseInfo, bufferBindCount) - 32usize];
+    [
+        "Offset of field: VkBindSparseInfo::pBufferBinds",
+    ][::std::mem::offset_of!(VkBindSparseInfo, pBufferBinds) - 40usize];
+    [
+        "Offset of field: VkBindSparseInfo::imageOpaqueBindCount",
+    ][::std::mem::offset_of!(VkBindSparseInfo, imageOpaqueBindCount) - 48usize];
+    [
+        "Offset of field: VkBindSparseInfo::pImageOpaqueBinds",
+    ][::std::mem::offset_of!(VkBindSparseInfo, pImageOpaqueBinds) - 56usize];
+    [
+        "Offset of field: VkBindSparseInfo::imageBindCount",
+    ][::std::mem::offset_of!(VkBindSparseInfo, imageBindCount) - 64usize];
+    [
+        "Offset of field: VkBindSparseInfo::pImageBinds",
+    ][::std::mem::offset_of!(VkBindSparseInfo, pImageBinds) - 72usize];
+    [
+        "Offset of field: VkBindSparseInfo::signalSemaphoreCount",
+    ][::std::mem::offset_of!(VkBindSparseInfo, signalSemaphoreCount) - 80usize];
+    [
+        "Offset of field: VkBindSparseInfo::pSignalSemaphores",
+    ][::std::mem::offset_of!(VkBindSparseInfo, pSignalSemaphores) - 88usize];
+};
+impl Default for VkBindSparseInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkFenceCreateInfo {
@@ -6518,6 +6877,14 @@ pub type PFN_vkGetImageMemoryRequirements = ::std::option::Option<
         pMemoryRequirements: *mut VkMemoryRequirements,
     ),
 >;
+pub type PFN_vkQueueBindSparse = ::std::option::Option<
+    unsafe extern "C" fn(
+        queue: VkQueue,
+        bindInfoCount: u32,
+        pBindInfo: *const VkBindSparseInfo,
+        fence: VkFence,
+    ) -> VkResult,
+>;
 pub type PFN_vkCreateFence = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
@@ -7149,6 +7516,41 @@ const _: () = {
     ][::std::mem::offset_of!(VkMemoryRequirements2, memoryRequirements) - 16usize];
 };
 impl Default for VkMemoryRequirements2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSparseImageMemoryRequirements2 {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub memoryRequirements: VkSparseImageMemoryRequirements,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSparseImageMemoryRequirements2",
+    ][::std::mem::size_of::<VkSparseImageMemoryRequirements2>() - 64usize];
+    [
+        "Alignment of VkSparseImageMemoryRequirements2",
+    ][::std::mem::align_of::<VkSparseImageMemoryRequirements2>() - 8usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements2::sType",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements2, sType) - 0usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements2::pNext",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements2, pNext) - 8usize];
+    [
+        "Offset of field: VkSparseImageMemoryRequirements2::memoryRequirements",
+    ][::std::mem::offset_of!(VkSparseImageMemoryRequirements2, memoryRequirements)
+        - 16usize];
+};
+impl Default for VkSparseImageMemoryRequirements2 {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -8909,6 +9311,56 @@ const _: () = {
     ][::std::mem::offset_of!(VkSemaphoreTypeCreateInfo, initialValue) - 24usize];
 };
 impl Default for VkSemaphoreTypeCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkTimelineSemaphoreSubmitInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub waitSemaphoreValueCount: u32,
+    pub pWaitSemaphoreValues: *const u64,
+    pub signalSemaphoreValueCount: u32,
+    pub pSignalSemaphoreValues: *const u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkTimelineSemaphoreSubmitInfo",
+    ][::std::mem::size_of::<VkTimelineSemaphoreSubmitInfo>() - 48usize];
+    [
+        "Alignment of VkTimelineSemaphoreSubmitInfo",
+    ][::std::mem::align_of::<VkTimelineSemaphoreSubmitInfo>() - 8usize];
+    [
+        "Offset of field: VkTimelineSemaphoreSubmitInfo::sType",
+    ][::std::mem::offset_of!(VkTimelineSemaphoreSubmitInfo, sType) - 0usize];
+    [
+        "Offset of field: VkTimelineSemaphoreSubmitInfo::pNext",
+    ][::std::mem::offset_of!(VkTimelineSemaphoreSubmitInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkTimelineSemaphoreSubmitInfo::waitSemaphoreValueCount",
+    ][::std::mem::offset_of!(VkTimelineSemaphoreSubmitInfo, waitSemaphoreValueCount)
+        - 16usize];
+    [
+        "Offset of field: VkTimelineSemaphoreSubmitInfo::pWaitSemaphoreValues",
+    ][::std::mem::offset_of!(VkTimelineSemaphoreSubmitInfo, pWaitSemaphoreValues)
+        - 24usize];
+    [
+        "Offset of field: VkTimelineSemaphoreSubmitInfo::signalSemaphoreValueCount",
+    ][::std::mem::offset_of!(VkTimelineSemaphoreSubmitInfo, signalSemaphoreValueCount)
+        - 32usize];
+    [
+        "Offset of field: VkTimelineSemaphoreSubmitInfo::pSignalSemaphoreValues",
+    ][::std::mem::offset_of!(VkTimelineSemaphoreSubmitInfo, pSignalSemaphoreValues)
+        - 40usize];
+};
+impl Default for VkTimelineSemaphoreSubmitInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -11055,6 +11507,14 @@ pub type PFN_vkGetDeviceImageMemoryRequirements = ::std::option::Option<
         device: VkDevice,
         pInfo: *const VkDeviceImageMemoryRequirements,
         pMemoryRequirements: *mut VkMemoryRequirements2,
+    ),
+>;
+pub type PFN_vkGetDeviceImageSparseMemoryRequirements = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkDeviceImageMemoryRequirements,
+        pSparseMemoryRequirementCount: *mut u32,
+        pSparseMemoryRequirements: *mut VkSparseImageMemoryRequirements2,
     ),
 >;
 pub type PFN_vkCmdSetEvent2 = ::std::option::Option<

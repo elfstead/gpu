@@ -22,6 +22,9 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        image_sparse_requirements,
+        sparse_scratch_requirements,
+        queue_bind_sparse,
         discovery_import_vulkan,
         device_import_vulkan,
         device_native_vulkan,
