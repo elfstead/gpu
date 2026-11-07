@@ -81,6 +81,10 @@ fn usage(value: u64, aspects: u32) -> Result<u32, Status> {
             0
         })
 }
+// VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ requires storage, or input + attachment.
+fn local_read_usage(usage: u64) -> bool {
+    usage & 8 != 0 || (usage & 128 != 0 && usage & (16 | 32) != 0)
+}
 fn dimensions(desc: &ImageDesc) -> Result<vk::VkImageType, Status> {
     if desc.usage & IMAGE_SHADING_RATE != 0 && (desc.dimension != 2 || desc.sample_count != 1) {
         return Err(INVALID);
@@ -623,7 +627,7 @@ impl Image {
             7 if usage & (4 | 32 | 128) != 0 && aspects != 1 => {
                 Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
             }
-            STATE_LOCAL_READ if usage & (8 | 16 | 32 | 128) != 0 => {
+            STATE_LOCAL_READ if local_read_usage(usage) => {
                 if unsafe { &*self.device }.snapshot.features.enabled & LOCAL_READ == 0 {
                     return Err(UNSUPPORTED);
                 }
@@ -1403,6 +1407,15 @@ mod tests {
             view_format_count: 0,
             concurrent_domain_count: 0,
             concurrent_domains: ptr::null(),
+        }
+    }
+    #[test]
+    fn local_read_layout_rejects_attachment_only_usage() {
+        for usage in [16, 32, 128, 4 | 16, 1 | 32] {
+            assert!(!local_read_usage(usage));
+        }
+        for usage in [8, 8 | 4, 128 | 16, 128 | 32, 1 | 128 | 16] {
+            assert!(local_read_usage(usage));
         }
     }
     #[test]

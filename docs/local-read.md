@@ -26,7 +26,11 @@ attachment must keep it in GENERAL or LOCAL_READ; the application proves this
 relationship. Non-attachment resources are also permitted. There is no retained
 attachment registry, inferred hazard tracking or implicit transition.
 
-LOCAL_READ is an explicit native image state. GENERAL remains valid. Image/view
+LOCAL_READ is an explicit native image state. It requires STORAGE usage, or
+INPUT_ATTACHMENT together with COLOR_ATTACHMENT or DEPTH_STENCIL_ATTACHMENT. An
+attachment-only output uses GENERAL or its ordinary attachment state instead.
+The shared layout guard checks this condition for barriers, rendering and descriptors.
+GENERAL remains valid. Image/view
 usage, shader input types, descriptor state and attachment compatibility must all
 match. Depth/stencil and multisample reads depend on their queried support, not
 merely on the base enable. Combined depth/stencil transitions retain the existing
