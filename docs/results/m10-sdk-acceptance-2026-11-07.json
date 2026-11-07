@@ -1,0 +1,58 @@
+{
+  "source": {
+    "revision": "688ea240770b93256062d53af1c72b26386e57d6",
+    "source_dirty": false,
+    "target": "x86_64-unknown-linux-gnu",
+    "manifest": "examples/foundation_rust/Cargo.toml",
+    "default_features": false,
+    "registry_dependencies": "Cargo.lock pinned; fetch or supply a Cargo cache; not vendored",
+    "linkage": "native Rust source, not the SDK C shared library"
+  },
+  "complete": true,
+  "build": true,
+  "runs": [
+    "headless",
+    "native-interop",
+    "external-fd",
+    "sparse",
+    "ray",
+    "ray-pipeline",
+    "ray-procedural",
+    "ray-pipeline-procedural"
+  ],
+  "human_acceptance": "unverified",
+  "external_environment": {
+    "OGPU_EXTERNAL_SYNC_CONTROL": "1"
+  },
+  "ray_environment": {
+    "RADV_EXPERIMENTAL": "emulate_rt",
+    "OGPU_RAY_GENERATED": "1"
+  },
+  "date": "2026-11-07",
+  "milestone": "M10",
+  "foundation_revision": 13,
+  "prefix": "/tmp/ogpu-m10-sdk",
+  "rust_artifacts": "/tmp/ogpu-rust-external-b21snf9v",
+  "c_artifacts": "/tmp/ogpu-foundation-external-t6w834ka",
+  "c_consumers": [
+    "compute",
+    "graphics"
+  ],
+  "c_full_foundation": "pass",
+  "surface": {
+    "operations": 231,
+    "records": 196,
+    "constants": 419,
+    "values": 1917
+  },
+  "abi_values": 2574,
+  "host_tests": 134,
+  "gpu_unit_tests": 32,
+  "tooling_tests": 22,
+  "logs": [
+    "/tmp/ogpu-m10-sdk-install.log",
+    "/tmp/ogpu-m10-sdk-rust.log",
+    "/tmp/ogpu-m10-sdk-c.log",
+    "/tmp/ogpu-m10-foundation.log"
+  ]
+}

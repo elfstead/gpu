@@ -719,7 +719,8 @@ roundtrip; the brief separates core validation from the explicit SyncVal control
 Sparse buffers/images, explicit binding batches and page/tail queries now pass four
 local native profiles. The M9 combined-usage control now reproduces the failure
 through direct Vulkan calls; the precise driver/emulation cause remains open.
-Clean SDK consolidation remains. Other OS/handle/sparse profiles retain separate acceptance lanes.
+[Clean SDK/contract consolidation](m10-consolidation.md) now passes at `688ea24`;
+M11 is active. Other OS/handle/sparse profiles retain separate acceptance lanes.
 
 **Deliver:** mixed buffer/image backing where native placement allows it; typed
 owned/borrowed device/resource handles; external memory and synchronization

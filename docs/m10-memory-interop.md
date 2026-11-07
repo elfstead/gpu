@@ -276,6 +276,6 @@ The shader is reproduced by `cargo xtask foundation-shaders --check`, and the
 native binary is included in the relocated source-bundle dependency checks.
 [Receipt](results/m10-ray-native-control-2026-11-07.json).
 
-M10's implementation and required native reproduction are now complete. The final
-checkpoint is a clean installed C/direct-Rust SDK run and contract consolidation.
+M10's implementation and required native reproduction are now complete. [Clean installed C/direct-Rust SDK and contract consolidation](m10-consolidation.md)
+now pass at `688ea24`.
 Remaining hardware/OS/diagnostic acceptance gaps stay explicit as M11 starts.

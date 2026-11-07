@@ -47,3 +47,22 @@ acceptance. Follow [the manual checklist](docs/presentation-acceptance.md).
 unsafe lifetime obligations, probes and limitations. Native Rust embeds the
 runtime directly and bypasses C entry points; do not exchange handles with a
 separately loaded SDK `libogpu.so` instance.
+
+
+## Memory and native interoperability consumers
+
+The independent binaries `native`, `external` and `sparse` exercise borrowed/adopted
+Vulkan resources, Linux opaque-FD memory/timeline transport, and explicit sparse
+buffer/image page bindings. `external` requires its exact native handle profile;
+`sparse` requires sparse binding and separately reports unavailable residency
+profiles. They do not select emulation or substitute CPU copies. The `ray_native`
+binary is a direct Vulkan diagnostic for the combined preprocessing/ray-storage
+observation; it is not an acceleration benchmark or a passing acceptance claim.
+See [the M10 contract](docs/m10-memory-interop.md) in the source bundle (repository:
+`docs/m10-memory-interop.md`) for capability, lifetime and reproduction details.
+
+From the repository, `tools/test-rust-install.py --prefix SDK --external --sparse`
+requires those optional native profiles in the relocated bundle. Select loader,
+driver and validation externally. The external SyncVal control is explicitly
+selected by `OGPU_EXTERNAL_SYNC_CONTROL=1`; without it, the documented external
+signal-tracking diagnostic remains visible and causes the checker to fail.
