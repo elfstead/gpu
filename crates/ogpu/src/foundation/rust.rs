@@ -405,6 +405,13 @@ pub unsafe fn queue_submit(
     }
 }
 
+/// Query logical size and native allocation-relative origin without retaining it.
+/// # Safety
+/// Live memory/device; no concurrent destruction.
+pub unsafe fn memory_info_query(memory: MemoryHandle) -> Result<MemoryInfo> {
+    unsafe { memory.get() }.info()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

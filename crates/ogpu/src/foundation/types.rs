@@ -696,6 +696,8 @@ pub const MEMORY_HOST_VISIBLE: u32 = 2;
 pub const MEMORY_COHERENT: u32 = 4;
 pub const MEMORY_LINEAR: u32 = 1;
 pub const MEMORY_OPAQUE: u32 = 2;
+pub const MEMORY_ALLOW_IMAGES: u32 = 1;
+pub const PLACEMENT_LIMITS: u32 = 31;
 pub const USAGE_COPY_SRC: u64 = 1;
 pub const USAGE_COPY_DST: u64 = 2;
 pub const USAGE_INDIRECT: u64 = 4;
@@ -1611,6 +1613,20 @@ pub struct MemoryLimits {
     pub max_allocation_size: u64,
     pub cache_atom_size: u64,
     pub map_alignment: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct PlacementLimits {
+    pub buffer_image_granularity: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct MemoryInfo {
+    pub size: u64,
+    pub allocation_size: u64,
+    pub allocation_offset: u64,
+    pub memory_type: u32,
+    pub flags: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]

@@ -413,3 +413,5 @@ next RayState ogpu_next_ray_state header group_count max_recursion groups flags 
 next RayTable ogpu_next_ray_table range stride
 next RayTables ogpu_next_ray_tables raygen miss hit callable
 next RayIndirect ogpu_next_ray_indirect raygen_address raygen_size miss_address miss_size miss_stride hit_address hit_size hit_stride callable_address callable_size callable_stride width height depth
+next PlacementLimits ogpu_next_placement_limits buffer_image_granularity
+next MemoryInfo ogpu_next_memory_info size allocation_size allocation_offset memory_type flags

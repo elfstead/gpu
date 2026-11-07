@@ -710,6 +710,10 @@ as hardware acceptance. Pull M10 backing/interop prerequisites forward if needed
 
 ### M10 — Memory and interoperability
 
+[Implementation brief](m10-memory-interop.md): mixed linear/image placement and
+explicit allocation origin are implemented; local Rust consumer and synchronization
+validation pass. Native interoperability and sparse/virtual coverage follow.
+
 **Deliver:** mixed buffer/image backing where native placement allows it; typed
 owned/borrowed device/resource handles; external memory and synchronization
 import/export with device identity and initial/final state contracts; virtual

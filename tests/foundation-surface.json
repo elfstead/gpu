@@ -215,7 +215,8 @@
     "presentation.surface_mode_query",
     "presentation.surface_query",
     "presentation.surface_wayland_create",
-    "presentation.surface_win32_create"
+    "presentation.surface_win32_create",
+    "ogpu_next_memory_info_query"
   ],
   "constants": {
     "OGPU_NEXT_VERSION": "VERSION",
@@ -602,7 +603,9 @@
     "OGPU_NEXT_ARGUMENT_INTERSECTION": "ARGUMENT_INTERSECTION",
     "OGPU_NEXT_SHADER_CALLABLE": "SHADER_CALLABLE",
     "OGPU_NEXT_ARGUMENT_CALLABLE": "ARGUMENT_CALLABLE",
-    "OGPU_NEXT_GENERATED_TRACE_RAYS": "GENERATED_TRACE_RAYS"
+    "OGPU_NEXT_GENERATED_TRACE_RAYS": "GENERATED_TRACE_RAYS",
+    "OGPU_NEXT_MEMORY_ALLOW_IMAGES": "MEMORY_ALLOW_IMAGES",
+    "OGPU_NEXT_QUERY_PLACEMENT_LIMITS": "PLACEMENT_LIMITS"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

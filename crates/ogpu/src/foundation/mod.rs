@@ -59,6 +59,7 @@ struct Snapshot {
     memory_heaps: Vec<MemoryHeapInfo>,
     memory_budget_supported: bool,
     memory_limits: MemoryLimits,
+    placement_limits: PlacementLimits,
     descriptor_properties: NativeDescriptorProperties,
     execution_limits: ExecutionLimits,
     graphics_limits: GraphicsLimits,
@@ -141,6 +142,7 @@ impl Snapshot {
                 MEMORY_TYPES => copy_out(query, &self.memory_types),
                 MEMORY_HEAPS => copy_out(query, &self.memory_heaps),
                 FEATURES => copy_out(query, std::slice::from_ref(&self.feature_info())),
+                PLACEMENT_LIMITS => copy_out(query, std::slice::from_ref(&self.placement_limits)),
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
                 DESCRIPTOR_LIMITS => copy_out(
                     query,

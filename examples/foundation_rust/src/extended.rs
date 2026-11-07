@@ -104,9 +104,10 @@ pub unsafe fn run(c: Context) -> gpu::Result<()> {
     }?)?;
     unsafe {
         compute(&c, &mut submit_storage)?;
-        images(&c, &mut submit_storage)?;
+        images(&c, &mut submit_storage, false)?;
+        images(&c, &mut submit_storage, true)?;
     }
-    println!("NATIVE_RUST_EXTENDED_PASS compute_phases=3 image_phases=3 cache_roundtrip=1 descriptor_batches=2");
+    println!("NATIVE_RUST_EXTENDED_PASS compute_phases=3 image_phases=6 mixed_backing=1 alias_reuse=3 cache_roundtrip=1 descriptor_batches=2");
     Ok(())
 }
 
@@ -306,7 +307,7 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
     Ok(())
 }
 
-unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
+unsafe fn images(c: &Context, storage: &mut Storage, mixed: bool) -> gpu::Result<()> {
     let desc = ImageDesc {
         header: Record::new::<ImageDesc>(IMAGE_DESC),
         format: RGBA8_UNORM,
@@ -358,8 +359,51 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             range: full,
         };
         assert_eq!(gpu::view_create(image, &view_desc), Err(INVALID));
-        let backing = gpu::memory_create_dedicated_image(image, types[0])?;
-        gpu::image_bind(image, backing.span(0, req.size))?;
+        let (backing, image_offset) = if mixed {
+            if req.dedicated_required != 0 {
+                return Err(UNSUPPORTED);
+            }
+            let mut placement = PlacementLimits::default();
+            let mut query = Query {
+                header: Record::new::<Query>(PLACEMENT_LIMITS),
+                data: ptr::from_mut(&mut placement).cast(),
+                capacity: 1,
+                count: 0,
+                element_size: size_of::<PlacementLimits>() as u32,
+                reserved: 0,
+            };
+            gpu::device_query(c.device, &mut query)?;
+            let alignment = req.alignment.max(placement.buffer_image_granularity);
+            let mut md = MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: req.size + 2 * alignment + 65536 + 4096,
+                alignment: 65536,
+                usage: USAGE_COPY_SRC | USAGE_COPY_DST,
+                memory_type: 0,
+                kind: MEMORY_LINEAR,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: MEMORY_ALLOW_IMAGES,
+            };
+            let mut mr = Requirements::default();
+            gpu::memory_requirements(c.device, &md, &mut mr)?;
+            let mut mt = vec![0; mr.compatible_type_count as usize];
+            mr.compatible_type_capacity = mt.len() as u32;
+            mr.compatible_types = mt.as_mut_ptr();
+            gpu::memory_requirements(c.device, &md, &mut mr)?;
+            md.memory_type = *mt.iter().find(|t| types.contains(t)).ok_or(UNSUPPORTED)?;
+            let backing = gpu::memory_create(c.device, &md)?;
+            let info = gpu::memory_info_query(backing)?;
+            assert_eq!(info.flags, MEMORY_ALLOW_IMAGES);
+            let offset = (info.allocation_offset + 4096).div_ceil(alignment) * alignment
+                - info.allocation_offset;
+            assert_eq!((info.allocation_offset + offset) % req.alignment, 0);
+            assert_eq!(gpu::memory_address(backing.span(0, md.size))? % 65536, 0);
+            (backing, offset)
+        } else {
+            (gpu::memory_create_dedicated_image(image, types[0])?, 0)
+        };
+        gpu::image_bind(image, backing.span(image_offset, req.size))?;
         let view = gpu::view_create(image, &view_desc)?;
         let input = ResourceDescriptor {
             kind: 1,
@@ -471,6 +515,27 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             ptr::write_bytes(c.mapping.data, 0xa5, 4096);
             gpu::memory_flush(c.memory.span(0, 4096))?;
             let list = gpu::commands_begin(c.arena, &recording())?;
+            if mixed {
+                // Disjoint buffer use plus intentional overwrite of the image alias.
+                // The global dependency covers writes through the distinct buffer;
+                // the following image discard and clear reinitialize its contents.
+                gpu::fill_memory(list, backing.span(0, 256), 0x7654_3210);
+                gpu::fill_memory(
+                    list,
+                    backing.span(image_offset, req.size / 4 * 4),
+                    0xdead_beef,
+                );
+                global_barrier(
+                    list,
+                    dependency(
+                        STAGE_TRANSFER,
+                        STAGE_TRANSFER,
+                        ACCESS_COPY_WRITE,
+                        ACCESS_COPY_READ | ACCESS_COPY_WRITE,
+                    ),
+                );
+                gpu::copy_memory(list, c.memory.span(1024, 256), backing.span(0, 256));
+            }
             let mut barrier = ImageBarrier {
                 next: std::ptr::null(),
                 scope: BarrierScope {
@@ -538,7 +603,7 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                 ),
             );
             let list = gpu::commands_end(list)?;
-            submit(c, list, phase as u64 + 7, storage)?;
+            submit(c, list, phase as u64 + if mixed { 10 } else { 7 }, storage)?;
             let expected = if green {
                 [0, 255, 0, 255]
             } else {
@@ -548,6 +613,11 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             for pixel in 0..64 {
                 for (channel, value) in expected.into_iter().enumerate() {
                     assert_eq!(bytes.add(256 + pixel * 4 + channel).read(), value);
+                }
+            }
+            if mixed {
+                for word in 0..64 {
+                    assert_eq!(bytes.add(1024).cast::<u32>().add(word).read(), 0x7654_3210);
                 }
             }
             assert_eq!(bytes.add(255).read(), 0xa5);

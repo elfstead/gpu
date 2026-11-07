@@ -344,6 +344,7 @@ pub(super) fn snapshot(
     }
     let mut features = FeatureState::default();
     let mut memory_limits = MemoryLimits::default();
+    let mut placement_limits = PlacementLimits::default();
     let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
     let mut raster_stage_limits = RasterStageLimits::default();
@@ -583,6 +584,8 @@ pub(super) fn snapshot(
         if v12.shaderOutputLayer != 0 {
             features.available |= SHADER_OUTPUT_LAYER;
         }
+        placement_limits.buffer_image_granularity =
+            properties.properties.limits.bufferImageGranularity;
         memory_limits = MemoryLimits {
             max_buffer_size: maintenance4.maxBufferSize,
             max_allocation_size: maintenance3.maxMemoryAllocationSize,
@@ -847,6 +850,7 @@ pub(super) fn snapshot(
         enabled_ids: Vec::new(),
         features,
         memory_limits,
+        placement_limits,
         descriptor_properties,
         execution_limits,
         graphics_limits,

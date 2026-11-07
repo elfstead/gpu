@@ -461,6 +461,21 @@ ogpu_next_status ogpu_next_timeline_signal_host(ogpu_next_point);
  * either kind requires a host-visible type. No automatic placement/staging.
  */
 enum { OGPU_NEXT_MEMORY_LINEAR = 1, OGPU_NEXT_MEMORY_OPAQUE = 2 };
+#define OGPU_NEXT_MEMORY_ALLOW_IMAGES UINT32_C(1)
+#define OGPU_NEXT_QUERY_PLACEMENT_LIMITS UINT32_C(31)
+typedef struct ogpu_next_placement_limits {
+    uint64_t buffer_image_granularity;
+} ogpu_next_placement_limits;
+typedef struct ogpu_next_memory_info {
+    uint64_t size, allocation_size, allocation_offset;
+    uint32_t memory_type, flags;
+} ogpu_next_memory_info;
+/* allocation_offset is the native allocation-relative origin of logical byte 0.
+ * Image alignment applies to allocation_offset + placement.offset. Granularity
+ * in QUERY_PLACEMENT_LIMITS governs aliasing between linear and optimal resources;
+ * it is not an enforced allocation unit. Query before choosing placement sizes.
+ * Errors leave output unchanged. No mapping, wait or native query is performed. */
+ogpu_next_status ogpu_next_memory_info_query(const ogpu_next_memory *, ogpu_next_memory_info *);
 #define OGPU_NEXT_USAGE_COPY_SRC UINT64_C(1)
 #define OGPU_NEXT_USAGE_COPY_DST UINT64_C(2)
 #define OGPU_NEXT_USAGE_INDIRECT UINT64_C(4)
@@ -501,7 +516,11 @@ typedef struct ogpu_next_mapping {
  * Concurrent domains: 0 means exclusive sharing; >=2 unique valid adapter domains
  * means explicit concurrent sharing. One domain is INVALID, not silently ignored.
  * Opaque backing has no sharing/usage flags; placed resources specify their own.
- * Alignment/usage/sharing records are checked before native calls. flags=0.
+ * Alignment/usage/sharing records are checked before native calls. flags=0 or
+ * MEMORY_ALLOW_IMAGES (linear only): permit compatible placed images; refuse
+ * native buffer requirements that mandate dedicated allocation. No hidden split.
+ * This flag prevents buffer dedication; default linear allocation stays dedicated.
+ * Image-required dedicated backing still uses memory_create_dedicated_image.
  */
 ogpu_next_status ogpu_next_memory_requirements(const ogpu_next_device *, const ogpu_next_memory_desc *, ogpu_next_requirements *);
 ogpu_next_status ogpu_next_memory_create(ogpu_next_device *, const ogpu_next_memory_desc *, ogpu_next_memory **);
@@ -763,8 +782,9 @@ typedef struct ogpu_next_view_desc {
  * texels or performs a transition. Requirements queries create no GPU object or
  * allocation; they follow memory_requirements output/capacity rules. They check
  * the exact format/usage/dimensions/sample/flag tuple; no silent fallback.
- * Placement uses opaque memory of a compatible type with offset aligned to the
- * image's native requirement and size >= required size. Multiple optimal images
+ * Placement uses opaque memory or linear MEMORY_ALLOW_IMAGES backing of a
+ * compatible type, with allocation-relative offset aligned to the image's native
+ * requirement and size >= required size. Multiple optimal images
  * can occupy disjoint spans of one allocation. The caller owns nonoverlap, alias
  * activation/hazards and resource lifetimes; ALIAS explicitly permits alias use.
  * Discarded alias reuse can use a global memory dependency covering accesses

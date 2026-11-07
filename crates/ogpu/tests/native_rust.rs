@@ -22,6 +22,7 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        memory_info_query,
         ray_group_handles,
         ray_group_stack_size,
         set_ray_stack_size,

@@ -111,3 +111,18 @@ pub unsafe extern "C" fn ogpu_next_memory_flush(span: Span) -> Status {
 pub unsafe extern "C" fn ogpu_next_memory_invalidate(span: Span) -> Status {
     boundary(|| unsafe { rust::memory_invalidate(span) })
 }
+
+/// # Safety
+/// Live memory/device; writable disjoint output. No ownership is transferred.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_memory_info_query(
+    memory: *const Memory,
+    out: *mut MemoryInfo,
+) -> Status {
+    boundary(|| {
+        let memory = unsafe { memory.as_ref() }.ok_or(INVALID)?;
+        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
+        *out = memory.info()?;
+        Ok(())
+    })
+}

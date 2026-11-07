@@ -24,6 +24,7 @@ pub struct Memory {
     domains: Vec<u32>,
     memory_type: u32,
     dedicated_image: vk::VkImage,
+    allow_images: bool,
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
@@ -116,7 +117,8 @@ impl Device {
         }
         if desc.size == 0
             || !desc.alignment.is_power_of_two()
-            || desc.flags != 0
+            || desc.flags & !MEMORY_ALLOW_IMAGES != 0
+            || (desc.flags != 0 && desc.kind != MEMORY_LINEAR)
             || !(1..=2).contains(&desc.kind)
         {
             return Err(INVALID);
@@ -186,6 +188,9 @@ impl Device {
                 buffer.size = padded;
                 (requirements, dedicated) = self.buffer_requirements(&buffer);
             }
+        }
+        if desc.flags & MEMORY_ALLOW_IMAGES != 0 && dedicated.requiresDedicatedAllocation != 0 {
+            return Err(UNSUPPORTED);
         }
         if requirements.size == 0
             || requirements.alignment == 0
@@ -291,6 +296,7 @@ impl Memory {
             usage: desc.usage,
             memory_type: desc.memory_type,
             dedicated_image: ptr::null_mut(),
+            allow_images: desc.kind == MEMORY_OPAQUE || desc.flags & MEMORY_ALLOW_IMAGES != 0,
             domains: if desc.concurrent_domain_count == 0 {
                 Vec::new()
             } else {
@@ -332,7 +338,11 @@ impl Memory {
         };
         let flags = vk::VkMemoryAllocateFlagsInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-            pNext: ptr::from_ref(&dedicated).cast(),
+            pNext: if desc.flags & MEMORY_ALLOW_IMAGES == 0 {
+                ptr::from_ref(&dedicated).cast()
+            } else {
+                ptr::null()
+            },
             flags: vk::VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
             ..Default::default()
         };
@@ -380,6 +390,20 @@ impl Memory {
         }
         Ok(result)
     }
+    pub(in crate::foundation) fn info(&self) -> Result<MemoryInfo, Status> {
+        unsafe { &*self.device }.ready()?;
+        Ok(MemoryInfo {
+            size: self.size,
+            allocation_size: self.allocated,
+            allocation_offset: self.prefix,
+            memory_type: self.memory_type,
+            flags: if self.allow_images && !self.buffer.is_null() {
+                MEMORY_ALLOW_IMAGES
+            } else {
+                0
+            },
+        })
+    }
     fn range(&self, offset: u64, size: u64) -> Result<u64, Status> {
         if offset > self.size || size > self.size - offset {
             return Err(INVALID);
@@ -394,12 +418,12 @@ impl Memory {
         dedicated_required: bool,
         offset: u64,
         size: u64,
-    ) -> Result<vk::VkDeviceMemory, Status> {
-        if self.device != device || !self.buffer.is_null() {
+    ) -> Result<(vk::VkDeviceMemory, u64), Status> {
+        if self.device != device || !self.allow_images {
             return Err(INVALID);
         }
-        self.range(offset, size)?;
-        if size < requirements.size || offset % requirements.alignment != 0 {
+        let native_offset = self.range(offset, size)?;
+        if size < requirements.size || native_offset % requirements.alignment != 0 {
             return Err(INVALID);
         }
         if requirements.memoryTypeBits & (1u32 << self.memory_type) == 0 {
@@ -410,7 +434,7 @@ impl Memory {
         {
             return Err(INVALID);
         }
-        Ok(self.memory)
+        Ok((self.memory, native_offset))
     }
     pub(super) fn dedicated_image(
         d: &Device,
@@ -440,6 +464,7 @@ impl Memory {
             domains: Vec::new(),
             memory_type,
             dedicated_image: image,
+            allow_images: true,
         });
         let dedicated = vk::VkMemoryDedicatedAllocateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
@@ -775,7 +800,7 @@ mod tests {
                         size: u64::MAX,
                         ..desc
                     },
-                    MemoryDesc { flags: 1, ..desc },
+                    MemoryDesc { flags: 2, ..desc },
                     MemoryDesc {
                         concurrent_domain_count: 1,
                         ..desc
@@ -885,6 +910,54 @@ mod tests {
             tested += 1;
         }
         assert!(tested != 0, "No suitable adapter; not a passing skip");
+    }
+    #[test]
+    fn image_placement_uses_native_origin_and_preserves_dedication() {
+        // No native object is created or destroyed. Exercise a deliberately
+        // nonzero prefix independently of driver allocation-address choices.
+        let mut memory = std::mem::ManuallyDrop::new(Memory {
+            device: ptr::null(),
+            buffer: ptr::dangling_mut(),
+            memory: ptr::dangling_mut(),
+            size: 256,
+            allocated: 512,
+            prefix: 5,
+            address: 0,
+            properties: 0,
+            mapped: Cell::new(ptr::null_mut()),
+            usage: 3,
+            domains: Vec::new(),
+            memory_type: 0,
+            dedicated_image: ptr::null_mut(),
+            allow_images: true,
+        });
+        let req = vk::VkMemoryRequirements {
+            size: 64,
+            alignment: 16,
+            memoryTypeBits: 1,
+        };
+        let image = ptr::dangling_mut();
+        assert_eq!(
+            memory.image_placement(ptr::null(), image, req, false, 11, 64),
+            Ok((memory.memory, 16))
+        );
+        assert_eq!(
+            memory.image_placement(ptr::null(), image, req, false, 16, 64),
+            Err(INVALID)
+        );
+        assert_eq!(
+            memory.image_placement(ptr::null(), image, req, false, 251, 64),
+            Err(INVALID)
+        );
+        assert_eq!(
+            memory.image_placement(ptr::null(), image, req, true, 11, 64),
+            Err(INVALID)
+        );
+        memory.allow_images = false;
+        assert_eq!(
+            memory.image_placement(ptr::null(), image, req, false, 11, 64),
+            Err(INVALID)
+        );
     }
     #[test]
     fn cache_expansion_is_bounded_and_overflow_safe() {

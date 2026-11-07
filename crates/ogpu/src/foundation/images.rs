@@ -531,7 +531,7 @@ impl Image {
             return Err(INVALID);
         }
         let memory = unsafe { placement.memory.as_ref() }.ok_or(INVALID)?;
-        let handle = memory.image_placement(
+        let (handle, native_offset) = memory.image_placement(
             self.device,
             self.handle,
             self.requirements,
@@ -544,7 +544,7 @@ impl Image {
                 d.handle,
                 self.handle,
                 handle,
-                placement.offset,
+                native_offset,
             ))?;
         }
         self.bound.set(true);

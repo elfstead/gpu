@@ -35,6 +35,7 @@ fn fixture() -> Snapshot {
         available_ids: vec![],
         enabled_ids: vec![],
         memory_limits: MemoryLimits::default(),
+        placement_limits: PlacementLimits::default(),
         descriptor_properties: NativeDescriptorProperties::default(),
         execution_limits: ExecutionLimits::default(),
         graphics_limits: GraphicsLimits::default(),
