@@ -120,6 +120,10 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
         {OGPU_NEXT_X8_D24_UNORM_PACK32, 2, 0, 4},
         {OGPU_NEXT_S8_UINT, 4, 0, 0},
         {OGPU_NEXT_D16_UNORM_S8_UINT, 6, 0, 2},
+        {OGPU_NEXT_A1B5G5R5_UNORM_PACK16, 1, 2, 0},
+        {OGPU_NEXT_A8_UNORM, 1, 1, 0},
+        {OGPU_NEXT_A4R4G4B4_UNORM_PACK16, 1, 2, 0},
+        {OGPU_NEXT_A4B4G4R4_UNORM_PACK16, 1, 2, 0},
     };
     int result = EXIT_FAILURE, pending = 0;
     ogpu_next_format_info *formats = NULL;
@@ -155,11 +159,12 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
     REQUIRE(barrier_scratch && submit_scratch);
     for(uint32_t i=0;i<sizeof(cases)/sizeof(cases[0]);++i) {
         uint32_t fmt=cases[i].format, aspects=cases[i].aspects;
-        REQUIRE(formats[i].format == fmt);
-        REQUIRE(formats[i].copy_block_extent[0] == 1 && formats[i].copy_block_extent[1] == 1 && formats[i].copy_block_extent[2] == 1);
-        REQUIRE(formats[i].copy_block_bytes[0] == cases[i].bytes && formats[i].copy_block_bytes[1] == cases[i].depth_bytes);
-        REQUIRE(formats[i].copy_block_bytes[2] == ((aspects & OGPU_NEXT_ASPECT_STENCIL) ? 1u : 0u));
-        uint64_t features=formats[i].optimal_features;
+        uint32_t fi=0; while(fi<q.count && formats[fi].format!=fmt) ++fi;
+        REQUIRE(fi<q.count);
+        REQUIRE(formats[fi].copy_block_extent[0] == 1 && formats[fi].copy_block_extent[1] == 1 && formats[fi].copy_block_extent[2] == 1);
+        REQUIRE(formats[fi].copy_block_bytes[0] == cases[i].bytes && formats[fi].copy_block_bytes[1] == cases[i].depth_bytes);
+        REQUIRE(formats[fi].copy_block_bytes[2] == ((aspects & OGPU_NEXT_ASPECT_STENCIL) ? 1u : 0u));
+        uint64_t features=formats[fi].optimal_features;
         uint64_t view_usage=(features&OGPU_NEXT_FORMAT_SAMPLED) ? OGPU_NEXT_IMAGE_SAMPLED :
             (features&OGPU_NEXT_FORMAT_DEPTH_STENCIL) ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT :
             (features&OGPU_NEXT_FORMAT_COLOR) ? OGPU_NEXT_IMAGE_COLOR_ATTACHMENT : 0;

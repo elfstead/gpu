@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "implemented_formats": 190,
+  "native_definitions_accounted": 297,
+  "ordinary": {
+    "executed": 71,
+    "excluded": 51
+  },
+  "compressed": {
+    "executed": 16,
+    "excluded": 52,
+    "sampled": 2
+  },
+  "host_tests": 118,
+  "correspondence_tests": 2,
+  "tool_tests": 22,
+  "validation_errors": 0,
+  "existing_warnings": 4,
+  "clippy": "pass",
+  "surface": "pass",
+  "unverified": [
+    "ASTC HDR native execution/sampling",
+    "new packed/alpha format sampling and raster values",
+    "other backends"
+  ],
+  "evidence": {
+    "/tmp/ogpu-format-extension-clippy.log": "2ba4996fc460e86bd58d706e400fed1246f59a3bde9ebc8d96ae895d4c8debb0",
+    "/tmp/ogpu-format-extension-gpu-fixed.log": "6e6c22f785f5cff6f8ff972ce8e3ce30bc5bb3761222987cd47e5553930ad83e",
+    "/tmp/ogpu-format-extension-gpu.log": "8964c8a42cda84437f033974f69d0b5009a4dcb90fe1d7f32f55579f122c190d",
+    "/tmp/ogpu-format-extension-host.log": "d397a27de728247f1251d024e60b1f7685f0cf1adc69c95e984402bcc6fd5318",
+    "/tmp/ogpu-format-extension-surface.log": "2f78dfff147e23b42578f378128c426aaf346e11b01e31a7ff4e821e6391752e",
+    "/tmp/ogpu-format-extension-tools.log": "ca84ce5386fb28625a4963c955d5f742075393a8402d881adad79a51d5c7daeb"
+  }
+}

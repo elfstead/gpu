@@ -6,7 +6,7 @@ mechanisms; applications own culling, render graphs, texture policy and scheduli
 
 | Area | Current implementation and evidence | Remaining disposition |
 |---|---|---|
-| Compressed formats | 54 BC/ETC2/EAC/ASTC formats, block copies/views; bounded BC execution and sampling | Keep exact format/usage queries; broaden sampling where locally supported. Other native formats remain acceptance debt, without decompression fallback. |
+| Compressed formats | 68 BC/ETC2/EAC/ASTC LDR/HDR formats, block copies/views; bounded BC execution and sampling | Keep exact format/usage queries; broaden sampling where locally supported. Other native formats remain acceptance debt, without decompression fallback. |
 | Mesh/task | Independent enables, limits, executable stages and direct/indirect/count commands; initial llvmpipe execution | Physical GPU mesh execution and richer generated/multiview combinations remain unaccepted. No local Radeon prerequisite for other implementation work. |
 | Generated commands | Compute and graphics actions, counts, identity, vertex/index tokens, explicit preprocessing and scratch; Radeon execution | Pipeline selection unavailable locally; mesh and advanced-stage combinations need native receipts. Consumer culling stays outside the core. |
 | Multiview | View masks, limits, native enabling, sparse/layer-offset checks | MSAA/resolve and advanced stage combinations need coverage, not another view abstraction. |
@@ -55,9 +55,9 @@ remains execution debt:
    now expose range and count updates, native limits and shader index enabling.
    [Extended depth and independent color-write profiles](extended-depth-color.md)
    now cover unrestricted ranges, user clamp ranges, bias units/exactness and
-   whole-attachment enables. **Next:**
-   the pinned registry's extension-specific raster-format inventory. These remain in this batch, not
-   silently deferred to M9. No draw-time synthesis or shader substitute for a
+   whole-attachment enables. The [pinned format inventory](format-inventory.md)
+   now adds eighteen formats through existing operations and assigns every remaining
+   native definition to M11 or an explicit later entry criterion. No draw-time synthesis or shader substitute for a
    distinct native mechanism.
 3. **Resolve geometry capture and dynamic patch state.** Transform feedback,
    geometry streams and associated counters/queries need their own native

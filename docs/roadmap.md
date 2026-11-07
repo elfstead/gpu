@@ -645,8 +645,9 @@ at `ebf6abb`.
 [Viewport/scissor arrays](viewport-arrays.md) now add explicit range/count updates
 and shader routing, with local 1/4-sample output checks.
 [Extended depth/color-write profiles](extended-depth-color.md) now preserve native
-ranges, bias units and independent attachment enables. Next: the extension-format
-inventory, geometry capture/dynamic patch state and consolidation before M9.
+ranges, bias units and independent attachment enables. The [format inventory](format-inventory.md)
+adds eighteen IDs through existing mechanisms and accounts for every pinned native
+definition. Geometry capture/dynamic patch state and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 
@@ -757,7 +758,7 @@ explicit entry criterion; they are not silently included in milestone completion
 | Timed waits / cancellation | Timeline timeout/poll and recording cancellation are implemented. Timeout/cancellation do not retire pending GPU work; GPU cancellation/recovery remains a separate semantic decision |
 | External memory/import-export | M10; boundary design in P1, prerequisite subsets earlier when needed; ownership/device matching and native synchronization required |
 | Multi-device execution/communication | Deferred; needs a selected workload and multiple real devices. Never a prerequisite for current local milestones |
-| More formats, arrays, 3D textures, MSAA | 118 ordinary/packed plus 54 compressed formats and existing image shapes/resolve profiles implemented; bounded BC execution, other compressed profiles locally unverified; M8 also audits extension-specific raster formats; M11 adds plane-aware media and 64-bit-component profiles. Query exact native combinations; no universal format claim |
+| More formats, arrays, 3D textures, MSAA | 122 ordinary/packed plus 68 compressed formats and existing image shapes/resolve profiles implemented; bounded BC execution, other compressed profiles locally unverified; M8 now records the complete pinned format inventory; M11 adds plane-aware media and 64-bit-component profiles. Query exact native combinations; no universal format claim |
 | Mixed backing, virtual memory and residency | M10, with required subsets pulled into M6 or other consumers; explicit native placement/ordering, no hidden migration |
 | Generated commands and richer artifact/launch profiles | M8 generated topology; M11 richer launch and binaries; P1 implements the narrow optional-extension negotiation prerequisite |
 | Presentation | P1 Linux before M6; M6 Metal; real window-system acceptance required |

@@ -220,8 +220,12 @@ mod tests {
                     assert!(f.class >= 2001);
                     assert!(matches!(f.color_bytes, 8 | 16));
                 } else {
-                    assert!(matches!(f.class, 8 | 16 | 24 | 32 | 48 | 64 | 96 | 128));
-                    assert_eq!(f.copy_bytes(1), Ok(u64::from(f.class / 8)));
+                    if f.class == 3001 {
+                        assert_eq!(f.copy_bytes(1), Ok(1));
+                    } else {
+                        assert!(matches!(f.class, 8 | 16 | 24 | 32 | 48 | 64 | 96 | 128));
+                        assert_eq!(f.copy_bytes(1), Ok(u64::from(f.class / 8)));
+                    }
                 }
             } else {
                 assert_eq!(f.numeric, Numeric::DepthStencil);
@@ -229,6 +233,14 @@ mod tests {
             assert_eq!(f.copy_bytes(0), Err(INVALID));
             assert_eq!(f.copy_bytes(3), Err(INVALID));
         }
+        assert_ne!(
+            format(A8_UNORM).unwrap().class,
+            format(R8_UNORM).unwrap().class
+        );
+        assert_eq!(
+            format(ASTC_5X4_FLOAT_BLOCK).unwrap().class,
+            format(ASTC_5X4_UNORM_BLOCK).unwrap().class
+        );
         assert_eq!(format(RGB8_UNORM).unwrap().copy_bytes(1), Ok(3));
         assert_eq!(format(RGB16_FLOAT).unwrap().copy_bytes(1), Ok(6));
         assert_eq!(format(D16_UNORM_S8_UINT).unwrap().copy_bytes(2), Ok(2));

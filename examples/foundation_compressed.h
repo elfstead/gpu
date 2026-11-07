@@ -70,7 +70,10 @@ static int compressed_formats(ogpu_next_device *device, uint32_t domain, const c
         if (support == OGPU_NEXT_UNSUPPORTED) { printf("COMPRESSED_EXCLUDED id=%u\n",f->format); ++excluded; continue; }
         TRY(support);
         /* Adjacent catalog pairs share a native view class, not just byte size. */
-        uint32_t pair = f->format + ((f->format - OGPU_NEXT_BC1_RGB_UNORM_BLOCK) % 2 ? -1 : 1);
+        uint32_t pair = f->format <= OGPU_NEXT_ASTC_12X12_SRGB_BLOCK
+            ? f->format + ((f->format - OGPU_NEXT_BC1_RGB_UNORM_BLOCK) % 2 ? -1 : 1)
+            : OGPU_NEXT_ASTC_4X4_UNORM_BLOCK + 2*(f->format-OGPU_NEXT_ASTC_4X4_FLOAT_BLOCK);
+        /* HDR has a third member in the same ASTC block-size view class. */
         uint32_t view_formats[] = {f->format,pair};
         ogpu_next_image_desc desc = {HEADER(ogpu_next_image_desc,OGPU_NEXT_IMAGE_DESC),f->format,OGPU_NEXT_IMAGE_2D,
             3,2,1,{2*bx-1,2*by-1,1},profile.usage,profile.image_flags,view_formats,2,0,NULL};

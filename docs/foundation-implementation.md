@@ -466,10 +466,11 @@ one-shot. No view or GPU command accepts an unbound image. See the native
 and [dedicated-image association](https://docs.vulkan.org/refpages/latest/refpages/source/VkMemoryDedicatedAllocateInfo.html).
 
 Independent views select compatible formats, dimensions, mip/layer/aspect ranges,
-usage subsets and component mappings. The current table covers 172 formats: 118 uncompressed
+usage subsets and component mappings. The current table covers 190 formats: 122 uncompressed
 formats: Vulkan 1.0 core color formats with up to 32-bit components, their packed
-variants, all seven core depth/stencil formats, plus 54 BC, ETC2/EAC and 2D ASTC
-LDR formats. Existing IDs are preserved;
+variants, all seven core depth/stencil formats, four additional packed/alpha
+formats, plus 68 BC, ETC2/EAC and 2D ASTC LDR/HDR formats. The
+[pinned inventory](format-inventory.md) accounts for every remaining registry format. Existing IDs are preserved;
 Rust exposes matching constants in `foundation::types::image_formats`. Integer,
 normalized, scaled, sRGB and floating-point representations are not conflated.
 The [format expansion receipt](results/foundation-formats-2026-10-16.md) records
