@@ -745,6 +745,9 @@ consumer/validation track, not inferred from single-device import/export.
 
 ### M11 — Advanced compute and media
 
+[Implementation order, initial codec selection and exit evidence](m11-compute-media.md)
+now make each package concrete. M10 consolidation is complete; M11 is active.
+
 **Compute deliverables:** richer shared-memory/launch profiles, cooperative or
 cluster/device-enqueue execution where native APIs support it, pipeline artifact/
 binary interfaces (including ray pipeline libraries and capture/replay capabilities), and remaining numerical/subgroup/matrix profiles. Extend

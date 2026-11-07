@@ -384,6 +384,10 @@ acceptance are complete. M9 ray tracing follows; private feature storage now spa
 
 ## Current: M11 advanced compute and media
 
+Follow the [M11 implementation brief](m11-compute-media.md): numeric formats and
+GPU execution controls, compute/artifact profiles, plane-aware images, then the
+explicit initial H.264 decode/encode sessions and clean SDK consolidation.
+
 M9's [implemented boundary and clean SDK handoff](m9-consolidation.md) are complete
 for the Vulkan/Linux diagnostic scope. The source-only Rust SDK runs all four ray
 profiles under explicit emulation; normal local RADV rejects them as unsupported.
