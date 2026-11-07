@@ -64,6 +64,6 @@ C/Rust correspondence tests, strict Clippy, surface correspondence and 22 toolin
 tests pass. No shader or exported function signature changed.
 
 The first run found an obsolete test assumption that ordinary cases occupy
-consecutive catalog slots; the fixture now looks formats up by identity. That
-failed log is preserved alongside the corrected result in the
+consecutive catalog slots; the fixture now looks formats up by identity. The host catalog check also needed its terminal count updated from 172 to 190.
+Those initial failed logs is preserved alongside the corrected result in the
 [evidence receipt](results/m8-format-inventory-2026-11-07.json).

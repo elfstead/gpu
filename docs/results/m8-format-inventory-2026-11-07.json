@@ -30,6 +30,10 @@
     "/tmp/ogpu-format-extension-gpu.log": "8964c8a42cda84437f033974f69d0b5009a4dcb90fe1d7f32f55579f122c190d",
     "/tmp/ogpu-format-extension-host.log": "d397a27de728247f1251d024e60b1f7685f0cf1adc69c95e984402bcc6fd5318",
     "/tmp/ogpu-format-extension-surface.log": "2f78dfff147e23b42578f378128c426aaf346e11b01e31a7ff4e821e6391752e",
-    "/tmp/ogpu-format-extension-tools.log": "ca84ce5386fb28625a4963c955d5f742075393a8402d881adad79a51d5c7daeb"
-  }
+    "/tmp/ogpu-format-extension-tools.log": "ca84ce5386fb28625a4963c955d5f742075393a8402d881adad79a51d5c7daeb",
+    "/tmp/ogpu-format-extension-host-fixed.log": "09631a5d27b275f7d78fb0834816eedf0575d23591f9c8292c557befb9b0ddd7"
+  },
+  "review_corrections": [
+    "Corrected obsolete contiguous fixture indexing and host catalog terminal-count assertion; retained initial failures."
+  ]
 }
