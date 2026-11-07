@@ -25,6 +25,19 @@ def run(command,quiet=False,timeout=300,**kwargs):
     return p.stdout
 
 
+def check_handoff_receipt(app, label, manifest):
+    complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
+    require(len(complete) == 1 and len(complete[0]["runs"]) == (9 if label=="indexed-ranges" else 14 if label=="advanced-raster" else 2),"missing completed handoff receipt")
+    if label=="indexed-scene":require(len(complete[0]["reuse_runs"])==32,"missing replay matrix")
+    if label in ("textured-scene","advanced-raster"):require(all(len(r['checks'])==18 for r in complete[0]['runs']),'missing textured cases')
+    if label=="indexed-ranges":
+        require(len(complete[0]['baseline'])==1 and len(complete[0]['baseline'][0]['checks'])==30
+                and len(complete[0]['reuse_runs'])==48,'missing range baseline/replay matrix')
+    require(complete[0]["sdk"]["revision"] == manifest["revision"] and
+            complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"handoff identity mismatch")
+    return complete
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prefix",type=Path,required=True)
@@ -104,15 +117,7 @@ def main():
         if not args.no_gpu:
             run(command,cwd=app,env=env,timeout=1800 if label=="advanced-raster" else 300)
             if scripted:
-                complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
-                require(len(complete) == 1 and len(complete[0]["runs"]) == (9 if label=="indexed-ranges" else 10 if label=="advanced-raster" else 2),"missing completed handoff receipt")
-                if label=="indexed-scene":require(len(complete[0]["reuse_runs"])==32,"missing replay matrix")
-                if label in ("textured-scene","advanced-raster"):require(all(len(r['checks'])==18 for r in complete[0]['runs']),'missing textured cases')
-                if label=="indexed-ranges":
-                    require(len(complete[0]['baseline'])==1 and len(complete[0]['baseline'][0]['checks'])==30
-                            and len(complete[0]['reuse_runs'])==48,'missing range baseline/replay matrix')
-                require(complete[0]["sdk"]["revision"] == manifest["revision"] and
-                        complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"handoff identity mismatch")
+                complete = check_handoff_receipt(app, label, manifest)
         if args.shader_check and label=="advanced-raster":
             run([sys.executable,"-B","advanced_shaders.py","--check"],cwd=app,
                 env=dict(env,SLANGC=os.getenv("SLANGC","slangc")))

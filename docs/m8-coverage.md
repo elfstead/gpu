@@ -1,7 +1,8 @@
 # M8 coverage and remaining work
 
-2026-11-07. Scheduled M8 implementation and contract consolidation are complete;
-clean installed consolidation acceptance is next. Implemented representation, local execution and
+2026-11-07. Scheduled M8 implementation, contract consolidation and
+[clean installed acceptance](results/m8-consolidated-acceptance-2026-11-07.json)
+are complete. M9 follows. Implemented representation, local execution and
 complete native coverage are separate claims. The public core exposes native
 mechanisms; applications own culling, render graphs, texture policy and scheduling.
 

@@ -1,7 +1,7 @@
 # Working status and next milestone
 
-Updated 2026-11-06. **C1 selection and C2 Vulkan/Linux implementation are complete.
-C3 Vulkan/Linux acceptance is complete; remaining M8 is active. External native mappings remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
+Updated 2026-11-07. **C1 selection and C2 Vulkan/Linux implementation are complete.
+C3 Vulkan/Linux acceptance is complete; scheduled M8 and its contract consolidation are complete on Vulkan/Linux; M9 is active. External native mappings remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
 constraints. [Argument update/reuse A/B](minimal-core-arguments.md) now has selected
@@ -372,7 +372,9 @@ now implement range/count updates and shader routing. [Extended depth/color-writ
 explicit range/unit and attachment-enable controls. [Dynamic patch/origin selection](dynamic-tessellation.md)
 and [geometry capture/streams](geometry-capture.md) are implemented. Capture moves
 to revision 13 with an explicit stream argument on existing query begin/end operations.
-Contract/composition consolidation follows before M9 ray tracing. M6 remains incomplete until native development is possible.
+[Contract/composition consolidation](m8-consolidation.md) and its clean installed
+acceptance are complete. M9 ray tracing follows; private feature storage now spans
+256 bits without changing the public counted-ID interface. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows
 

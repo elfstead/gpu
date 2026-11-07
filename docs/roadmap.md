@@ -651,7 +651,8 @@ definition. [Dynamic patch count/origin](dynamic-tessellation.md) now preserve n
 per-draw selection. [Geometry capture/streams](geometry-capture.md) now implement native
 ordered output, counters, queries and byte-count draws in revision 13. Contract and
 [Consumer composition and contract consolidation](m8-consolidation.md) is implemented;
-clean installed acceptance completes the M8 checkpoint before M9.
+[Clean installed acceptance](results/m8-consolidated-acceptance-2026-11-07.json)
+completes the scheduled M8 checkpoint. M9 is next.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 

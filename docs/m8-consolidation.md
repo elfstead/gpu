@@ -1,7 +1,7 @@
 # M8 contract consolidation
 
-2026-11-07. The scheduled Vulkan/Linux M8 representation is implemented. Final
-installed acceptance is recorded separately below; unavailable hardware and other
+2026-11-07. The scheduled Vulkan/Linux M8 representation is implemented. [Clean installed acceptance](results/m8-consolidated-acceptance-2026-11-07.json)
+now passes; unavailable hardware and other
 native backends remain unaccepted. M9 follows this checkpoint.
 
 ## Retained mechanisms and application compositions
@@ -62,7 +62,10 @@ artifacts and checks reflected root offsets. It is not a general shader linker.
 The general generated-interface tool's local-read metadata support stays open.
 
 [Implementation receipt](results/m8-composition-2026-11-07.json) retains the initial
-failures as well as the corrected local run. Installed matrix acceptance follows.
+failures as well as the corrected local run. Clean installed matrix acceptance now passes: seven profiles, 252 textured frames,
+10,080,036 local-output pixels, four distinct-value MSAA probes and no validation
+errors. The outer collector initially expected the previous ten-run matrix; its
+corrected fourteen-run/identity checks pass against the saved complete receipts.
 
 ## Explicit exclusions and remaining evidence
 

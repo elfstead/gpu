@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "status": "scheduled M8 Vulkan/Linux checkpoint accepted; M9 next",
+  "sdk_revision": "aaca6817fb20fa2926e1f59490b75ba5d828f0d3",
+  "sdk_source_dirty": false,
+  "runtime_sha256": "d1276efde66215b368ae204b50d730c178a60c4cb408bd81277786bf32329c68",
+  "advanced": {
+    "profiles": 7,
+    "extents": [
+      [
+        257,
+        193
+      ],
+      [
+        640,
+        360
+      ]
+    ],
+    "frames": 252,
+    "local_pixels": 10080036,
+    "local_max_byte_delta": 0,
+    "msaa_probe_runs": 4,
+    "msaa_pixels": 256,
+    "validation_errors": 0
+  },
+  "verification": {
+    "C_artifacts": 75,
+    "native_library_tests": 31,
+    "C_and_Rust_ABI": 2363,
+    "private_feature_storage_followup": "m9-feature-storage-2026-11-07.json"
+  },
+  "runner_correction": "Both full matrices produced complete passing receipts; outer SDK collector initially expected 10 rather than 14 runs. Updated checker replayed all saved complete receipts including source/runtime identity. Initial failed wrapper logs retained.",
+  "evidence": {
+    "/tmp/ogpu-foundation-external-q75ke5g0/independent advanced-raster/run-lcc0dxac/report.json": "921e2c5d384603c4899961547902deaa98142bf23b02207d103cf4650d978783",
+    "/tmp/ogpu-m8-final-sdk/share/ogpu/manifest.json": "ac119ad78305d332bb31c54fcbed91034c90b6bf05262ef843c16afe5298d0e2",
+    "/tmp/ogpu-m8-final-install.log": "050c2b0270bc47b6d4f24f69c9631b84faff12403422631be987f50627cc7777",
+    "/tmp/ogpu-m8-final-consumers.log": "3dfff0ed3da733dae61efd07ee456f9517fe4bbf95ff987bcb7f276ab6de532d",
+    "/tmp/ogpu-m8-final-advanced-validation.log": "6506871cd0f3f78c6a2e905cb07d672b7371b99962f909be00f412c361979ac7",
+    "/tmp/ogpu-m8-final-handoff-recheck.log": "a4cf81b415fc1bb0d44dd231c7dd151bb69fd7d85ac687337e4ff9788577c1c1",
+    "/tmp/ogpu-m8-final-tools.log": "617cc47359241082609c4721dd237d1c776151d3b91b3770e926d047d5e57119",
+    "/tmp/ogpu-m8-consolidated-full-c.log": "69ab84b248bd30ac5a7fcc9f026b23c6dcb970af85fb68f716093c353eac68da",
+    "/tmp/ogpu-m8-consolidated-native.log": "a4ee08ab38984c7fa6827cdfe07980768edc51d732cdf1a4c2908263f4b3d9e3",
+    "/tmp/ogpu-m8-consolidated-rust.log": "7f72b91c758b6442fbae9a0e96a97569abc6d14aa59c0d5489e7b5a7f9e99091",
+    "/tmp/ogpu-capture-installed.log": "0689aa8c847d2cc4b67b0cb78a308d17c58bf5695b0e45051981543836b7e68e",
+    "/tmp/ogpu-capture-rust.log": "701abdc743e418cafebef1c83d19d7f56cb6461b3fcc0adcfc57e331718a4df4"
+  }
+}
