@@ -1,6 +1,6 @@
 # M8 coverage and remaining work
 
-2026-11-06. M8 remains active. Implemented representation, local execution and
+2026-11-07. M8 remains active. Implemented representation, local execution and
 complete native coverage are separate claims. The public core exposes native
 mechanisms; applications own culling, render graphs, texture policy and scheduling.
 
@@ -36,15 +36,18 @@ remains execution debt:
    profiles pass, including existing dynamic stride with non-unit/zero divisors
    and nonzero first instance. Patch restart is unsupported on the local GPU and
    remains explicitly unverified. No alternative vertex binding mechanism added.
-2. **Expose the remaining distinct raster mechanisms.** Design one coherent batch
-   for conservative rasterization, line rasterization/stipple, provoking vertex,
-   depth clip convention and programmable sample positions, with native queries,
-   optional state records and only the required recording operations. Sample
-   position compatibility with depth contents must be explicit. Inventory the
-   pinned registry's extension-specific raster formats in this batch. Include
-   native dynamic clip/raster controls and vertex-input/divisor descriptions in the
-   existing dynamic-state model, without draw-time synthesis. Do not claim
-   support merely because a similar shader algorithm can be written.
+2. **Distinct raster mechanisms — partly implemented.** [Conservative coverage,
+   line/stipple modes, provoking vertex and depth convention](raster-mechanisms.md)
+   now have independent capabilities, physical properties, static records and
+   direct dynamic controls, including independent depth clip enable. Local
+   [execution evidence](results/m8-raster-mechanisms-2026-11-07.md) separates
+   supported profiles from unavailable dynamic extra overestimation and stipple
+   variants. **Next:** programmable sample positions together with depth-image
+   compatibility and transition metadata; complete dynamic vertex input/divisor
+   descriptions and remaining native dynamic raster controls; inventory the pinned
+   registry's extension-specific raster formats. These remain in this batch, not
+   silently deferred to M9. No draw-time synthesis or shader substitute for a
+   distinct native mechanism.
 3. **Resolve geometry capture and dynamic patch state.** Transform feedback,
    geometry streams and associated counters/queries need their own native
    capability/profile; address storage writes are not assumed equivalent. Dynamic

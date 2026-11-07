@@ -978,3 +978,87 @@ pub unsafe extern "C" fn ogpu_next_set_render_inputs(
         encode(encoder, |e| e.render_inputs(state.as_ref().ok_or(INVALID)?));
     }
 }
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_conservative_mode(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.raster_mechanism_value(DYNAMIC_CONSERVATIVE_MODE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_extra_overestimation(encoder: *mut List, value: f32) {
+    unsafe {
+        encode(encoder, |e| e.extra_overestimation(value));
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_provoking_vertex(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.raster_mechanism_value(DYNAMIC_PROVOKING_VERTEX_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_clip(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.raster_mechanism_value(DYNAMIC_DEPTH_CLIP_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_convention(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.raster_mechanism_value(DYNAMIC_DEPTH_CONVENTION_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_line_mode(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.raster_mechanism_value(DYNAMIC_LINE_MODE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; caller initializes compatible native dynamic state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_line_stipple_enable(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.raster_mechanism_value(DYNAMIC_LINE_STIPPLE_ENABLE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive encoder; native line/stipple mode compatibility is caller-owned.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_line_stipple(encoder: *mut List, factor: u32, pattern: u32) {
+    unsafe {
+        encode(encoder, |e| e.line_stipple(factor, pattern));
+    }
+}

@@ -99,3 +99,19 @@ record!(fn set_shading_rate(list, state: &ShadingRateState) |e| e.shading_rate(s
 
 record!(fn set_render_locations(list, state: &RenderLocations) |e| e.render_locations(state));
 record!(fn set_render_inputs(list, state: &RenderInputs) |e| e.render_inputs(state));
+
+record!(fn set_conservative_mode(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_CONSERVATIVE_MODE_STATE,value));
+
+record!(fn set_extra_overestimation(list, value:f32) |e| e.extra_overestimation(value));
+
+record!(fn set_provoking_vertex(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_PROVOKING_VERTEX_STATE,value));
+
+record!(fn set_depth_clip(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_DEPTH_CLIP_STATE,value));
+
+record!(fn set_depth_convention(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_DEPTH_CONVENTION_STATE,value));
+
+record!(fn set_line_mode(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_LINE_MODE_STATE,value));
+
+record!(fn set_line_stipple_enable(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_LINE_STIPPLE_ENABLE_STATE,value));
+
+record!(fn set_line_stipple(list, factor:u32, pattern:u32) |e| e.line_stipple(factor,pattern));

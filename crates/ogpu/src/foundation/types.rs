@@ -28,6 +28,23 @@ pub mod image_formats {
 pub const VERSION: u32 = 11;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const CONSERVATIVE_RASTER: u32 = 80;
+    pub const PROVOKING_LAST: u32 = 81;
+    pub const DEPTH_NEGATIVE_ONE_TO_ONE: u32 = 82;
+    pub const RECTANGULAR_LINES: u32 = 83;
+    pub const BRESENHAM_LINES: u32 = 84;
+    pub const SMOOTH_LINES: u32 = 85;
+    pub const STIPPLED_RECTANGULAR_LINES: u32 = 86;
+    pub const STIPPLED_BRESENHAM_LINES: u32 = 87;
+    pub const STIPPLED_SMOOTH_LINES: u32 = 88;
+    pub const DYNAMIC_CONSERVATIVE_MODE: u32 = 89;
+    pub const DYNAMIC_EXTRA_OVERESTIMATION: u32 = 90;
+    pub const DYNAMIC_PROVOKING_VERTEX: u32 = 91;
+    pub const DYNAMIC_DEPTH_CLIP: u32 = 92;
+    pub const DYNAMIC_DEPTH_CONVENTION: u32 = 93;
+    pub const DYNAMIC_LINE_MODE: u32 = 94;
+    pub const DYNAMIC_LINE_STIPPLE_ENABLE: u32 = 95;
+
     pub const RASTER: u32 = 1;
     pub const FLOAT16: u32 = 2;
     pub const UNIFIED_IMAGES: u32 = 3;
@@ -700,6 +717,20 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
+    for (dynamic, base) in [
+        (
+            DYNAMIC_CONSERVATIVE_MODE | DYNAMIC_EXTRA_OVERESTIMATION,
+            CONSERVATIVE_RASTER,
+        ),
+        (DYNAMIC_PROVOKING_VERTEX, PROVOKING_LAST),
+        (DYNAMIC_DEPTH_CLIP, DEPTH_CLIP),
+        (DYNAMIC_DEPTH_CONVENTION, DEPTH_NEGATIVE_ONE_TO_ONE),
+    ] {
+        if required & dynamic != 0 && required & base == 0 {
+            return Err(INVALID);
+        }
+    }
+
     if required & MESH_PRIMITIVE_SHADING_RATE != 0
         && required & (MESH_SHADER | PRIMITIVE_SHADING_RATE)
             != (MESH_SHADER | PRIMITIVE_SHADING_RATE)
@@ -1924,4 +1955,74 @@ pub struct VertexDivisors {
     pub count: u32,
     pub reserved: u32,
     pub entries: *const VertexDivisor,
+}
+
+pub const DYNAMIC_CONSERVATIVE_MODE_STATE: u64 = 1 << 14;
+pub const DYNAMIC_EXTRA_OVERESTIMATION_STATE: u64 = 1 << 15;
+pub const DYNAMIC_PROVOKING_VERTEX_STATE: u64 = 1 << 16;
+pub const DYNAMIC_DEPTH_CLIP_STATE: u64 = 1 << 17;
+pub const DYNAMIC_DEPTH_CONVENTION_STATE: u64 = 1 << 18;
+pub const DYNAMIC_LINE_MODE_STATE: u64 = 1 << 19;
+pub const DYNAMIC_LINE_STIPPLE_ENABLE_STATE: u64 = 1 << 20;
+pub const DYNAMIC_LINE_STIPPLE_STATE: u64 = 1 << 21;
+
+pub const RASTER_MECHANISM_LIMITS: u32 = 25;
+pub const CONSERVATIVE_DISABLED: u32 = 0;
+pub const CONSERVATIVE_OVERESTIMATE: u32 = 1;
+pub const CONSERVATIVE_UNDERESTIMATE: u32 = 2;
+pub const LINE_DEFAULT: u32 = 0;
+pub const LINE_RECTANGULAR: u32 = 1;
+pub const LINE_BRESENHAM: u32 = 2;
+pub const LINE_SMOOTH_RECTANGULAR: u32 = 3;
+pub const PROVOKING_VERTEX_FIRST: u32 = 0;
+pub const PROVOKING_VERTEX_LAST: u32 = 1;
+pub const CONSERVATIVE_STATE: u32 = 136;
+pub const LINE_STATE: u32 = 137;
+pub const PROVOKING_STATE: u32 = 138;
+pub const DEPTH_CONVENTION_STATE: u32 = 139;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct RasterMechanismLimits {
+    pub primitive_overestimation: f32,
+    pub max_extra_overestimation: f32,
+    pub extra_overestimation_granularity: f32,
+    pub underestimation: u32,
+    pub conservative_points_lines: u32,
+    pub degenerate_triangles: u32,
+    pub degenerate_lines: u32,
+    pub fully_covered_input: u32,
+    pub conservative_post_depth_coverage: u32,
+    pub provoking_per_pipeline: u32,
+    pub line_subpixel_precision: u32,
+    pub strict_lines: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ConservativeState {
+    pub header: Record,
+    pub mode: u32,
+    pub extra_overestimation: f32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct LineState {
+    pub header: Record,
+    pub mode: u32,
+    pub stipple_enable: u32,
+    pub factor: u32,
+    pub pattern: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ProvokingState {
+    pub header: Record,
+    pub mode: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DepthConventionState {
+    pub header: Record,
+    pub negative_one_to_one: u32,
+    pub reserved: u32,
 }

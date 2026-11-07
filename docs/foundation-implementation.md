@@ -56,6 +56,13 @@ features, a physical limits query and cold state records. Ten local profiles pas
 including zero/non-unit divisors with dynamic stride and nonzero first instance.
 Patch restart is implemented but locally unsupported; no new draw path is added.
 
+M8 raster mechanisms, 2026-11-07: [conservative coverage, line/stipple modes,
+provoking vertex and depth convention](raster-mechanisms.md) add independent
+capabilities, queried native properties and direct dynamic setters, including
+independent clip enable. [Local execution](results/m8-raster-mechanisms-2026-11-07.md)
+checks static/dynamic equivalence and coverage without adding draw-time tracking.
+Sample positions, complete dynamic input and other M8 mechanisms remain planned.
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and

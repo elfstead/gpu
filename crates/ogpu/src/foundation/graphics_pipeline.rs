@@ -262,8 +262,14 @@ pub(super) unsafe fn prepare(
         return Err(INVALID);
     }
     raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
-    let depth_clip =
-        unsafe { raster_controls::depth_clip(options.header.next, d.snapshot.features.enabled)? };
+    let mut mechanisms = unsafe {
+        raster_mechanisms::prepare(
+            options.header.next,
+            d.snapshot.features.enabled,
+            &d.snapshot.raster_mechanism_limits,
+            desc.dynamic_state,
+        )?
+    };
     let rate = if desc.dynamic_state & DYNAMIC_SHADING_RATE != 0 || state.shading_rate.is_null() {
         ShadingRateState::default()
     } else {
@@ -670,16 +676,19 @@ pub(super) unsafe fn prepare(
         primitiveRestartEnable: options.primitive_restart,
         ..Default::default()
     };
+    let raster_chain = mechanisms.raster_chain();
     let viewport = vk::VkPipelineViewportStateCreateInfo {
+        pNext: mechanisms
+            .convention
+            .as_ref()
+            .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         viewportCount: 1,
         scissorCount: 1,
         ..Default::default()
     };
     let raster = vk::VkPipelineRasterizationStateCreateInfo {
-        pNext: depth_clip
-            .as_ref()
-            .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
+        pNext: raster_chain,
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         depthClampEnable: options.depth_clamp,
         rasterizerDiscardEnable: options.discard,
@@ -729,7 +738,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 15];
+    let mut dynamic_states = [0; 23];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
@@ -754,6 +763,12 @@ pub(super) unsafe fn prepare(
             vk::VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE,
         ),
     ] {
+        if desc.dynamic_state & mask != 0 {
+            dynamic_states[dynamic_count] = state;
+            dynamic_count += 1;
+        }
+    }
+    for &(mask, state) in raster_mechanisms::DYNAMIC_STATES {
         if desc.dynamic_state & mask != 0 {
             dynamic_states[dynamic_count] = state;
             dynamic_count += 1;

@@ -988,6 +988,89 @@ impl List {
         self.viewport_set.set(true);
         Ok(())
     }
+    pub(in crate::foundation) fn raster_mechanism_value(
+        &self,
+        field: u64,
+        value: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        if raster_mechanisms::dynamic_mask(d.snapshot.features.enabled) & field == 0 {
+            return Err(UNSUPPORTED);
+        }
+        let command = match field {
+            DYNAMIC_CONSERVATIVE_MODE_STATE => {
+                raster_mechanisms::conservative(
+                    value,
+                    d.snapshot.features.enabled,
+                    &d.snapshot.raster_mechanism_limits,
+                )?;
+                d.raster_commands.conservative_mode
+            }
+            DYNAMIC_PROVOKING_VERTEX_STATE => {
+                if value > 1 {
+                    return Err(INVALID);
+                }
+                d.raster_commands.provoking_vertex
+            }
+            DYNAMIC_DEPTH_CLIP_STATE => {
+                if value > 1 {
+                    return Err(INVALID);
+                }
+                d.raster_commands.depth_clip
+            }
+            DYNAMIC_DEPTH_CONVENTION_STATE => {
+                if value > 1 {
+                    return Err(INVALID);
+                }
+                d.raster_commands.depth_convention
+            }
+            DYNAMIC_LINE_MODE_STATE => {
+                raster_mechanisms::line_mode(value, d.snapshot.features.enabled)?;
+                d.raster_commands.line_mode
+            }
+            DYNAMIC_LINE_STIPPLE_ENABLE_STATE => {
+                if value > 1 {
+                    return Err(INVALID);
+                }
+                if value != 0 && d.snapshot.features.enabled & raster_mechanisms::STIPPLED == 0 {
+                    return Err(UNSUPPORTED);
+                }
+                d.raster_commands.line_stipple_enable
+            }
+            _ => return Err(INVALID),
+        };
+        unsafe {
+            command.ok_or(UNSUPPORTED)?(self.command, value);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn extra_overestimation(&self, value: f32) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        raster_mechanisms::extra(value, &d.snapshot.raster_mechanism_limits)?;
+        unsafe {
+            d.raster_commands.extra_overestimation.ok_or(UNSUPPORTED)?(self.command, value);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn line_stipple(
+        &self,
+        factor: u32,
+        pattern: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        raster_mechanisms::stipple(factor, pattern)?;
+        unsafe {
+            d.raster_commands.line_stipple.ok_or(UNSUPPORTED)?(
+                self.command,
+                factor,
+                pattern as u16,
+            );
+        }
+        Ok(())
+    }
     pub(in crate::foundation) fn dynamic_raster_value(
         &self,
         field: u32,

@@ -10638,6 +10638,20 @@ pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIO
 pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_2_EXT: VkPipelineRobustnessImageBehavior = 3;
 pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_MAX_ENUM: VkPipelineRobustnessImageBehavior = 2147483647;
 pub type VkPipelineRobustnessImageBehavior = ::std::os::raw::c_uint;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_DEFAULT: VkLineRasterizationMode = 0;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_RECTANGULAR: VkLineRasterizationMode = 1;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_BRESENHAM: VkLineRasterizationMode = 2;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH: VkLineRasterizationMode = 3;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT: VkLineRasterizationMode = 0;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT: VkLineRasterizationMode = 1;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT: VkLineRasterizationMode = 2;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT: VkLineRasterizationMode = 3;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_DEFAULT_KHR: VkLineRasterizationMode = 0;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_RECTANGULAR_KHR: VkLineRasterizationMode = 1;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_BRESENHAM_KHR: VkLineRasterizationMode = 2;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_KHR: VkLineRasterizationMode = 3;
+pub const VkLineRasterizationMode_VK_LINE_RASTERIZATION_MODE_MAX_ENUM: VkLineRasterizationMode = 2147483647;
+pub type VkLineRasterizationMode = ::std::os::raw::c_uint;
 pub type VkBufferUsageFlags2 = VkFlags64;
 pub type VkBufferUsageFlagBits2 = VkFlags64;
 pub const VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT: VkBufferUsageFlagBits2 = 2147483648;
@@ -11025,6 +11039,62 @@ impl Default for VkPipelineCreateFlags2CreateInfo {
     }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRasterizationLineStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub lineRasterizationMode: VkLineRasterizationMode,
+    pub stippledLineEnable: VkBool32,
+    pub lineStippleFactor: u32,
+    pub lineStipplePattern: u16,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRasterizationLineStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineRasterizationLineStateCreateInfo>() - 32usize];
+    [
+        "Alignment of VkPipelineRasterizationLineStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineRasterizationLineStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationLineStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineRasterizationLineStateCreateInfo, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineRasterizationLineStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineRasterizationLineStateCreateInfo, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationLineStateCreateInfo::lineRasterizationMode",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationLineStateCreateInfo, lineRasterizationMode
+    ) - 16usize];
+    [
+        "Offset of field: VkPipelineRasterizationLineStateCreateInfo::stippledLineEnable",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationLineStateCreateInfo, stippledLineEnable
+    ) - 20usize];
+    [
+        "Offset of field: VkPipelineRasterizationLineStateCreateInfo::lineStippleFactor",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationLineStateCreateInfo, lineStippleFactor
+    ) - 24usize];
+    [
+        "Offset of field: VkPipelineRasterizationLineStateCreateInfo::lineStipplePattern",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationLineStateCreateInfo, lineStipplePattern
+    ) - 28usize];
+};
+impl Default for VkPipelineRasterizationLineStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkVertexInputBindingDivisorDescription {
     pub binding: u32,
@@ -11183,6 +11253,13 @@ impl Default for VkRenderingInputAttachmentIndexInfo {
         }
     }
 }
+pub type PFN_vkCmdSetLineStipple = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        lineStippleFactor: u32,
+        lineStipplePattern: u16,
+    ),
+>;
 pub type PFN_vkCmdSetRenderingAttachmentLocations = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -13289,6 +13366,165 @@ impl Default for VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
         }
     }
 }
+pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT: VkConservativeRasterizationModeEXT = 0;
+pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT: VkConservativeRasterizationModeEXT = 1;
+pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT: VkConservativeRasterizationModeEXT = 2;
+pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_MAX_ENUM_EXT: VkConservativeRasterizationModeEXT = 2147483647;
+pub type VkConservativeRasterizationModeEXT = ::std::os::raw::c_uint;
+pub type VkPipelineRasterizationConservativeStateCreateFlagsEXT = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceConservativeRasterizationPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub primitiveOverestimationSize: f32,
+    pub maxExtraPrimitiveOverestimationSize: f32,
+    pub extraPrimitiveOverestimationSizeGranularity: f32,
+    pub primitiveUnderestimation: VkBool32,
+    pub conservativePointAndLineRasterization: VkBool32,
+    pub degenerateTrianglesRasterized: VkBool32,
+    pub degenerateLinesRasterized: VkBool32,
+    pub fullyCoveredFragmentShaderInputVariable: VkBool32,
+    pub conservativeRasterizationPostDepthCoverage: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceConservativeRasterizationPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceConservativeRasterizationPropertiesEXT>()
+        - 56usize];
+    [
+        "Alignment of VkPhysicalDeviceConservativeRasterizationPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceConservativeRasterizationPropertiesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::primitiveOverestimationSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        primitiveOverestimationSize
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::maxExtraPrimitiveOverestimationSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        maxExtraPrimitiveOverestimationSize
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::extraPrimitiveOverestimationSizeGranularity",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        extraPrimitiveOverestimationSizeGranularity
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::primitiveUnderestimation",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT, primitiveUnderestimation
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::conservativePointAndLineRasterization",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        conservativePointAndLineRasterization
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::degenerateTrianglesRasterized",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        degenerateTrianglesRasterized
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::degenerateLinesRasterized",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT, degenerateLinesRasterized
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::fullyCoveredFragmentShaderInputVariable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        fullyCoveredFragmentShaderInputVariable
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceConservativeRasterizationPropertiesEXT::conservativeRasterizationPostDepthCoverage",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT,
+        conservativeRasterizationPostDepthCoverage
+    ) - 48usize];
+};
+impl Default for VkPhysicalDeviceConservativeRasterizationPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRasterizationConservativeStateCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineRasterizationConservativeStateCreateFlagsEXT,
+    pub conservativeRasterizationMode: VkConservativeRasterizationModeEXT,
+    pub extraPrimitiveOverestimationSize: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRasterizationConservativeStateCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineRasterizationConservativeStateCreateInfoEXT>()
+        - 32usize];
+    [
+        "Alignment of VkPipelineRasterizationConservativeStateCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineRasterizationConservativeStateCreateInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationConservativeStateCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationConservativeStateCreateInfoEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPipelineRasterizationConservativeStateCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationConservativeStateCreateInfoEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationConservativeStateCreateInfoEXT::flags",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationConservativeStateCreateInfoEXT, flags
+    ) - 16usize];
+    [
+        "Offset of field: VkPipelineRasterizationConservativeStateCreateInfoEXT::conservativeRasterizationMode",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationConservativeStateCreateInfoEXT,
+        conservativeRasterizationMode
+    ) - 20usize];
+    [
+        "Offset of field: VkPipelineRasterizationConservativeStateCreateInfoEXT::extraPrimitiveOverestimationSize",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationConservativeStateCreateInfoEXT,
+        extraPrimitiveOverestimationSize
+    ) - 24usize];
+};
+impl Default for VkPipelineRasterizationConservativeStateCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type VkPipelineRasterizationDepthClipStateCreateFlagsEXT = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -14635,6 +14871,143 @@ impl Default for VkPhysicalDeviceMemoryBudgetPropertiesEXT {
         }
     }
 }
+pub const VkProvokingVertexModeEXT_VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT: VkProvokingVertexModeEXT = 0;
+pub const VkProvokingVertexModeEXT_VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT: VkProvokingVertexModeEXT = 1;
+pub const VkProvokingVertexModeEXT_VK_PROVOKING_VERTEX_MODE_MAX_ENUM_EXT: VkProvokingVertexModeEXT = 2147483647;
+pub type VkProvokingVertexModeEXT = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceProvokingVertexFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub provokingVertexLast: VkBool32,
+    pub transformFeedbackPreservesProvokingVertex: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceProvokingVertexFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceProvokingVertexFeaturesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceProvokingVertexFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceProvokingVertexFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProvokingVertexFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProvokingVertexFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexFeaturesEXT::provokingVertexLast",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceProvokingVertexFeaturesEXT, provokingVertexLast
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexFeaturesEXT::transformFeedbackPreservesProvokingVertex",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceProvokingVertexFeaturesEXT,
+        transformFeedbackPreservesProvokingVertex
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceProvokingVertexFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceProvokingVertexPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub provokingVertexModePerPipeline: VkBool32,
+    pub transformFeedbackPreservesTriangleFanProvokingVertex: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceProvokingVertexPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceProvokingVertexPropertiesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceProvokingVertexPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceProvokingVertexPropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProvokingVertexPropertiesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProvokingVertexPropertiesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexPropertiesEXT::provokingVertexModePerPipeline",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceProvokingVertexPropertiesEXT, provokingVertexModePerPipeline
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceProvokingVertexPropertiesEXT::transformFeedbackPreservesTriangleFanProvokingVertex",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceProvokingVertexPropertiesEXT,
+        transformFeedbackPreservesTriangleFanProvokingVertex
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceProvokingVertexPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRasterizationProvokingVertexStateCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub provokingVertexMode: VkProvokingVertexModeEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRasterizationProvokingVertexStateCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineRasterizationProvokingVertexStateCreateInfoEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPipelineRasterizationProvokingVertexStateCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineRasterizationProvokingVertexStateCreateInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationProvokingVertexStateCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationProvokingVertexStateCreateInfoEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPipelineRasterizationProvokingVertexStateCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationProvokingVertexStateCreateInfoEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationProvokingVertexStateCreateInfoEXT::provokingVertexMode",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationProvokingVertexStateCreateInfoEXT, provokingVertexMode
+    ) - 16usize];
+};
+impl Default for VkPipelineRasterizationProvokingVertexStateCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub use self::VkLineRasterizationMode as VkLineRasterizationModeEXT;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderAtomicFloatFeaturesEXT {
@@ -14845,6 +15218,84 @@ impl Default for VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDepthClipControlFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub depthClipControl: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDepthClipControlFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDepthClipControlFeaturesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceDepthClipControlFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDepthClipControlFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClipControlFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClipControlFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClipControlFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClipControlFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClipControlFeaturesEXT::depthClipControl",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDepthClipControlFeaturesEXT, depthClipControl
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceDepthClipControlFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineViewportDepthClipControlCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub negativeOneToOne: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineViewportDepthClipControlCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineViewportDepthClipControlCreateInfoEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPipelineViewportDepthClipControlCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineViewportDepthClipControlCreateInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClipControlCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPipelineViewportDepthClipControlCreateInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClipControlCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPipelineViewportDepthClipControlCreateInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClipControlCreateInfoEXT::negativeOneToOne",
+    ][::std::mem::offset_of!(
+        VkPipelineViewportDepthClipControlCreateInfoEXT, negativeOneToOne
+    ) - 16usize];
+};
+impl Default for VkPipelineViewportDepthClipControlCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -14893,6 +15344,289 @@ impl Default for VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub extendedDynamicState3TessellationDomainOrigin: VkBool32,
+    pub extendedDynamicState3DepthClampEnable: VkBool32,
+    pub extendedDynamicState3PolygonMode: VkBool32,
+    pub extendedDynamicState3RasterizationSamples: VkBool32,
+    pub extendedDynamicState3SampleMask: VkBool32,
+    pub extendedDynamicState3AlphaToCoverageEnable: VkBool32,
+    pub extendedDynamicState3AlphaToOneEnable: VkBool32,
+    pub extendedDynamicState3LogicOpEnable: VkBool32,
+    pub extendedDynamicState3ColorBlendEnable: VkBool32,
+    pub extendedDynamicState3ColorBlendEquation: VkBool32,
+    pub extendedDynamicState3ColorWriteMask: VkBool32,
+    pub extendedDynamicState3RasterizationStream: VkBool32,
+    pub extendedDynamicState3ConservativeRasterizationMode: VkBool32,
+    pub extendedDynamicState3ExtraPrimitiveOverestimationSize: VkBool32,
+    pub extendedDynamicState3DepthClipEnable: VkBool32,
+    pub extendedDynamicState3SampleLocationsEnable: VkBool32,
+    pub extendedDynamicState3ColorBlendAdvanced: VkBool32,
+    pub extendedDynamicState3ProvokingVertexMode: VkBool32,
+    pub extendedDynamicState3LineRasterizationMode: VkBool32,
+    pub extendedDynamicState3LineStippleEnable: VkBool32,
+    pub extendedDynamicState3DepthClipNegativeOneToOne: VkBool32,
+    pub extendedDynamicState3ViewportWScalingEnable: VkBool32,
+    pub extendedDynamicState3ViewportSwizzle: VkBool32,
+    pub extendedDynamicState3CoverageToColorEnable: VkBool32,
+    pub extendedDynamicState3CoverageToColorLocation: VkBool32,
+    pub extendedDynamicState3CoverageModulationMode: VkBool32,
+    pub extendedDynamicState3CoverageModulationTableEnable: VkBool32,
+    pub extendedDynamicState3CoverageModulationTable: VkBool32,
+    pub extendedDynamicState3CoverageReductionMode: VkBool32,
+    pub extendedDynamicState3RepresentativeFragmentTestEnable: VkBool32,
+    pub extendedDynamicState3ShadingRateImageEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceExtendedDynamicState3FeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceExtendedDynamicState3FeaturesEXT>()
+        - 144usize];
+    [
+        "Alignment of VkPhysicalDeviceExtendedDynamicState3FeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceExtendedDynamicState3FeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExtendedDynamicState3FeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExtendedDynamicState3FeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3TessellationDomainOrigin",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3TessellationDomainOrigin
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3DepthClampEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3DepthClampEnable
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3PolygonMode",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3PolygonMode
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3RasterizationSamples",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3RasterizationSamples
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3SampleMask",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT, extendedDynamicState3SampleMask
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3AlphaToCoverageEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3AlphaToCoverageEnable
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3AlphaToOneEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3AlphaToOneEnable
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3LogicOpEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3LogicOpEnable
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ColorBlendEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ColorBlendEnable
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ColorBlendEquation",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ColorBlendEquation
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ColorWriteMask",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ColorWriteMask
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3RasterizationStream",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3RasterizationStream
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ConservativeRasterizationMode",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ConservativeRasterizationMode
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ExtraPrimitiveOverestimationSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ExtraPrimitiveOverestimationSize
+    ) - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3DepthClipEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3DepthClipEnable
+    ) - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3SampleLocationsEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3SampleLocationsEnable
+    ) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ColorBlendAdvanced",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ColorBlendAdvanced
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ProvokingVertexMode",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ProvokingVertexMode
+    ) - 84usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3LineRasterizationMode",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3LineRasterizationMode
+    ) - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3LineStippleEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3LineStippleEnable
+    ) - 92usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3DepthClipNegativeOneToOne",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3DepthClipNegativeOneToOne
+    ) - 96usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ViewportWScalingEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ViewportWScalingEnable
+    ) - 100usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ViewportSwizzle",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ViewportSwizzle
+    ) - 104usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3CoverageToColorEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3CoverageToColorEnable
+    ) - 108usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3CoverageToColorLocation",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3CoverageToColorLocation
+    ) - 112usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3CoverageModulationMode",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3CoverageModulationMode
+    ) - 116usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3CoverageModulationTableEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3CoverageModulationTableEnable
+    ) - 120usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3CoverageModulationTable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3CoverageModulationTable
+    ) - 124usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3CoverageReductionMode",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3CoverageReductionMode
+    ) - 128usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3RepresentativeFragmentTestEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3RepresentativeFragmentTestEnable
+    ) - 132usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3FeaturesEXT::extendedDynamicState3ShadingRateImageEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+        extendedDynamicState3ShadingRateImageEnable
+    ) - 136usize];
+};
+impl Default for VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetConservativeRasterizationModeEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        conservativeRasterizationMode: VkConservativeRasterizationModeEXT,
+    ),
+>;
+pub type PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        extraPrimitiveOverestimationSize: f32,
+    ),
+>;
+pub type PFN_vkCmdSetDepthClipEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthClipEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetProvokingVertexModeEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        provokingVertexMode: VkProvokingVertexModeEXT,
+    ),
+>;
+pub type PFN_vkCmdSetLineRasterizationModeEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        lineRasterizationMode: VkLineRasterizationModeEXT,
+    ),
+>;
+pub type PFN_vkCmdSetLineStippleEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, stippledLineEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetDepthClipNegativeOneToOneEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, negativeOneToOne: VkBool32),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkShaderEXT_T {

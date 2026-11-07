@@ -27,15 +27,17 @@ patch restart does not silently enable tessellation.
 explicitly disabled clipping. Omitting the record preserves the native rule that
 depth clamping also disables Z clipping; supplying it makes these two controls
 independent. The separate `DEPTH_CLAMP` enable still governs clamping. This is
-static executable state; dynamic clipping is not claimed by this batch.
+static executable state here; the subsequent [raster mechanisms](raster-mechanisms.md)
+batch also exposes independently enabled dynamic clipping.
 
 `VertexDivisors { header, count, reserved, entries }` attaches to
 `VertexInput.header.next`. Each `VertexDivisor { binding, divisor }` names a unique
 declared instance-rate binding. Omitted bindings use divisor one. Zero requires
 `VERTEX_ZERO_DIVISOR`; values greater than one require `VERTEX_DIVISOR`; all values
 must fit the physical maximum. Per-vertex bindings cannot carry a divisor entry.
-Both extension records require `header.next=NULL`; unknown or duplicate/nested
-records fail during preparation. Metadata is borrowed only for that preparation.
+`VertexDivisors` requires `header.next=NULL`. `DepthClipState` participates in the
+bounded [raster mechanism chain](raster-mechanisms.md). Unknown or repeated records
+fail during preparation. Metadata is borrowed only for that preparation.
 
 For local instance number `i`, the fetched element is
 `firstInstance + floor(i / divisor)`. With divisor zero it is `firstInstance`.
@@ -83,8 +85,9 @@ pass. See the [acceptance receipt](results/m8-raster-controls-2026-11-06.md).
 Point/line/adjacency restart execution, point output from other stages, polygon
 point mode, generated/secondary/multiview combinations and external backend
 execution remain separate evidence work. Dynamic divisor/input descriptions and
-dynamic clipping remain unimplemented profiles. The next M8 batch covers the
-distinct raster mechanisms in the [coverage audit](m8-coverage.md).
+remaining dynamic raster controls remain unimplemented profiles. Independent
+dynamic clipping and several distinct [raster mechanisms](raster-mechanisms.md)
+are now implemented; see the [coverage audit](m8-coverage.md) for remaining work.
 
 Native semantics are checked against the pinned registry and the primary
 [divisor proposal](https://docs.vulkan.org/features/latest/features/proposals/VK_KHR_vertex_attribute_divisor.html),

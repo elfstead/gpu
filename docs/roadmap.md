@@ -624,8 +624,13 @@ raster/fetch controls, distinct raster mechanisms, geometry capture/dynamic patc
 state, and contract/composition consolidation before M9. The [first control batch](raster-controls.md) now implements large points,
 independent clipping, divisors and list/patch restart; ten supported profiles pass
 locally, with patch restart still unavailable. [Clean installed acceptance](results/m8-raster-controls-2026-11-06.md)
-passes C/native Rust and the optimized fixture. Next implement the distinct raster
-mechanisms batch. Native combinations and general stage-interface tooling remain
+passes C/native Rust and the optimized fixture. The [raster mechanisms tranche](raster-mechanisms.md)
+now adds conservative coverage, line/stipple modes, provoking vertex, depth
+convention and independent dynamic controls, with [local evidence](results/m8-raster-mechanisms-2026-11-07.md).
+Next complete programmable sample positions with depth-content contracts, dynamic
+vertex input/divisors and remaining raster controls, plus the extension-format
+inventory. Geometry capture/dynamic patch and consolidation follow before M9.
+Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);

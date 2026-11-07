@@ -3,6 +3,23 @@
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
 pub(super) type FeatureBits = u128;
+pub(super) const CONSERVATIVE_RASTER: FeatureBits = 1 << 79;
+pub(super) const PROVOKING_LAST: FeatureBits = 1 << 80;
+pub(super) const DEPTH_NEGATIVE_ONE_TO_ONE: FeatureBits = 1 << 81;
+pub(super) const RECTANGULAR_LINES: FeatureBits = 1 << 82;
+pub(super) const BRESENHAM_LINES: FeatureBits = 1 << 83;
+pub(super) const SMOOTH_LINES: FeatureBits = 1 << 84;
+pub(super) const STIPPLED_RECTANGULAR_LINES: FeatureBits = 1 << 85;
+pub(super) const STIPPLED_BRESENHAM_LINES: FeatureBits = 1 << 86;
+pub(super) const STIPPLED_SMOOTH_LINES: FeatureBits = 1 << 87;
+pub(super) const DYNAMIC_CONSERVATIVE_MODE: FeatureBits = 1 << 88;
+pub(super) const DYNAMIC_EXTRA_OVERESTIMATION: FeatureBits = 1 << 89;
+pub(super) const DYNAMIC_PROVOKING_VERTEX: FeatureBits = 1 << 90;
+pub(super) const DYNAMIC_DEPTH_CLIP: FeatureBits = 1 << 91;
+pub(super) const DYNAMIC_DEPTH_CONVENTION: FeatureBits = 1 << 92;
+pub(super) const DYNAMIC_LINE_MODE: FeatureBits = 1 << 93;
+pub(super) const DYNAMIC_LINE_STIPPLE_ENABLE: FeatureBits = 1 << 94;
+
 pub(super) const LARGE_POINTS: FeatureBits = 1 << 73;
 pub(super) const DEPTH_CLIP: FeatureBits = 1 << 74;
 pub(super) const VERTEX_DIVISOR: FeatureBits = 1 << 75;
@@ -97,7 +114,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 79 {
+        if id > 95 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u128 << (id - 1);
@@ -105,7 +122,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=79)
+    (1..=95)
         .filter(|id| mask & (1u128 << (id - 1)) != 0)
         .collect()
 }
@@ -169,7 +186,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [80, 128, u32::MAX] {
+        for id in [96, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

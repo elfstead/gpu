@@ -232,6 +232,23 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_VERTEX_ZERO_DIVISOR UINT32_C(77)
 #define OGPU_NEXT_FEATURE_LIST_RESTART UINT32_C(78)
 #define OGPU_NEXT_FEATURE_PATCH_RESTART UINT32_C(79)
+#define OGPU_NEXT_FEATURE_CONSERVATIVE_RASTER UINT32_C(80)
+#define OGPU_NEXT_FEATURE_PROVOKING_LAST UINT32_C(81)
+#define OGPU_NEXT_FEATURE_DEPTH_NEGATIVE_ONE_TO_ONE UINT32_C(82)
+#define OGPU_NEXT_FEATURE_RECTANGULAR_LINES UINT32_C(83)
+#define OGPU_NEXT_FEATURE_BRESENHAM_LINES UINT32_C(84)
+#define OGPU_NEXT_FEATURE_SMOOTH_LINES UINT32_C(85)
+#define OGPU_NEXT_FEATURE_STIPPLED_RECTANGULAR_LINES UINT32_C(86)
+#define OGPU_NEXT_FEATURE_STIPPLED_BRESENHAM_LINES UINT32_C(87)
+#define OGPU_NEXT_FEATURE_STIPPLED_SMOOTH_LINES UINT32_C(88)
+#define OGPU_NEXT_FEATURE_DYNAMIC_CONSERVATIVE_MODE UINT32_C(89)
+#define OGPU_NEXT_FEATURE_DYNAMIC_EXTRA_OVERESTIMATION UINT32_C(90)
+#define OGPU_NEXT_FEATURE_DYNAMIC_PROVOKING_VERTEX UINT32_C(91)
+#define OGPU_NEXT_FEATURE_DYNAMIC_DEPTH_CLIP UINT32_C(92)
+#define OGPU_NEXT_FEATURE_DYNAMIC_DEPTH_CONVENTION UINT32_C(93)
+#define OGPU_NEXT_FEATURE_DYNAMIC_LINE_MODE UINT32_C(94)
+#define OGPU_NEXT_FEATURE_DYNAMIC_LINE_STIPPLE_ENABLE UINT32_C(95)
+
 
 
 #define OGPU_NEXT_FEATURE_RASTER UINT32_C(1)
@@ -1782,6 +1799,61 @@ enum {
  * No shader emulation, extra pass or implicit attachment read transition.
  */
 enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON_POINT = 2 };
+#define OGPU_NEXT_DYNAMIC_CONSERVATIVE_MODE (UINT64_C(1) << 14)
+#define OGPU_NEXT_DYNAMIC_EXTRA_OVERESTIMATION (UINT64_C(1) << 15)
+#define OGPU_NEXT_DYNAMIC_PROVOKING_VERTEX (UINT64_C(1) << 16)
+#define OGPU_NEXT_DYNAMIC_DEPTH_CLIP (UINT64_C(1) << 17)
+#define OGPU_NEXT_DYNAMIC_DEPTH_CONVENTION (UINT64_C(1) << 18)
+#define OGPU_NEXT_DYNAMIC_LINE_MODE (UINT64_C(1) << 19)
+#define OGPU_NEXT_DYNAMIC_LINE_STIPPLE_ENABLE (UINT64_C(1) << 20)
+#define OGPU_NEXT_DYNAMIC_LINE_STIPPLE (UINT64_C(1) << 21)
+
+#define OGPU_NEXT_QUERY_RASTER_MECHANISM_LIMITS UINT32_C(25)
+#define OGPU_NEXT_CONSERVATIVE_DISABLED UINT32_C(0)
+#define OGPU_NEXT_CONSERVATIVE_OVERESTIMATE UINT32_C(1)
+#define OGPU_NEXT_CONSERVATIVE_UNDERESTIMATE UINT32_C(2)
+#define OGPU_NEXT_LINE_DEFAULT UINT32_C(0)
+#define OGPU_NEXT_LINE_RECTANGULAR UINT32_C(1)
+#define OGPU_NEXT_LINE_BRESENHAM UINT32_C(2)
+#define OGPU_NEXT_LINE_SMOOTH_RECTANGULAR UINT32_C(3)
+#define OGPU_NEXT_PROVOKING_VERTEX_FIRST UINT32_C(0)
+#define OGPU_NEXT_PROVOKING_VERTEX_LAST UINT32_C(1)
+#define OGPU_NEXT_CONSERVATIVE_STATE UINT32_C(136)
+#define OGPU_NEXT_LINE_STATE UINT32_C(137)
+#define OGPU_NEXT_PROVOKING_STATE UINT32_C(138)
+#define OGPU_NEXT_DEPTH_CONVENTION_STATE UINT32_C(139)
+typedef struct ogpu_next_raster_mechanism_limits {
+    float primitive_overestimation, max_extra_overestimation, extra_overestimation_granularity;
+    uint32_t underestimation, conservative_points_lines, degenerate_triangles, degenerate_lines;
+    uint32_t fully_covered_input, conservative_post_depth_coverage, provoking_per_pipeline;
+    uint32_t line_subpixel_precision, strict_lines;
+} ogpu_next_raster_mechanism_limits;
+typedef struct ogpu_next_conservative_state { ogpu_next_record header; uint32_t mode; float extra_overestimation; } ogpu_next_conservative_state;
+typedef struct ogpu_next_line_state { ogpu_next_record header; uint32_t mode, stipple_enable, factor, pattern; } ogpu_next_line_state;
+typedef struct ogpu_next_provoking_state { ogpu_next_record header; uint32_t mode, reserved; } ogpu_next_provoking_state;
+typedef struct ogpu_next_depth_convention_state { ogpu_next_record header; uint32_t negative_one_to_one, reserved; } ogpu_next_depth_convention_state;
+/* Optional raster_options.header.next chain: one of each of these records and
+ * DEPTH_CLIP_STATE, in any order. Unknown/duplicate/cyclic records reject. Reserved
+ * fields=0. Conservative mode=0 disabled, 1 overestimate, 2 underestimate; mode 2
+ * needs the queried property. Extra size is finite, nonnegative and <= maximum.
+ * Line mode=0 default, 1 rectangular, 2 Bresenham, 3 smooth rectangular. Each
+ * nondefault mode and its stipple feature are independently enabled. Stipple is
+ * boolean; factor=1..256, pattern=0..65535. Default+stipple needs strict_lines.
+ * Provoking mode=0 first, 1 last. Depth convention=0 [0,w], 1 [-w,w] Z clipping.
+ * Omission preserves native defaults. Explicit conservative/provoking/convention
+ * records need their base feature, even when selecting default values.
+ * Dynamic fields ignore static values; initialize every selected dynamic value.
+ * Native primitive/output-mode, sample-shading/alpha and pass-wide provoking
+ * compatibility are TRUSTED caller rules; no current-pipeline/state cache.
+ */
+void ogpu_next_set_conservative_mode(ogpu_next_encoder *, uint32_t mode);
+void ogpu_next_set_extra_overestimation(ogpu_next_encoder *, float extra);
+void ogpu_next_set_provoking_vertex(ogpu_next_encoder *, uint32_t mode);
+void ogpu_next_set_depth_clip(ogpu_next_encoder *, uint32_t enable);
+void ogpu_next_set_depth_convention(ogpu_next_encoder *, uint32_t negative_one_to_one);
+void ogpu_next_set_line_mode(ogpu_next_encoder *, uint32_t mode);
+void ogpu_next_set_line_stipple_enable(ogpu_next_encoder *, uint32_t enable);
+void ogpu_next_set_line_stipple(ogpu_next_encoder *, uint32_t factor, uint32_t pattern);
 #define OGPU_NEXT_QUERY_RASTER_CONTROL_LIMITS UINT32_C(24)
 #define OGPU_NEXT_DEPTH_CLIP_STATE UINT32_C(134)
 #define OGPU_NEXT_VERTEX_DIVISORS UINT32_C(135)
@@ -1793,7 +1865,7 @@ typedef struct ogpu_next_depth_clip_state {
     ogpu_next_record header;
     uint32_t enable, reserved;
 } ogpu_next_depth_clip_state;
-/* Optional raster_options.header.next; next=NULL, reserved=0, enable=0/1.
+/* Optional member of raster_options.header.next; reserved=0, enable=0/1.
  * Requires DEPTH_CLIP even when enable=0. Controls Z clipping independently of
  * depth_clamp; absence preserves the native coupled clamp/clip default. */
 typedef struct ogpu_next_vertex_divisor { uint32_t binding, divisor; } ogpu_next_vertex_divisor;

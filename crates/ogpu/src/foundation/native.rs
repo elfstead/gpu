@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "raster_mechanisms.rs"]
+mod raster_mechanisms;
+
 #[path = "raster_controls.rs"]
 mod raster_controls;
 
@@ -311,6 +314,7 @@ pub(super) fn snapshot(
     let mut execution_limits = ExecutionLimits::default();
     let mut raster_stage_limits = RasterStageLimits::default();
     let mut raster_control_limits = RasterControlLimits::default();
+    let mut raster_mechanism_limits = RasterMechanismLimits::default();
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -447,8 +451,24 @@ pub(super) fn snapshot(
             polygon_mode_point_size: local_properties.polygonModePointSize,
         };
         features.available |= raster_controls::snapshot(instance, physical, &f)?;
+        let (mechanisms, mechanism_limits) = raster_mechanisms::snapshot(
+            instance,
+            physical,
+            &f,
+            &local_properties,
+            &properties.properties.limits,
+        )?;
+        features.available |= mechanisms;
+        raster_mechanism_limits = mechanism_limits;
+
         for (value, bit) in [
             (root.features.largePoints, LARGE_POINTS),
+            (v14.rectangularLines, RECTANGULAR_LINES),
+            (v14.bresenhamLines, BRESENHAM_LINES),
+            (v14.smoothLines, SMOOTH_LINES),
+            (v14.stippledRectangularLines, STIPPLED_RECTANGULAR_LINES),
+            (v14.stippledBresenhamLines, STIPPLED_BRESENHAM_LINES),
+            (v14.stippledSmoothLines, STIPPLED_SMOOTH_LINES),
             (v14.vertexAttributeInstanceRateDivisor, VERTEX_DIVISOR),
             (
                 v14.vertexAttributeInstanceRateZeroDivisor,
@@ -666,6 +686,20 @@ pub(super) fn snapshot(
         }
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
+    for (dynamic, base) in [
+        (
+            DYNAMIC_CONSERVATIVE_MODE | DYNAMIC_EXTRA_OVERESTIMATION,
+            CONSERVATIVE_RASTER,
+        ),
+        (DYNAMIC_PROVOKING_VERTEX, PROVOKING_LAST),
+        (DYNAMIC_DEPTH_CLIP, DEPTH_CLIP),
+        (DYNAMIC_DEPTH_CONVENTION, DEPTH_NEGATIVE_ONE_TO_ONE),
+    ] {
+        if features.available & base == 0 {
+            features.available &= !dynamic;
+        }
+    }
+    graphics_limits.dynamic_states |= raster_mechanisms::dynamic_mask(features.available);
     let (mesh_features, mesh_limits) = mesh::snapshot(instance, physical, &f)?;
     let (shading_features, shading_rate_limits, shading_rates) =
         shading_rate::snapshot(instance, physical, &f)?;
@@ -764,6 +798,7 @@ pub(super) fn snapshot(
         local_read_limits,
         raster_stage_limits,
         raster_control_limits,
+        raster_mechanism_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -778,6 +813,7 @@ pub struct Device {
     handle: vk::VkDevice,
     f: Functions,
     shading_rate_function: vk::PFN_vkCmdSetFragmentShadingRateKHR,
+    raster_commands: raster_mechanisms::Commands,
     mesh_functions: Option<mesh::MeshFunctions>,
     generated_functions: Option<generated::GeneratedFunctions>,
     pub(super) snapshot: Snapshot,
@@ -839,6 +875,7 @@ impl Device {
             physical: adapter.physical,
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
+            raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
             shading_rate_function: if enabled & shading_rate::INPUTS != 0 {
                 shading_rate::load(&adapter.instance)?
             } else {
@@ -926,6 +963,13 @@ impl Device {
         let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
             maintenance5: 1,
+            rectangularLines: u32::from(enabled & RECTANGULAR_LINES != 0),
+            bresenhamLines: u32::from(enabled & BRESENHAM_LINES != 0),
+            smoothLines: u32::from(enabled & SMOOTH_LINES != 0),
+            stippledRectangularLines: u32::from(enabled & STIPPLED_RECTANGULAR_LINES != 0),
+            stippledBresenhamLines: u32::from(enabled & STIPPLED_BRESENHAM_LINES != 0),
+            stippledSmoothLines: u32::from(enabled & STIPPLED_SMOOTH_LINES != 0),
+
             vertexAttributeInstanceRateDivisor: u32::from(enabled & VERTEX_DIVISOR != 0),
             vertexAttributeInstanceRateZeroDivisor: u32::from(enabled & VERTEX_ZERO_DIVISOR != 0),
             dynamicRenderingLocalRead: u32::from(enabled & LOCAL_READ != 0),
@@ -1054,6 +1098,22 @@ impl Device {
         } else {
             ptr::from_ref(&draw_parameters).cast()
         };
+
+        for (bit, name) in [
+            (CONSERVATIVE_RASTER, c"VK_EXT_conservative_rasterization"),
+            (PROVOKING_LAST, c"VK_EXT_provoking_vertex"),
+            (DEPTH_NEGATIVE_ONE_TO_ONE, c"VK_EXT_depth_clip_control"),
+            (
+                raster_mechanisms::DYNAMIC_FEATURES,
+                c"VK_EXT_extended_dynamic_state3",
+            ),
+        ] {
+            if enabled & bit != 0 {
+                extensions.push(name.as_ptr());
+            }
+        }
+        let mut mechanisms = raster_mechanisms::Native::new(enabled);
+        let previous = mechanisms.link(previous.cast_mut(), enabled).cast_const();
         let mut raster_controls = raster_controls::Native::new(enabled);
         let previous = raster_controls
             .link(previous.cast_mut(), enabled)

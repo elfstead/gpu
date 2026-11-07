@@ -67,6 +67,7 @@ struct Snapshot {
     local_read_limits: LocalReadLimits,
     raster_stage_limits: RasterStageLimits,
     raster_control_limits: RasterControlLimits,
+    raster_mechanism_limits: RasterMechanismLimits,
     shading_rate_limits: ShadingRateLimits,
     shading_rates: Vec<ShadingRate>,
     formats: Vec<FormatInfo>,
@@ -145,6 +146,9 @@ impl Snapshot {
                 MESH_LIMITS => copy_out(query, std::slice::from_ref(&self.mesh_limits)),
                 DEPENDENCY_LIMITS if self.features.device_scope != 0 => {
                     copy_out(query, &self.dependency_limits)
+                }
+                RASTER_MECHANISM_LIMITS => {
+                    copy_out(query, std::slice::from_ref(&self.raster_mechanism_limits))
                 }
                 RASTER_CONTROL_LIMITS => {
                     copy_out(query, std::slice::from_ref(&self.raster_control_limits))
