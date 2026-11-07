@@ -311,11 +311,12 @@ static int context(Scene *s,const char *directory) {
     return 1;
 }
 static int storage(Scene *s) {
-    GPU(ogpu_next_barrier_scratch_requirements(s->device,1,0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(
+    uint32_t render_colors=1;
 #ifdef SCENE_ADVANCED_RASTER
-        scene_advanced_mode>=5?2:
+    if(scene_advanced_mode>=5)render_colors=2;
 #endif
-        1,&s->render_scratch));
+    GPU(ogpu_next_barrier_scratch_requirements(s->device,1,0,1,&s->barrier_scratch));
+    GPU(ogpu_next_render_scratch_requirements(render_colors,&s->render_scratch));
     GPU(ogpu_next_submit_scratch_requirements(s->device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&s->submit_scratch));
     NEED(s->barrier_scratch.alignment<=_Alignof(max_align_t) && s->render_scratch.alignment<=_Alignof(max_align_t) && s->submit_scratch.alignment<=_Alignof(max_align_t));
     s->bs=malloc(s->barrier_scratch.size); s->rs=malloc(s->render_scratch.size); s->ss=malloc(s->submit_scratch.size); NEED(s->bs && s->rs && s->ss);
