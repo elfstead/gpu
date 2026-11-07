@@ -22,7 +22,7 @@ class InstalledSceneTests(unittest.TestCase):
         for bits in (16,32):
             for slots in (1,2):
                 for replay in (False,True):
-                    profile=dict(foundation=12,index_bytes=bits//8,gpu_generated=True)
+                    profile=dict(foundation=13,index_bytes=bits//8,gpu_generated=True)
                     generated=dict(compute_push_bytes=32,vertex_push_bytes=8)
                     frames=[dict(frame=f,slot=f%slots,generation=f//slots,phase=int(f//slots%4==1),empty=int(f//slots%4==2)) for f in range(8)]
                     summary=dict(frames=8,slots=slots,mode=8,index_bytes=bits//8,replay=int(replay),

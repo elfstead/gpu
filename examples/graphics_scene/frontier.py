@@ -19,7 +19,7 @@ require,digest,rows=reuse.require,reuse.digest,reuse.rows
 
 def check_log(stdout,stderr,capacity,strategy,device,identity=False,public=False,foundation=False):
     if foundation:
-        require(public and rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=12,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
+        require(public and rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=13,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require(('Public' if public else 'Native')+' indexed frontier drained' in stdout,'missing drain marker')
     require(rows(stdout,'DEVICE ')==[device],'wrong device')
