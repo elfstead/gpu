@@ -19,6 +19,7 @@ impl Prepared {
         base: u64,
         enable_generated: bool,
         memory_type: u32,
+        procedural: bool,
     ) -> gpu::Result<Self> {
         unsafe {
             let mut generated = GeneratedLimits::default();
@@ -47,10 +48,10 @@ impl Prepared {
             gpu::device_query(device, &mut query)?;
             let field = ArgumentField {
                 offset: 0,
-                size: 16,
+                size: 24,
                 kind: ARGUMENT_INLINE,
                 address_alignment: 0,
-                stages: ARGUMENT_RAYGEN,
+                stages: ARGUMENT_RAYGEN | ARGUMENT_INTERSECTION,
                 space: ARGUMENT_DIRECT,
                 binding: ARGUMENT_DIRECT,
             };
@@ -58,7 +59,7 @@ impl Prepared {
                 device,
                 &ArgumentLayoutDesc {
                     execution_class: ARGUMENT_RAY,
-                    byte_size: 16,
+                    byte_size: 24,
                     field_count: 1,
                     flags: 0,
                     fields: &field,
@@ -69,6 +70,8 @@ impl Prepared {
                 include_bytes!("../shaders/foundation-ray-pipeline.rmiss.spv"),
                 include_bytes!("../shaders/foundation-ray-pipeline.rchit.spv"),
                 include_bytes!("../shaders/foundation-ray-pipeline.rcall.spv"),
+                include_bytes!("../shaders/foundation-ray-pipeline.rint.spv"),
+                include_bytes!("../shaders/foundation-ray-pipeline.rahit.spv"),
             ];
             let aligned: Vec<Vec<u32>> = codes
                 .iter()
@@ -83,6 +86,8 @@ impl Prepared {
                 (SHADER_MISS, c"missMain"),
                 (SHADER_CLOSEST_HIT, c"hitMain"),
                 (SHADER_CALLABLE, c"initialize"),
+                (SHADER_INTERSECTION, c"intersectMain"),
+                (SHADER_ANY_HIT, c"anyMain"),
             ]
             .iter()
             .enumerate()
@@ -113,6 +118,11 @@ impl Prepared {
                 any_hit: none,
                 intersection: none,
             };
+            if procedural {
+                groups[2].kind = RAY_GROUP_PROCEDURAL;
+                groups[2].intersection = 4;
+                groups[2].any_hit = 5;
+            }
             let state = RayState {
                 header: Record::new::<RayState>(RAY_STATE),
                 group_count: 4,
@@ -137,7 +147,7 @@ impl Prepared {
                 &ExecutableDesc {
                     header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
                     kind: EXECUTABLE_RAY,
-                    shader_count: 4,
+                    shader_count: shaders.len() as u32,
                     shaders: shaders.as_ptr(),
                     static_state: &state.header,
                     dynamic_state: DYNAMIC_RAY_STACK,
@@ -188,6 +198,12 @@ impl Prepared {
             let stack = gpu::ray_group_stack_size(executable, 0, 0)?
                 + gpu::ray_group_stack_size(executable, 1, 0)?
                     .max(gpu::ray_group_stack_size(executable, 2, 1)?)
+                    .max(if procedural {
+                        gpu::ray_group_stack_size(executable, 2, 2)?
+                            + gpu::ray_group_stack_size(executable, 2, 3)?
+                    } else {
+                        0
+                    })
                 + 2 * gpu::ray_group_stack_size(executable, 3, 0)?;
             assert_eq!(gpu::ray_group_stack_size(executable, 2, 0), Err(INVALID));
             assert_eq!(
@@ -321,21 +337,20 @@ impl Prepared {
         &self,
         device: gpu::DeviceHandle,
         list: gpu::ListHandle,
-        scene: u64,
         base: u64,
         mode: u64,
+        arguments: &[u64; 3],
     ) -> gpu::Result<()> {
         unsafe {
             gpu::bind_executable(list, self.executable);
             gpu::set_ray_stack_size(list, self.stack);
-            let arguments = [scene, base + 512];
             gpu::set_arguments(
                 list,
                 self.layout,
                 0,
-                std::slice::from_raw_parts(arguments.as_ptr().cast(), 16),
+                std::slice::from_raw_parts(arguments.as_ptr().cast(), 24),
             );
-            if mode >= 3 && self.generated.len() == 2 {
+            if (3..5).contains(&mode) && self.generated.len() == 2 {
                 let explicit = (mode - 3) as u32;
                 let batch = &self.generated[explicit as usize].1;
                 if explicit != 0 {

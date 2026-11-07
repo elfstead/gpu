@@ -150,3 +150,22 @@ consolidation are next. Native indirect AS builds remain unavailable locally.
 Ray libraries/capture-replay/vendor primitive families need separate capability
 and artifact dispositions; pipeline binaries belong to M11. No software fallback
 or native Metal/DX12 ray acceptance is implied by this tranche.
+
+## Procedural and batched-build tranche — implemented 2026-11-07
+
+The consumer now checks triangles and procedural AABBs through both inline queries
+and ray pipelines. It validates two geometry identities, instance and primitive
+identity, procedural intersection distance, and an any-hit payload marker observed
+by closest-hit. Each profile has six states: original, updated, cloned, compacted,
+deserialized, and a second independently built AS from the same native build batch.
+Separate caller GPU scratch ranges preserve native batch independence. The explicit
+emulation run checks 96 rays, with fresh sentinels and guards before every dispatch,
+and no validation errors. AABB-only ignored transform offsets remain accepted;
+triangle offsets retain their native alignment requirement.
+
+The source-only Rust SDK now includes this consumer and all pinned ray artifacts.
+Its `ray` binary has `--pipeline`/`--procedural` switches, explicit unsupported exit
+77, and no emulation selection. `tools/test-rust-install.py --ray` requires all four
+profiles after relocation and a fresh offline build; ordinary installs still build
+ray support without claiming runtime acceptance. Clean SDK consolidation is the
+next checkpoint, before M10.

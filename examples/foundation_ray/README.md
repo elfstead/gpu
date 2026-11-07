@@ -39,3 +39,20 @@ a generated layout, for composition diagnosis. Local pipeline selection remains
 unavailable even though fixed-pipeline generated rays execute. A combined
 preprocess/AS/table buffer failed in the explicit emulation diagnostic; this is an
 open memory-profile issue, not a restriction imposed by OGPU.
+
+The current matrix is triangles/procedural AABBs × inline query/ray pipeline, with
+six states and four rays per state (96 rays). The final state uses a second AS
+built in the same native batch with independent scratch. Procedural pipelines
+check an any-hit payload marker as well as the intersection result. The shader's
+plane intersection is fixture policy inside the supplied AABB bounds.
+
+The native Rust SDK includes a `ray` binary in its independent consumer package:
+
+```
+cargo run --locked --offline --release --manifest-path examples/foundation_rust/Cargo.toml --bin ray -- --pipeline --procedural
+```
+
+After SDK installation, `tools/test-rust-install.py --prefix PREFIX --ray` relocates
+and builds the source graph before requiring all four profiles. Run that harness
+with emulation explicitly set only when intending a diagnostic result. Hardware
+support and native Metal/DX12 remain separate acceptance tracks.

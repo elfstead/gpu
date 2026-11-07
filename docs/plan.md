@@ -61,7 +61,8 @@ implemented or natively validated unless explicitly reported below.
 M9 now implements AS operations and ray executables/tables, direct/indirect/generated
 trace commands through C and native Rust. [Explicit emulation diagnostics](results/m9-ray-pipelines-2026-11-07.json)
 pass with two geometry identities and caller-owned preprocessing. Procedural
-geometry and M9 consolidation are next; native ray acceptance remains open.
+geometry/any-hit/intersection and batched builds now pass a [96-ray diagnostic](results/m9-procedural-rays-2026-11-07.json).
+Clean M9 SDK consolidation is next; native ray acceptance remains open.
 
 The [current design](design.md) describes the model; the
 [implemented surface](foundation-implementation.md) gives exact profiles and

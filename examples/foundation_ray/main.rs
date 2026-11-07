@@ -77,10 +77,15 @@ unsafe fn finish(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn run() -> gpu::Result<()> {
     run_profile(false)
 }
+#[allow(dead_code)]
 pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
+    run_geometry(ray_pipeline, false)
+}
+pub fn run_geometry(ray_pipeline: bool, procedural: bool) -> gpu::Result<()> {
     let discovery = gpu::discover()?;
     let Some(adapter) = gpu::adapters(&discovery).iter().find(|a| {
         gpu::adapter_features(a).baseline_supported != 0
@@ -201,7 +206,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                 },
             },
         };
-        let geometries = [
+        let mut geometries = [
             triangle,
             AccelerationGeometry {
                 data: AccelerationGeometryData {
@@ -213,6 +218,20 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                 ..triangle
             },
         ];
+        if procedural {
+            let boxes = [0f32, 0., 0., 1., 1., 0.25, 2., 0., 0., 3., 1., 0.25];
+            ptr::copy_nonoverlapping(boxes.as_ptr(), host.cast::<f32>(), boxes.len());
+            geometries = [0, 24].map(|offset| AccelerationGeometry {
+                kind: GEOMETRY_AABBS,
+                flags: 0,
+                data: AccelerationGeometryData {
+                    aabbs: AccelerationAabbs {
+                        data: base + offset,
+                        stride: 24,
+                    },
+                },
+            });
+        }
         let maxima = [1u32, 1];
         let max = 1;
         let bottom = AccelerationBuildDesc {
@@ -244,7 +263,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
             geometries: &instance_geom,
             max_primitives: &max,
         };
-        let mut scratch = Scratch::new(gpu::acceleration_scratch_requirements(2, 3)?);
+        let mut scratch = Scratch::new(gpu::acceleration_scratch_requirements(2, 4)?);
         let br = gpu::acceleration_requirements(device, &bottom, scratch.span())?;
         let tr = gpu::acceleration_requirements(device, &top, scratch.span())?;
         println!(
@@ -273,6 +292,8 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
         let blas = make(ACCELERATION_BOTTOM, 65536, br.storage_size)?;
         let tlas = make(ACCELERATION_TOP, 131072, tr.storage_size)?;
         let clone = make(ACCELERATION_BOTTOM, 196608, br.storage_size)?;
+        let batched = make(ACCELERATION_BOTTOM, 458752, br.storage_size)?;
+        assert!(br.build_scratch_size <= md.size - 786432);
         let instance = AccelerationInstance {
             transform: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0.],
             custom_index_and_mask: 37 | (255 << 24),
@@ -285,7 +306,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
             primitive_count: 1,
             primitive_offset: 0,
             first_vertex: 0,
-            transform_offset: 0,
+            transform_offset: u32::from(procedural),
         };
         let ranges = [range, range];
         let work = |description, destination, size| AccelerationBuild {
@@ -322,7 +343,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
         });
         let field = ArgumentField {
             offset: 0,
-            size: 16,
+            size: 24,
             kind: ARGUMENT_INLINE,
             address_alignment: 0,
             stages: STAGE_COMPUTE,
@@ -333,7 +354,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
             device,
             &ArgumentLayoutDesc {
                 execution_class: ARGUMENT_COMPUTE,
-                byte_size: 16,
+                byte_size: 24,
                 field_count: 1,
                 flags: 0,
                 fields: &field,
@@ -390,6 +411,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                 base,
                 generated_work,
                 md.memory_type,
+                procedural,
             )?)
         } else {
             None
@@ -422,14 +444,20 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
         }
         let mut compact = None;
         let mut restored = None;
-        for iteration in 0..5u64 {
+        for iteration in 0..6u64 {
             if iteration != 0 {
                 gpu::arena_reset(arena)?;
             }
             // Update geometry from z=0 to z=2; the clone retains the old geometry.
             if iteration == 1 {
-                for i in [2, 5, 8, 11, 14, 17] {
-                    host.cast::<f32>().add(i).write(2.);
+                if procedural {
+                    for (i, z) in [(2, 2.), (5, 2.25), (8, 2.), (11, 2.25)] {
+                        host.cast::<f32>().add(i).write(z);
+                    }
+                } else {
+                    for i in [2, 5, 8, 11, 14, 17] {
+                        host.cast::<f32>().add(i).write(2.);
+                    }
                 }
                 gpu::memory_flush(memory.span(0, 256))?;
             }
@@ -450,7 +478,13 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                     b.source = blas.as_raw();
                     b.update = 1;
                 }
-                gpu::build_accelerations(list, &[b], scratch.span());
+                if iteration == 0 {
+                    let mut second = work(&bottom, batched.as_raw(), br.build_scratch_size);
+                    second.scratch.address = base + 786432;
+                    gpu::build_accelerations(list, &[b, second], scratch.span());
+                } else {
+                    gpu::build_accelerations(list, &[b], scratch.span());
+                }
                 edge(
                     device,
                     list,
@@ -528,7 +562,9 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                 restored = Some(object);
             }
             if iteration >= 2 {
-                let reference = if iteration == 3 {
+                let reference = if iteration == 5 {
+                    batched
+                } else if iteration == 3 {
                     compact.unwrap()
                 } else if iteration == 4 {
                     restored.unwrap()
@@ -560,22 +596,21 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                 ACCELERATION_WRITE,
                 ACCELERATION_READ,
             )?;
+            let arguments = [
+                gpu::acceleration_address(tlas)?,
+                base + 512,
+                u64::from((if iteration == 1 { 2f32 } else { 0f32 }).to_bits())
+                    | (u64::from(procedural) << 32),
+            ];
             if let Some(ray) = &ray {
-                ray.record(
-                    device,
-                    list,
-                    gpu::acceleration_address(tlas)?,
-                    base,
-                    iteration,
-                )?;
+                ray.record(device, list, base, iteration, &arguments)?;
             } else {
                 gpu::bind_executable(list, executable);
-                let arguments = [gpu::acceleration_address(tlas)?, base + 512];
                 gpu::set_arguments(
                     list,
                     layout,
                     0,
-                    std::slice::from_raw_parts(arguments.as_ptr().cast(), 16),
+                    std::slice::from_raw_parts(arguments.as_ptr().cast(), 24),
                 );
                 gpu::dispatch(
                     list,
@@ -609,7 +644,15 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
                             < 1e-5
                     );
                     assert_eq!(p.add(2).read(), 37);
-                    assert_eq!(p.add(3).read(), if i == 3 { 1 << 16 } else { 0 });
+                    assert_eq!(
+                        p.add(3).read(),
+                        (if i == 3 { 1 << 16 } else { 0 })
+                            | (if procedural && ray_pipeline {
+                                1 << 31
+                            } else {
+                                0
+                            })
+                    );
                 } else {
                     assert_eq!(p.add(1).read(), (-1f32).to_bits());
                     assert_eq!(p.add(2).read(), u32::MAX);
@@ -619,7 +662,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
             assert!(std::slice::from_raw_parts(host.add(576), 448)
                 .iter()
                 .all(|&b| b == 0xcd));
-            println!("RAY_SCENE pipeline={ray_pipeline} iteration={iteration} hits=2 misses=2 instance=37 geometries=0,1 guards=ok");
+            println!("RAY_SCENE pipeline={ray_pipeline} procedural={procedural} iteration={iteration} hits=2 misses=2 instance=37 geometries=0,1 guards=ok");
         }
         let compacted = host.add(1024).cast::<u64>().read();
         let serialized = host.add(1032).cast::<u64>().read();
@@ -646,7 +689,7 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
         for pool in pools {
             gpu::query_pool_destroy(pool);
         }
-        for object in [tlas, clone, blas] {
+        for object in [tlas, clone, blas, batched] {
             gpu::acceleration_destroy(object);
         }
         gpu::arena_destroy(arena);
@@ -659,8 +702,22 @@ pub fn run_profile(ray_pipeline: bool) -> gpu::Result<()> {
 }
 #[allow(dead_code)]
 fn main() {
-    if let Err(e) = run() {
-        eprintln!("ray consumer status={e}");
-        std::process::exit(if e == UNSUPPORTED { 77 } else { 1 });
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    if args
+        .iter()
+        .any(|s| s != "--pipeline" && s != "--procedural")
+    {
+        eprintln!("usage: ray [--pipeline] [--procedural]");
+        std::process::exit(2);
+    }
+    match run_geometry(
+        args.iter().any(|s| s == "--pipeline"),
+        args.iter().any(|s| s == "--procedural"),
+    ) {
+        Ok(()) => println!("RAY_CONSUMER_PASS"),
+        Err(e) => {
+            eprintln!("ray consumer status={e}");
+            std::process::exit(if e == UNSUPPORTED { 77 } else { 1 });
+        }
     }
 }

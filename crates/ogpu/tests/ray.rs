@@ -12,3 +12,14 @@ fn gpu_ray_query_consumer() {
 fn gpu_ray_pipeline_consumer() {
     consumer::run_profile(true).unwrap();
 }
+
+#[test]
+#[ignore = "requires AS/ray queries; emulated procedural traversal is diagnostic only"]
+fn gpu_ray_procedural_query() {
+    consumer::run_geometry(false, true).unwrap();
+}
+#[test]
+#[ignore = "requires ray pipelines; emulated procedural traversal is diagnostic only"]
+fn gpu_ray_procedural_pipeline() {
+    consumer::run_geometry(true, true).unwrap();
+}

@@ -12,3 +12,7 @@ default-run = "ogpu-native-rust-consumer"
 [dependencies]
 libloading = "=0.8.9"
 ogpu = { path = "../../crates/ogpu", default-features = false }
+
+[[bin]]
+name = "ray"
+path = "../foundation_ray/main.rs"

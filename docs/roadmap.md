@@ -685,8 +685,9 @@ clone/compact, properties, serialization and inline queries are implemented in C
 and native Rust; the [explicit emulation diagnostic](results/m9-acceleration-query-2026-11-07.json)
 passes. Ray pipelines/tables, explicit stack controls and direct/indirect/generated
 trace commands are now implemented; [pipeline diagnostics](results/m9-ray-pipelines-2026-11-07.json)
-pass. Procedural geometry and consolidation remain before M10; native hardware
-acceptance remains open.
+pass. [Procedural geometry, any-hit/intersection and batched builds](results/m9-procedural-rays-2026-11-07.json)
+also pass the explicit diagnostic. Clean SDK consolidation remains before M10;
+native hardware acceptance remains open.
 
 **Deliver:** the non-derivable hardware boundary for acceleration structures and
 ray execution, reusing ordinary memory, arguments, commands and dependencies.

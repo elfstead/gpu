@@ -113,8 +113,11 @@ impl List {
                 }
                 let r = unsafe { slice(w.ranges, desc.geometry_count)? };
                 let max = unsafe { slice(desc.max_primitives, desc.geometry_count)? };
-                for (r, max) in r.iter().zip(max) {
-                    if r.primitive_count > *max || r.transform_offset % 16 != 0 {
+                let geometries = unsafe { slice(desc.geometries, desc.geometry_count)? };
+                for ((r, max), g) in r.iter().zip(max).zip(geometries) {
+                    // Native transform-offset alignment applies only to triangle geometry.
+                    let transformed = g.kind == GEOMETRY_TRIANGLES;
+                    if r.primitive_count > *max || transformed && r.transform_offset % 16 != 0 {
                         return Err(INVALID);
                     }
                 }

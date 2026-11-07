@@ -9,7 +9,7 @@ RaytracingAccelerationStructure queryScene(uint2 bits) {
 }
 // Native AS address is passed through ordinary argument bytes, no descriptor slot.
 struct Result { uint hit; float distance; uint instance; uint primitive; };
-struct Control { uint2 scene; Result* results; };
+struct Control { uint2 scene; Result* results; float plane; uint procedural; };
 [[vk::push_constant]] ConstantBuffer<Control> control;
 [shader("compute")]
 [numthreads(4,1,1)]
@@ -19,11 +19,16 @@ void queryMain(uint3 id : SV_DispatchThreadID) {
     ray.Direction = float3(0, 0, 1);
     ray.TMin = 0.0;
     ray.TMax = id.x == 2 ? 0.5 : 10.0;
-    RayQuery<RAY_FLAG_FORCE_OPAQUE> query;
+    RayQuery<RAY_FLAG_NONE> query;
     query.TraceRayInline(queryScene(control.scene), 0, 255, ray);
-    while(query.Proceed()) {}
+    while(query.Proceed()) {
+        if (query.CandidateType() == CANDIDATE_PROCEDURAL_PRIMITIVE) {
+            float t = (control.plane - query.CandidateObjectRayOrigin().z) / query.CandidateObjectRayDirection().z;
+            if (t >= ray.TMin && t <= ray.TMax) query.CommitProceduralPrimitiveHit(t);
+        }
+    }
     Result r = {0, -1.0, 0xffffffff, 0xffffffff};
-    if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT) {
+    if (query.CommittedStatus() != COMMITTED_NOTHING) {
         r.hit = 1;
         r.distance = query.CommittedRayT();
         r.instance = query.CommittedInstanceID();

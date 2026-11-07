@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M9 procedural ray and batched build diagnostic",
+  "revision": 13,
+  "environment": {
+    "RADV_EXPERIMENTAL": "emulate_rt",
+    "OGPU_RAY_GENERATED": "1",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1"
+  },
+  "matrix": {
+    "geometry": [
+      "triangles",
+      "procedural AABBs"
+    ],
+    "execution": [
+      "inline query",
+      "ray pipeline"
+    ],
+    "states": [
+      "original",
+      "update",
+      "clone",
+      "compact",
+      "deserialize",
+      "independent batched build"
+    ],
+    "rays_each_state": 4,
+    "total_rays": 96,
+    "geometry_ids": [
+      0,
+      1
+    ],
+    "instance_id": 37,
+    "primitive_id": 0,
+    "any_hit_payload_marker": "verified for procedural pipeline",
+    "pipeline_shader_record_bias": 0.125,
+    "direct_indirect_generated_trace": "pass",
+    "fresh_output_sentinels_and_guards": "pass",
+    "native_version_compatibility": "pass",
+    "validation_errors": 0
+  },
+  "checks": {
+    "host_tests": 130,
+    "strict_clippy": "pass",
+    "shader_reproduction": "pass",
+    "tools_tests": 22,
+    "independent_locked_rust_build": "pass"
+  },
+  "evidence_boundary": [
+    "explicit emulation correctness only",
+    "hardware traversal/performance open",
+    "native indirect builds unavailable",
+    "generated ray pipeline selection unavailable",
+    "clean relocated SDK next",
+    "combined preprocessing/AS/table backing issue assigned M10"
+  ],
+  "logs": [
+    "/tmp/ogpu-m9-procedural-validation.log",
+    "/tmp/ogpu-m9-procedural-host.log",
+    "/tmp/ogpu-m9-procedural-clippy.log",
+    "/tmp/ogpu-m9-procedural-shaders.log",
+    "/tmp/ogpu-m9-procedural-tools.log",
+    "/tmp/ogpu-m9-ray-independent-build.log"
+  ]
+}

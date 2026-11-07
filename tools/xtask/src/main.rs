@@ -565,6 +565,13 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
         ("foundation-ray-query", "queryMain", "compute", "comp"),
         (
             "foundation-ray-pipeline",
+            "intersectMain",
+            "intersection",
+            "rint",
+        ),
+        ("foundation-ray-pipeline", "anyMain", "anyhit", "rahit"),
+        (
+            "foundation-ray-pipeline",
             "rayMain",
             "raygeneration",
             "rgen",
