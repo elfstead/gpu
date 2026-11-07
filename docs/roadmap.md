@@ -644,8 +644,9 @@ blend/logic/write state, with [local and clean installed C/native Rust evidence]
 at `ebf6abb`.
 [Viewport/scissor arrays](viewport-arrays.md) now add explicit range/count updates
 and shader routing, with local 1/4-sample output checks.
-Next: extended depth/color-write controls in the [remaining groups](m8-coverage.md#remaining-raster-control-groups) and the
-extension-format inventory. Geometry capture/dynamic patch and consolidation follow before M9.
+[Extended depth/color-write profiles](extended-depth-color.md) now preserve native
+ranges, bias units and independent attachment enables. Next: the extension-format
+inventory, geometry capture/dynamic patch state and consolidation before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 

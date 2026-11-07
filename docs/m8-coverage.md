@@ -53,8 +53,9 @@ remains execution debt:
    now cover depth clamp, polygon mode, sample count/mask, alpha coverage/one and
    per-attachment blend/logic/write state. [Viewport/scissor arrays](viewport-arrays.md)
    now expose range and count updates, native limits and shader index enabling.
-   **Next:** extended
-   depth/color-write control groups listed below, then
+   [Extended depth and independent color-write profiles](extended-depth-color.md)
+   now cover unrestricted ranges, user clamp ranges, bias units/exactness and
+   whole-attachment enables. **Next:**
    the pinned registry's extension-specific raster-format inventory. These remain in this batch, not
    silently deferred to M9. No draw-time synthesis or shader substitute for a
    distinct native mechanism.
@@ -93,8 +94,8 @@ Before leaving this M8 batch, add or explicitly resolve these ordinary raster ga
 | Group | Required disposition |
 |---|---|
 | Multiple viewports/scissors | Implemented: [arrays and independent counts](viewport-arrays.md), physical limits and shader viewport-index capability. Local VS routing passes at 1/4 samples; other stage/secondary/generated composition remains acceptance debt. |
-| Extended depth behavior | Explicit unrestricted depth-range, depth-clamp range/control and depth-bias representation/exactness profiles where native capabilities support them. Preserve numerical units and clamping behavior; do not substitute shader depth writes. |
-| Color write control | Audit the independent native color-write enable against write masks, retaining one public mechanism when it can express both without losing a native execution path or cost advantage. |
+| Extended depth behavior | Implemented: [unrestricted ranges, user clamp and explicit bias units/exactness](extended-depth-color.md); numerical D32 output and static/dynamic comparisons pass. Other depth formats/combinations remain acceptance debt. |
+| Color write control | Audit complete: [independent enable retained](extended-depth-color.md#why-color-write-enable-is-retained) because a dynamic-mask-only model loses a separately exposed native capability. Static/dynamic enables over component masks pass at 1/4 samples. |
 | Tessellation controls | Dynamic patch count and domain origin belong with step 3; they are concrete work before M9, not a later unspecified extension. |
 | Geometry capture/streams | Step 3 includes native transform-feedback counters, stream selection and associated queries; ordinary storage writes are not presumed equivalent. |
 

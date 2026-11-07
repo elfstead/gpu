@@ -22,6 +22,9 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        set_depth_clamp_range,
+        set_depth_bias_control,
+        set_color_write_enable,
         set_viewports,
         set_scissors,
         set_depth_clamp,

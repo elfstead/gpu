@@ -29,7 +29,8 @@ the former. Geometry-stage routing uses its own stage capability and multi-viewp
 rules. Index values produced by shaders remain caller proof, not host reflection.
 
 Viewports permit negative height and reversed depth endpoints, with finite values
-and current native range rules. Scissors allow zero extents, nonnegative offsets,
+and current native range rules. `UNRESTRICTED_DEPTH_RANGE` permits finite depth
+endpoints outside [0,1]. Scissors allow zero extents, nonnegative offsets,
 and no signed offset-plus-extent overflow. Both operations check range overflow,
 physical count and requested multi-viewport enabling before reading input arrays.
 

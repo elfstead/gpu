@@ -1003,7 +1003,7 @@ impl List {
         )?;
         let values = unsafe { slice(values, count)? };
         for v in values {
-            viewports::viewport(v, &d.snapshot.graphics_limits)?;
+            viewports::viewport(v, &d.snapshot.graphics_limits, d.snapshot.features.enabled)?;
         }
         if count != 0 {
             unsafe {
@@ -1264,10 +1264,80 @@ impl List {
         }
         Ok(())
     }
+
+    pub(in crate::foundation) fn depth_clamp_range(
+        &self,
+        mode: u32,
+        min: f32,
+        max: f32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        raster_profiles::clamp(mode, min, max, d.snapshot.features.enabled)?;
+        let range = vk::VkDepthClampRangeEXT {
+            minDepthClamp: min,
+            maxDepthClamp: max,
+        };
+        unsafe {
+            (d.profile_commands.clamp.ok_or(UNSUPPORTED)?)(
+                self.command,
+                mode,
+                if mode == 1 { &range } else { ptr::null() },
+            );
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn depth_bias_control(
+        &self,
+        constant: f32,
+        clamp: f32,
+        slope: f32,
+        representation: u32,
+        exact: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        core_raster::depth_bias(constant, clamp, slope, d.snapshot.features.enabled)?;
+        let representation =
+            raster_profiles::bias(representation, exact, d.snapshot.features.enabled)?;
+        let info = vk::VkDepthBiasInfoEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPTH_BIAS_INFO_EXT,
+            pNext: ptr::from_ref(&representation).cast(),
+            depthBiasConstantFactor: constant,
+            depthBiasClamp: clamp,
+            depthBiasSlopeFactor: slope,
+        };
+        unsafe {
+            (d.profile_commands.bias.ok_or(UNSUPPORTED)?)(self.command, &info);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn color_write_enable(
+        &self,
+        count: u32,
+        enables: *const u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let command = d.profile_commands.color.ok_or(UNSUPPORTED)?;
+        if count > d.snapshot.graphics_limits.max_colors {
+            return Err(UNSUPPORTED);
+        }
+        let values = unsafe { slice(enables, count)? };
+        if values.iter().any(|&v| v > 1) {
+            return Err(INVALID);
+        }
+        if count != 0 {
+            unsafe {
+                command(self.command, count, values.as_ptr());
+            }
+        }
+        Ok(())
+    }
     pub(in crate::foundation) fn depth_bounds(&self, min: f32, max: f32) -> Result<(), Status> {
         let d = self.recording()?;
         stages(d, self.domain, 24, false)?;
-        core_raster::depth_bounds(min, max)?;
+        core_raster::depth_bounds(min, max, d.snapshot.features.enabled)?;
         unsafe {
             (d.f.vkCmdSetDepthBounds.unwrap())(self.command, min, max);
         }

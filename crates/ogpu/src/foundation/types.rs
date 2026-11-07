@@ -28,6 +28,14 @@ pub mod image_formats {
 pub const VERSION: u32 = 12;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const UNRESTRICTED_DEPTH_RANGE: u32 = 112;
+    pub const DEPTH_CLAMP_CONTROL: u32 = 113;
+    pub const DEPTH_BIAS_CONTROL: u32 = 114;
+    pub const DEPTH_BIAS_UNORM: u32 = 115;
+    pub const DEPTH_BIAS_FLOAT: u32 = 116;
+    pub const DEPTH_BIAS_EXACT: u32 = 117;
+    pub const COLOR_WRITE_ENABLE: u32 = 118;
+
     pub const MULTI_VIEWPORT: u32 = 110;
     pub const SHADER_OUTPUT_VIEWPORT_INDEX: u32 = 111;
     pub const DYNAMIC_DEPTH_CLAMP: u32 = 99;
@@ -735,6 +743,10 @@ pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
     for (dynamic, base) in [
+        (
+            DEPTH_BIAS_UNORM | DEPTH_BIAS_FLOAT | DEPTH_BIAS_EXACT,
+            DEPTH_BIAS_CONTROL,
+        ),
         (DYNAMIC_SAMPLE_LOCATIONS_ENABLE, SAMPLE_LOCATIONS),
         (
             DYNAMIC_CONSERVATIVE_MODE | DYNAMIC_EXTRA_OVERESTIMATION,
@@ -2161,4 +2173,39 @@ pub struct Scissor {
     pub y: i32,
     pub width: u32,
     pub height: u32,
+}
+
+pub const DEPTH_CLAMP_CONTROL_STATE: u32 = 143;
+pub const DEPTH_BIAS_REPRESENTATION: u32 = 144;
+pub const COLOR_WRITE_STATE: u32 = 145;
+pub const DYNAMIC_DEPTH_CLAMP_RANGE_STATE: u64 = 1 << 46;
+pub const DYNAMIC_COLOR_WRITE_ENABLE_STATE: u64 = 1 << 47;
+pub const CLAMP_VIEWPORT_RANGE: u32 = 0;
+pub const CLAMP_USER_RANGE: u32 = 1;
+pub const BIAS_FORMAT: u32 = 0;
+pub const BIAS_UNORM: u32 = 1;
+pub const BIAS_FLOAT: u32 = 2;
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DepthClampControl {
+    pub header: Record,
+    pub mode: u32,
+    pub reserved: u32,
+    pub min: f32,
+    pub max: f32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DepthBiasRepresentation {
+    pub header: Record,
+    pub representation: u32,
+    pub exact: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ColorWriteState {
+    pub header: Record,
+    pub count: u32,
+    pub reserved: u32,
+    pub enables: *const u32,
 }

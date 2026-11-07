@@ -142,6 +142,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_raster_mechanisms.h"
 #include "foundation_sample_locations.h"
 #include "foundation_core_raster.h"
+#include "foundation_depth_profiles.h"
 #include "foundation_extended_raster.h"
 #include "foundation_viewports.h"
 #include "foundation_multiview.h"
@@ -1020,7 +1021,7 @@ int main(int argc, char **argv) {
         REQUIRE(desc.required_features.count <= 128);
         memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
         for (uint32_t f=0; f<features.available.count; ++f)
-            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_SHADER_OUTPUT_VIEWPORT_INDEX)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
+            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
         desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
@@ -1129,6 +1130,7 @@ int main(int argc, char **argv) {
     REQUIRE(sample_locations_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[67]) == EXIT_SUCCESS);
     REQUIRE(viewport_execution(device,memory_desc,graphics_domain,argv[71],argv[72]) == EXIT_SUCCESS);
     REQUIRE(extended_raster_execution(device,memory_desc,graphics_domain,argv[3],argv[13]) == EXIT_SUCCESS);
+    REQUIRE(depth_profiles_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[69]) == EXIT_SUCCESS);
     REQUIRE(core_raster_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[69]) == EXIT_SUCCESS);
     REQUIRE(multiview_execution(device,memory_desc,graphics_domain,argv[48]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);

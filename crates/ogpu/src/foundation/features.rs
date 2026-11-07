@@ -3,6 +3,14 @@
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
 pub(super) type FeatureBits = u128;
+pub(super) const UNRESTRICTED_DEPTH_RANGE: FeatureBits = 1 << 111;
+pub(super) const DEPTH_CLAMP_CONTROL: FeatureBits = 1 << 112;
+pub(super) const DEPTH_BIAS_CONTROL: FeatureBits = 1 << 113;
+pub(super) const DEPTH_BIAS_UNORM: FeatureBits = 1 << 114;
+pub(super) const DEPTH_BIAS_FLOAT: FeatureBits = 1 << 115;
+pub(super) const DEPTH_BIAS_EXACT: FeatureBits = 1 << 116;
+pub(super) const COLOR_WRITE_ENABLE: FeatureBits = 1 << 117;
+
 pub(super) const MULTI_VIEWPORT: FeatureBits = 1 << 109;
 pub(super) const SHADER_OUTPUT_VIEWPORT_INDEX: FeatureBits = 1 << 110;
 pub(super) const DYNAMIC_DEPTH_CLAMP: FeatureBits = 1 << 98;
@@ -130,7 +138,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 111 {
+        if id > 118 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u128 << (id - 1);
@@ -138,7 +146,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=111)
+    (1..=118)
         .filter(|id| mask & (1u128 << (id - 1)) != 0)
         .collect()
 }
@@ -202,7 +210,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [112, 128, u32::MAX] {
+        for id in [119, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

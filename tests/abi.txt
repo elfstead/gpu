@@ -386,3 +386,6 @@ next ViewportLimits ogpu_next_viewport_limits max_viewports subpixel_bits
 next ViewportCounts ogpu_next_viewport_counts header viewports scissors
 next Viewport ogpu_next_viewport x y width height min_depth max_depth
 next Scissor ogpu_next_scissor x y width height
+next DepthClampControl ogpu_next_depth_clamp_control header mode reserved min max
+next DepthBiasRepresentation ogpu_next_depth_bias_representation header representation exact
+next ColorWriteState ogpu_next_color_write_state header count reserved enables

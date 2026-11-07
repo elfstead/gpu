@@ -133,11 +133,10 @@ pub(super) fn depth_bias(
     }
     Ok(())
 }
-pub(super) fn depth_bounds(min: f32, max: f32) -> Result<(), Status> {
-    if ![min, max]
-        .iter()
-        .all(|v| v.is_finite() && (0.0..=1.0).contains(v))
-        || min > max
+pub(super) fn depth_bounds(min: f32, max: f32, enabled: FeatureBits) -> Result<(), Status> {
+    if ![min, max].iter().all(|v| {
+        v.is_finite() && (enabled & UNRESTRICTED_DEPTH_RANGE != 0 || (0.0..=1.0).contains(v))
+    }) || min > max
     {
         return Err(INVALID);
     }
@@ -216,9 +215,9 @@ mod tests {
             depth_bias(f32::INFINITY, 0.0, 0.0, DEPTH_BIAS_CLAMP),
             Err(INVALID)
         );
-        assert_eq!(depth_bounds(0.0, 1.0), Ok(()));
+        assert_eq!(depth_bounds(0.0, 1.0, 0), Ok(()));
         for (a, b) in [(0.7, 0.3), (-0.1, 1.0), (0.0, 1.1), (f32::NAN, 1.0)] {
-            assert_eq!(depth_bounds(a, b), Err(INVALID));
+            assert_eq!(depth_bounds(a, b, 0), Err(INVALID));
         }
         assert_eq!(topology(4, 0), Ok(()));
         assert_eq!(topology(11, FeatureBits::MAX), Err(INVALID));

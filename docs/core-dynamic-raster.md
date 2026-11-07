@@ -48,7 +48,8 @@ compatibility scan, automatic pipeline replacement or primitive conversion.
 Booleans are zero/one. Depth-bias factors are finite, may be signed, and nonzero
 clamp requires `DEPTH_BIAS_CLAMP`. Native depth representation determines constant
 bias units; slope bias and clamp preserve the native calculation. Bounds are
-ordered, finite and within [0,1] in this profile. Enabling the bounds test requires
+ordered and finite, and within [0,1] unless the independently selected
+`UNRESTRICTED_DEPTH_RANGE` profile is enabled. Enabling the bounds test requires
 `DEPTH_BOUNDS`; setting bounds or disabling the test does not. Bounds test existing
 attachment depth, not the incoming fragment's depth.
 

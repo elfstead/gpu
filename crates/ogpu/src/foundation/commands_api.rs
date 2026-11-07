@@ -1367,3 +1367,48 @@ pub unsafe extern "C" fn ogpu_next_set_scissors(
         encode(encoder, |e| e.scissors(first, count, values, flags));
     }
 }
+
+/// # Safety
+/// Valid recording encoder, exclusive arena access and valid array storage; caller establishes dynamic draw state.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_depth_clamp_range(
+    encoder: *mut List,
+    mode: u32,
+    min: f32,
+    max: f32,
+) {
+    unsafe {
+        encode(encoder, |e| e.depth_clamp_range(mode, min, max));
+    }
+}
+
+/// # Safety
+/// Valid recording encoder, exclusive arena access and valid array storage; caller establishes dynamic draw state.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_depth_bias_control(
+    encoder: *mut List,
+    constant: f32,
+    clamp: f32,
+    slope: f32,
+    representation: u32,
+    exact: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.depth_bias_control(constant, clamp, slope, representation, exact)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder, exclusive arena access and valid array storage; caller establishes dynamic draw state.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_color_write_enable(
+    encoder: *mut List,
+    count: u32,
+    enables: *const u32,
+) {
+    unsafe {
+        encode(encoder, |e| e.color_write_enable(count, enables));
+    }
+}

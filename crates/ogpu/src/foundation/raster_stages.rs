@@ -21,6 +21,7 @@ pub(super) struct Extensions {
     pub mapping: Option<RenderMapping>,
     pub tessellation: Option<TessellationState>,
     pub viewports: Option<ViewportCounts>,
+    pub color_write: Option<ColorWriteState>,
 }
 /// At most one of each known extension, in either order. Parent validation
 /// preserves size/version/flags rules while parsing each next pointer here.
@@ -29,7 +30,7 @@ pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Stat
     let mut count = 0;
     while !p.is_null() {
         count += 1;
-        if count > 3 {
+        if count > 4 {
             return Err(INVALID);
         }
         let header = unsafe { &*p };
@@ -42,6 +43,13 @@ pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Stat
                     unsafe { *local_read::parent::<RenderMapping>(p, RENDER_MAPPING)? };
                 mapping.header.next = ptr::null();
                 result.mapping = Some(mapping);
+            }
+            COLOR_WRITE_STATE => {
+                if result.color_write.is_some() {
+                    return Err(INVALID);
+                }
+                result.color_write =
+                    Some(unsafe { *local_read::parent::<ColorWriteState>(p, COLOR_WRITE_STATE)? });
             }
             VIEWPORT_COUNTS => {
                 if result.viewports.is_some() {
@@ -263,6 +271,13 @@ mod tests {
             };
             for bit in [
                 0,
+                UNRESTRICTED_DEPTH_RANGE,
+                DEPTH_CLAMP_CONTROL,
+                DEPTH_BIAS_CONTROL,
+                DEPTH_BIAS_CONTROL | DEPTH_BIAS_FLOAT,
+                DEPTH_BIAS_CONTROL | DEPTH_BIAS_UNORM,
+                DEPTH_BIAS_CONTROL | DEPTH_BIAS_EXACT,
+                COLOR_WRITE_ENABLE,
                 MULTI_VIEWPORT,
                 SHADER_OUTPUT_VIEWPORT_INDEX,
                 MULTI_VIEWPORT | SHADER_OUTPUT_VIEWPORT_INDEX,
@@ -323,7 +338,11 @@ mod tests {
                         & (extended_raster::EDS3_FEATURES
                             | DYNAMIC_LOGIC_OP
                             | MULTI_VIEWPORT
-                            | SHADER_OUTPUT_VIEWPORT_INDEX)
+                            | SHADER_OUTPUT_VIEWPORT_INDEX
+                            | UNRESTRICTED_DEPTH_RANGE
+                            | DEPTH_CLAMP_CONTROL
+                            | raster_profiles::BIAS_FEATURES
+                            | COLOR_WRITE_ENABLE)
                         != 0
                 {
                     let ad = ArenaDesc {
@@ -475,6 +494,57 @@ mod tests {
                             Ok(())
                         } else {
                             Err(UNSUPPORTED)
+                        }
+                    );
+                    assert_eq!(
+                        list.depth_clamp_range(0, f32::NAN, f32::NAN),
+                        if bit & DEPTH_CLAMP_CONTROL != 0 {
+                            Ok(())
+                        } else {
+                            Err(UNSUPPORTED)
+                        }
+                    );
+                    assert_eq!(
+                        list.depth_bias_control(1.0, 0.0, 0.0, 0, 0),
+                        if bit & DEPTH_BIAS_CONTROL != 0 {
+                            Ok(())
+                        } else {
+                            Err(UNSUPPORTED)
+                        }
+                    );
+                    assert_eq!(
+                        unsafe { list.color_write_enable(0, ptr::null()) },
+                        if bit & COLOR_WRITE_ENABLE != 0 {
+                            Ok(())
+                        } else {
+                            Err(UNSUPPORTED)
+                        }
+                    );
+                    if bit & COLOR_WRITE_ENABLE != 0 {
+                        assert_eq!(
+                            unsafe { list.color_write_enable(2, [0, 1].as_ptr()) },
+                            Ok(())
+                        );
+                    }
+                    assert_eq!(
+                        list.depth_bounds(-1.0, 2.0),
+                        if bit & UNRESTRICTED_DEPTH_RANGE != 0 {
+                            Ok(())
+                        } else {
+                            Err(INVALID)
+                        }
+                    );
+                    let wide = Viewport {
+                        min_depth: -1.0,
+                        max_depth: 2.0,
+                        ..v
+                    };
+                    assert_eq!(
+                        unsafe { list.viewports(0, 1, &wide, SET_COUNT) },
+                        if bit & UNRESTRICTED_DEPTH_RANGE != 0 {
+                            Ok(())
+                        } else {
+                            Err(INVALID)
                         }
                     );
                     list.end().unwrap();

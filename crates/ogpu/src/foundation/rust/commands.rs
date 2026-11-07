@@ -169,3 +169,9 @@ record!(fn set_color_blend_equation(list, first: u32, values: &[BlendEquation]) 
 record!(fn set_viewports(list, first:u32, values:&[Viewport], flags:u32) |e| e.viewports(first,count(values.len())?,values.as_ptr(),flags));
 
 record!(fn set_scissors(list, first:u32, values:&[Scissor], flags:u32) |e| e.scissors(first,count(values.len())?,values.as_ptr(),flags));
+
+record!(fn set_depth_clamp_range(list,mode:u32,min:f32,max:f32) |e| e.depth_clamp_range(mode,min,max));
+
+record!(fn set_depth_bias_control(list,constant:f32,clamp:f32,slope:f32,representation:u32,exact:u32) |e| e.depth_bias_control(constant,clamp,slope,representation,exact));
+
+record!(fn set_color_write_enable(list,enables:&[u32]) |e| e.color_write_enable(count(enables.len())?,enables.as_ptr()));

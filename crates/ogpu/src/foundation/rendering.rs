@@ -271,6 +271,7 @@ impl Device {
                 max_depth: v.max_depth,
             },
             &self.snapshot.graphics_limits,
+            self.snapshot.features.enabled,
         )?;
         viewports::scissor(&Scissor {
             x: v.scissor_x,

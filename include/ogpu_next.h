@@ -1829,6 +1829,43 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
  * No active-count/slot tracking. set_graphics_state remains a slot-zero shorthand
  * for fixed-count viewport and scissor state, not a count-setting operation.
  */
+/* Extended depth and independent color-write profiles. Static clamp and bias
+ * representation records extend RASTER_OPTIONS; COLOR_WRITE_STATE extends
+ * GRAPHICS_STATE. Bias representation is ignored with DYNAMIC_DEPTH_BIAS.
+ * Dynamic clamp/color state ignores static values (reserved must remain zero).
+ * Base enables are explicit; no shader emulation or state/pipeline tracking.
+ */
+#define OGPU_NEXT_FEATURE_UNRESTRICTED_DEPTH_RANGE UINT32_C(112)
+#define OGPU_NEXT_FEATURE_DEPTH_CLAMP_CONTROL UINT32_C(113)
+#define OGPU_NEXT_FEATURE_DEPTH_BIAS_CONTROL UINT32_C(114)
+#define OGPU_NEXT_FEATURE_DEPTH_BIAS_UNORM UINT32_C(115)
+#define OGPU_NEXT_FEATURE_DEPTH_BIAS_FLOAT UINT32_C(116)
+#define OGPU_NEXT_FEATURE_DEPTH_BIAS_EXACT UINT32_C(117)
+#define OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE UINT32_C(118)
+
+#define OGPU_NEXT_DEPTH_CLAMP_CONTROL_STATE UINT32_C(143)
+#define OGPU_NEXT_DEPTH_BIAS_REPRESENTATION UINT32_C(144)
+#define OGPU_NEXT_COLOR_WRITE_STATE UINT32_C(145)
+#define OGPU_NEXT_DYNAMIC_DEPTH_CLAMP_RANGE (UINT64_C(1) << 46)
+#define OGPU_NEXT_DYNAMIC_COLOR_WRITE_ENABLE (UINT64_C(1) << 47)
+enum { OGPU_NEXT_CLAMP_VIEWPORT_RANGE=0, OGPU_NEXT_CLAMP_USER_RANGE=1 };
+enum { OGPU_NEXT_BIAS_FORMAT=0, OGPU_NEXT_BIAS_UNORM=1, OGPU_NEXT_BIAS_FLOAT=2 };
+typedef struct ogpu_next_depth_clamp_control { ogpu_next_record header; uint32_t mode,reserved; float min,max; } ogpu_next_depth_clamp_control;
+typedef struct ogpu_next_depth_bias_representation { ogpu_next_record header; uint32_t representation,exact; } ogpu_next_depth_bias_representation;
+typedef struct ogpu_next_color_write_state { ogpu_next_record header; uint32_t count,reserved; const uint32_t *enables; } ogpu_next_color_write_state;
+void ogpu_next_set_depth_clamp_range(ogpu_next_encoder *,uint32_t mode,float min,float max);
+void ogpu_next_set_depth_bias_control(ogpu_next_encoder *,float constant,float clamp,float slope,uint32_t representation,uint32_t exact);
+void ogpu_next_set_color_write_enable(ogpu_next_encoder *,uint32_t count,const uint32_t *enables);
+/* Clamp viewport mode ignores min/max; user range is ordered and finite, within
+ * [0,1] unless UNRESTRICTED_DEPTH_RANGE is requested. That capability also permits
+ * finite viewport/depth-bounds values outside [0,1]. Bias representations retain
+ * native numerical units; UNORM/FLOAT/EXACT independently require their features
+ * plus DEPTH_BIAS_CONTROL. set_depth_bias remains the default representation path.
+ * Color-write enable controls whole attachments independently of component masks.
+ * Array values are 0/1, count <= max_colors; zero count is a no-op. Static count
+ * equals pipeline color_count. Dynamic values must cover every consumed target.
+ */
+
 #define OGPU_NEXT_FEATURE_MULTI_VIEWPORT UINT32_C(110)
 #define OGPU_NEXT_FEATURE_SHADER_OUTPUT_VIEWPORT_INDEX UINT32_C(111)
 #define OGPU_NEXT_QUERY_VIEWPORT_LIMITS UINT32_C(28)
@@ -1865,7 +1902,8 @@ void ogpu_next_set_depth_bounds(ogpu_next_encoder *, float min, float max);
 void ogpu_next_set_depth_bounds_enable(ogpu_next_encoder *, uint32_t enable);
 
 /* Bias constants/slope/clamp are finite; nonzero clamp needs DEPTH_BIAS_CLAMP.
- * Bounds are ordered, finite and in [0,1]; enabling their test needs DEPTH_BOUNDS.
+ * Bounds are ordered and finite; [0,1] unless UNRESTRICTED_DEPTH_RANGE is requested.
+ * Enabling their test needs DEPTH_BOUNDS.
  * Width is finite/positive; widths other than one need WIDE_LINES. Values pass
  * through unchanged; native supported-width selection/rounding applies, including
  * values outside the queried range. Dynamic discard can toggle on a pipeline with fragment/output state;
@@ -2297,7 +2335,8 @@ typedef struct ogpu_next_draw_desc {
  * Graphics/compute bind points are independent. Viewport/scissor and byte state
  * persist across compatible binds/scopes, reset to undefined by command begin.
  * Dynamic viewport allows negative height and reversed depth endpoints within
- * [0,1]. set_graphics_state accepts VIEWPORT_STATE as a slot-zero shorthand;
+ * [0,1] unless UNRESTRICTED_DEPTH_RANGE is requested.
+ * set_graphics_state accepts VIEWPORT_STATE as a slot-zero shorthand;
  * blend/stencil controls have their own setters. Draw requires
  * vertex_offset=0 and passes all count/first/instance values directly to native.
  */

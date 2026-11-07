@@ -41,14 +41,18 @@ pub(super) fn counts(
     }
     Ok(counts)
 }
-pub(super) fn viewport(v: &Viewport, p: &GraphicsLimits) -> Result<(), Status> {
+pub(super) fn viewport(
+    v: &Viewport,
+    p: &GraphicsLimits,
+    enabled: FeatureBits,
+) -> Result<(), Status> {
     if ![v.x, v.y, v.width, v.height, v.min_depth, v.max_depth]
         .iter()
         .all(|f| f.is_finite())
         || v.width <= 0.0
         || v.height == 0.0
-        || !(0.0..=1.0).contains(&v.min_depth)
-        || !(0.0..=1.0).contains(&v.max_depth)
+        || enabled & UNRESTRICTED_DEPTH_RANGE == 0
+            && (!(0.0..=1.0).contains(&v.min_depth) || !(0.0..=1.0).contains(&v.max_depth))
     {
         return Err(INVALID);
     }
@@ -169,16 +173,23 @@ mod tests {
             min_depth: 1.0,
             max_depth: 0.0,
         };
-        assert_eq!(viewport(&v, &p), Ok(()));
-        assert_eq!(viewport(&Viewport { height: 0.0, ..v }, &p), Err(INVALID));
-        assert_eq!(viewport(&Viewport { x: f32::NAN, ..v }, &p), Err(INVALID));
+        assert_eq!(viewport(&v, &p, 0), Ok(()));
+        assert_eq!(
+            viewport(&Viewport { height: 0.0, ..v }, &p, 0),
+            Err(INVALID)
+        );
+        assert_eq!(
+            viewport(&Viewport { x: f32::NAN, ..v }, &p, 0),
+            Err(INVALID)
+        );
         assert_eq!(
             viewport(
                 &Viewport {
                     max_depth: 1.1,
                     ..v
                 },
-                &p
+                &p,
+                0
             ),
             Err(INVALID)
         );

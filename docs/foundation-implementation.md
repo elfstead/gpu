@@ -72,8 +72,9 @@ add independent capabilities and direct setters for clamp, polygon, multisample
 and blend/logic/write state. Local 1/4-sample, two-target and programmable-position
 composition passes. [Viewport arrays](viewport-arrays.md) now expose range/count
 updates and shader-index capabilities; complete dynamic state is caller-owned
-without the old viewport-history flag. Extended depth and other named M8 mechanisms
-remain in the [implementation sequence](m8-coverage.md).
+without the old viewport-history flag. [Extended depth/color-write profiles](extended-depth-color.md)
+now preserve range/bias units and independent enables. Format inventory, capture and
+dynamic tessellation remain in the [implementation sequence](m8-coverage.md).
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

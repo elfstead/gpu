@@ -3,7 +3,7 @@
 static void extended_values(uint32_t mode,uint32_t phase,uint32_t samples,
                             ogpu_next_raster_options *o,ogpu_next_color_state c[2],uint32_t *logic_enable,uint32_t *logic) {
     *o=(ogpu_next_raster_options){.header=HEADER(ogpu_next_raster_options,OGPU_NEXT_RASTER_OPTIONS),.line_width=1,.max_depth_bounds=1,.sample_mask=UINT64_MAX};
-    *logic_enable=mode==10||(mode==6&&phase);*logic=mode==10?(phase?OGPU_NEXT_LOGIC_INVERT:OGPU_NEXT_LOGIC_COPY):OGPU_NEXT_LOGIC_XOR;
+    *logic_enable=mode==10||((mode==6||mode==11)&&phase);*logic=mode==10?(phase?OGPU_NEXT_LOGIC_INVERT:OGPU_NEXT_LOGIC_COPY):OGPU_NEXT_LOGIC_XOR;
     o->depth_clamp=mode==0&&phase;o->polygon_mode=mode==1&&phase?OGPU_NEXT_POLYGON_LINE:OGPU_NEXT_POLYGON_FILL;
     if(mode==2)o->sample_mask=5; /* Dynamic samples with a STATIC mask. */
     if(mode==3)o->sample_mask=phase?(samples==1?0:5):UINT64_MAX;
@@ -26,7 +26,8 @@ static void extended_set(ogpu_next_encoder *e,uint32_t mode,uint32_t samples,con
     case 8:for(uint32_t a=0;a<2;++a)eq[a]=(ogpu_next_blend_equation){c[a].src_color,c[a].dst_color,c[a].color_op,c[a].src_alpha,c[a].dst_alpha,c[a].alpha_op};
         ogpu_next_set_color_blend_equation(e,1,1,&eq[1]);ogpu_next_set_color_blend_equation(e,0,1,&eq[0]);break;
     case 9:values[0]=c[0].write_mask;values[1]=c[1].write_mask;ogpu_next_set_color_write_mask(e,1,1,&values[1]);ogpu_next_set_color_write_mask(e,0,1,&values[0]);break;
-    default:ogpu_next_set_logic_op(e,logic);break;
+    case 10:ogpu_next_set_logic_op(e,logic);break;
+    default:values[0]=!logic_enable;values[1]=logic_enable;ogpu_next_set_color_write_enable(e,2,values);break;
     }
 }
 static int extended_raster_execution(ogpu_next_device *device,ogpu_next_memory_desc md,uint32_t domain,const char *vertex_path,const char *fragment_path) {
@@ -56,7 +57,7 @@ static int extended_raster_execution(ogpu_next_device *device,ogpu_next_memory_d
     ogpu_next_host_span scratch={bs,br.size};ogpu_next_arena_desc ad={HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};TRY(ogpu_next_arena_create(device,&ad,&arena));TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_recording_desc rd={HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     uint64_t serial=0,pixels=0;uint32_t profiles=0,rejected=0;
-    for(uint32_t mode=0;mode<11;++mode){uint32_t feature=OGPU_NEXT_FEATURE_DYNAMIC_DEPTH_CLAMP+mode;uint64_t dynamic=OGPU_NEXT_DYNAMIC_DEPTH_CLAMP<<mode;
+    for(uint32_t mode=0;mode<12;++mode){uint32_t feature=mode==11?OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE:OGPU_NEXT_FEATURE_DYNAMIC_DEPTH_CLAMP+mode;uint64_t dynamic=mode==11?OGPU_NEXT_DYNAMIC_COLOR_WRITE_ENABLE:OGPU_NEXT_DYNAMIC_DEPTH_CLAMP<<mode;
         uint32_t base=mode==0?OGPU_NEXT_FEATURE_DEPTH_CLAMP:mode==1?OGPU_NEXT_FEATURE_NON_SOLID_FILL:mode==5?OGPU_NEXT_FEATURE_ALPHA_TO_ONE:(mode==6||mode==10)?OGPU_NEXT_FEATURE_LOGIC_OP:0;
         if(!raster_has(features.enabled,feature)||(base&&!raster_has(features.enabled,base))){printf("Extended raster mode %u UNVERIFIED: feature %u/base %u unavailable.\n",mode,feature,base);continue;}
         REQUIRE(limits.dynamic_states&dynamic);
@@ -66,16 +67,18 @@ static int extended_raster_execution(ogpu_next_device *device,ogpu_next_memory_d
         case 2:ogpu_next_set_rasterization_samples(bad,3);break;case 3:ogpu_next_set_sample_mask(bad,3,0);break;
         case 4:ogpu_next_set_alpha_to_coverage(bad,2);break;case 5:ogpu_next_set_alpha_to_one(bad,2);break;case 6:ogpu_next_set_logic_op_enable(bad,2);break;
         case 7:ogpu_next_set_color_blend_enable(bad,0,1,&invalid);break;case 8:ogpu_next_set_color_blend_equation(bad,0,1,&invalid_eq);break;
-        case 9:ogpu_next_set_color_write_mask(bad,0,1,&invalid);break;default:ogpu_next_set_logic_op(bad,16);break;}
+        case 9:ogpu_next_set_color_write_mask(bad,0,1,&invalid);break;case 10:ogpu_next_set_logic_op(bad,16);break;default:ogpu_next_set_color_write_enable(bad,1,&invalid);break;}
         REQUIRE(ogpu_next_commands_end(bad,&bad_list)!=OGPU_NEXT_OK&&!bad_list);TRY(ogpu_next_arena_reset(arena));++rejected;
         for(uint32_t sample_pass=0;sample_pass<2;++sample_pass){uint32_t samples=sample_pass?4:1;
             for(uint32_t i=0;i<3;++i){if(i==2&&mode==2&&sample_pass)continue; /* Same executable across actual sample counts. */
                 ogpu_next_raster_options o;ogpu_next_color_state c[2];uint32_t le,lo;extended_values(mode,i==1,samples,&o,c,&le,&lo);
                 ogpu_next_graphics_state gs={.header=HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),.topology=OGPU_NEXT_TRIANGLES,.samples=samples,.color_count=2,.colors=c,.logic_op_enable=le,.logic_op=lo,.raster_options=&o.header};
+                uint32_t enables[]={!le,le};ogpu_next_color_write_state writes={HEADER(ogpu_next_color_write_state,OGPU_NEXT_COLOR_WRITE_STATE),2,0,enables};
+                if(mode==11){gs.logic_op_enable=0;gs.header.next=&writes.header;c[0].write_mask=5;c[1].write_mask=10;}
                 if(i==2)switch(mode){case 0:o.depth_clamp=UINT32_MAX;break;case 1:o.polygon_mode=UINT32_MAX;break;case 2:gs.samples=UINT32_MAX;break;
                     case 3:o.sample_mask=0;break;case 4:o.alpha_to_coverage=UINT32_MAX;break;case 5:o.alpha_to_one=UINT32_MAX;break;case 6:gs.logic_op_enable=UINT32_MAX;break;
                     case 7:c[0].blend=c[1].blend=UINT32_MAX;break;case 8:for(uint32_t a=0;a<2;++a)c[a].src_color=c[a].dst_color=c[a].color_op=c[a].src_alpha=c[a].dst_alpha=c[a].alpha_op=UINT32_MAX;break;
-                    case 9:c[0].write_mask=c[1].write_mask=UINT32_MAX;break;default:gs.logic_op=UINT32_MAX;break;}
+                    case 9:c[0].write_mask=c[1].write_mask=UINT32_MAX;break;case 10:gs.logic_op=UINT32_MAX;break;default:writes.count=UINT32_MAX;writes.enables=NULL;break;}
                 ogpu_next_shader_requirements req={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),features.enabled,{0},0};
                 ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,2,shaders,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR|(i==2?dynamic:0),&req.header,NULL,0,0};
                 TRY(ogpu_next_executable_create(device,&ed,arguments,&pipelines[i]));}

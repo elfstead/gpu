@@ -15495,6 +15495,155 @@ impl Default for VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
         }
     }
 }
+pub const VkDepthBiasRepresentationEXT_VK_DEPTH_BIAS_REPRESENTATION_LEAST_REPRESENTABLE_VALUE_FORMAT_EXT: VkDepthBiasRepresentationEXT = 0;
+pub const VkDepthBiasRepresentationEXT_VK_DEPTH_BIAS_REPRESENTATION_LEAST_REPRESENTABLE_VALUE_FORCE_UNORM_EXT: VkDepthBiasRepresentationEXT = 1;
+pub const VkDepthBiasRepresentationEXT_VK_DEPTH_BIAS_REPRESENTATION_FLOAT_EXT: VkDepthBiasRepresentationEXT = 2;
+pub const VkDepthBiasRepresentationEXT_VK_DEPTH_BIAS_REPRESENTATION_MAX_ENUM_EXT: VkDepthBiasRepresentationEXT = 2147483647;
+pub type VkDepthBiasRepresentationEXT = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDepthBiasControlFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub depthBiasControl: VkBool32,
+    pub leastRepresentableValueForceUnormRepresentation: VkBool32,
+    pub floatRepresentation: VkBool32,
+    pub depthBiasExact: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDepthBiasControlFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDepthBiasControlFeaturesEXT>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceDepthBiasControlFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDepthBiasControlFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthBiasControlFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthBiasControlFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthBiasControlFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthBiasControlFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthBiasControlFeaturesEXT::depthBiasControl",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDepthBiasControlFeaturesEXT, depthBiasControl
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthBiasControlFeaturesEXT::leastRepresentableValueForceUnormRepresentation",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDepthBiasControlFeaturesEXT,
+        leastRepresentableValueForceUnormRepresentation
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthBiasControlFeaturesEXT::floatRepresentation",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDepthBiasControlFeaturesEXT, floatRepresentation
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthBiasControlFeaturesEXT::depthBiasExact",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthBiasControlFeaturesEXT, depthBiasExact)
+        - 28usize];
+};
+impl Default for VkPhysicalDeviceDepthBiasControlFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDepthBiasInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub depthBiasConstantFactor: f32,
+    pub depthBiasClamp: f32,
+    pub depthBiasSlopeFactor: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDepthBiasInfoEXT",
+    ][::std::mem::size_of::<VkDepthBiasInfoEXT>() - 32usize];
+    [
+        "Alignment of VkDepthBiasInfoEXT",
+    ][::std::mem::align_of::<VkDepthBiasInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkDepthBiasInfoEXT::sType",
+    ][::std::mem::offset_of!(VkDepthBiasInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkDepthBiasInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkDepthBiasInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkDepthBiasInfoEXT::depthBiasConstantFactor",
+    ][::std::mem::offset_of!(VkDepthBiasInfoEXT, depthBiasConstantFactor) - 16usize];
+    [
+        "Offset of field: VkDepthBiasInfoEXT::depthBiasClamp",
+    ][::std::mem::offset_of!(VkDepthBiasInfoEXT, depthBiasClamp) - 20usize];
+    [
+        "Offset of field: VkDepthBiasInfoEXT::depthBiasSlopeFactor",
+    ][::std::mem::offset_of!(VkDepthBiasInfoEXT, depthBiasSlopeFactor) - 24usize];
+};
+impl Default for VkDepthBiasInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDepthBiasRepresentationInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub depthBiasRepresentation: VkDepthBiasRepresentationEXT,
+    pub depthBiasExact: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDepthBiasRepresentationInfoEXT",
+    ][::std::mem::size_of::<VkDepthBiasRepresentationInfoEXT>() - 24usize];
+    [
+        "Alignment of VkDepthBiasRepresentationInfoEXT",
+    ][::std::mem::align_of::<VkDepthBiasRepresentationInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkDepthBiasRepresentationInfoEXT::sType",
+    ][::std::mem::offset_of!(VkDepthBiasRepresentationInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkDepthBiasRepresentationInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkDepthBiasRepresentationInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkDepthBiasRepresentationInfoEXT::depthBiasRepresentation",
+    ][::std::mem::offset_of!(VkDepthBiasRepresentationInfoEXT, depthBiasRepresentation)
+        - 16usize];
+    [
+        "Offset of field: VkDepthBiasRepresentationInfoEXT::depthBiasExact",
+    ][::std::mem::offset_of!(VkDepthBiasRepresentationInfoEXT, depthBiasExact)
+        - 20usize];
+};
+impl Default for VkDepthBiasRepresentationInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetDepthBias2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pDepthBiasInfo: *const VkDepthBiasInfoEXT,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT {
@@ -15819,6 +15968,91 @@ impl Default for VkPhysicalDeviceExtendedDynamicState2FeaturesEXT {
 }
 pub type PFN_vkCmdSetLogicOpEXT = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, logicOp: VkLogicOp),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceColorWriteEnableFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub colorWriteEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceColorWriteEnableFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceColorWriteEnableFeaturesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceColorWriteEnableFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceColorWriteEnableFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceColorWriteEnableFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceColorWriteEnableFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceColorWriteEnableFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceColorWriteEnableFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceColorWriteEnableFeaturesEXT::colorWriteEnable",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceColorWriteEnableFeaturesEXT, colorWriteEnable
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceColorWriteEnableFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineColorWriteCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub attachmentCount: u32,
+    pub pColorWriteEnables: *const VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineColorWriteCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineColorWriteCreateInfoEXT>() - 32usize];
+    [
+        "Alignment of VkPipelineColorWriteCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineColorWriteCreateInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkPipelineColorWriteCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPipelineColorWriteCreateInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineColorWriteCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPipelineColorWriteCreateInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineColorWriteCreateInfoEXT::attachmentCount",
+    ][::std::mem::offset_of!(VkPipelineColorWriteCreateInfoEXT, attachmentCount)
+        - 16usize];
+    [
+        "Offset of field: VkPipelineColorWriteCreateInfoEXT::pColorWriteEnables",
+    ][::std::mem::offset_of!(VkPipelineColorWriteCreateInfoEXT, pColorWriteEnables)
+        - 24usize];
+};
+impl Default for VkPipelineColorWriteCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetColorWriteEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        attachmentCount: u32,
+        pColorWriteEnables: *const VkBool32,
+    ),
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -16251,6 +16485,38 @@ pub struct VkShaderEXT_T {
     _unused: [u8; 0],
 }
 pub type VkShaderEXT = *mut VkShaderEXT_T;
+pub const VkDepthClampModeEXT_VK_DEPTH_CLAMP_MODE_VIEWPORT_RANGE_EXT: VkDepthClampModeEXT = 0;
+pub const VkDepthClampModeEXT_VK_DEPTH_CLAMP_MODE_USER_DEFINED_RANGE_EXT: VkDepthClampModeEXT = 1;
+pub const VkDepthClampModeEXT_VK_DEPTH_CLAMP_MODE_MAX_ENUM_EXT: VkDepthClampModeEXT = 2147483647;
+pub type VkDepthClampModeEXT = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkDepthClampRangeEXT {
+    pub minDepthClamp: f32,
+    pub maxDepthClamp: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDepthClampRangeEXT",
+    ][::std::mem::size_of::<VkDepthClampRangeEXT>() - 8usize];
+    [
+        "Alignment of VkDepthClampRangeEXT",
+    ][::std::mem::align_of::<VkDepthClampRangeEXT>() - 4usize];
+    [
+        "Offset of field: VkDepthClampRangeEXT::minDepthClamp",
+    ][::std::mem::offset_of!(VkDepthClampRangeEXT, minDepthClamp) - 0usize];
+    [
+        "Offset of field: VkDepthClampRangeEXT::maxDepthClamp",
+    ][::std::mem::offset_of!(VkDepthClampRangeEXT, maxDepthClamp) - 4usize];
+};
+pub type PFN_vkCmdSetDepthClampRangeEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        depthClampMode: VkDepthClampModeEXT,
+        pDepthClampRange: *const VkDepthClampRangeEXT,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
@@ -17240,6 +17506,90 @@ pub type PFN_vkUpdateIndirectExecutionSetPipelineEXT = ::std::option::Option<
         pExecutionSetWrites: *const VkWriteIndirectExecutionSetPipelineEXT,
     ),
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDepthClampControlFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub depthClampControl: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDepthClampControlFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDepthClampControlFeaturesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceDepthClampControlFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDepthClampControlFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClampControlFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClampControlFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClampControlFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClampControlFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClampControlFeaturesEXT::depthClampControl",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDepthClampControlFeaturesEXT, depthClampControl
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceDepthClampControlFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineViewportDepthClampControlCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub depthClampMode: VkDepthClampModeEXT,
+    pub pDepthClampRange: *const VkDepthClampRangeEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineViewportDepthClampControlCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineViewportDepthClampControlCreateInfoEXT>()
+        - 32usize];
+    [
+        "Alignment of VkPipelineViewportDepthClampControlCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineViewportDepthClampControlCreateInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClampControlCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPipelineViewportDepthClampControlCreateInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClampControlCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPipelineViewportDepthClampControlCreateInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClampControlCreateInfoEXT::depthClampMode",
+    ][::std::mem::offset_of!(
+        VkPipelineViewportDepthClampControlCreateInfoEXT, depthClampMode
+    ) - 16usize];
+    [
+        "Offset of field: VkPipelineViewportDepthClampControlCreateInfoEXT::pDepthClampRange",
+    ][::std::mem::offset_of!(
+        VkPipelineViewportDepthClampControlCreateInfoEXT, pDepthClampRange
+    ) - 24usize];
+};
+impl Default for VkPipelineViewportDepthClampControlCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT {

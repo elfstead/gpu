@@ -325,6 +325,8 @@ pub(super) fn snapshot(
 }
 #[derive(Default)]
 pub(super) struct States {
+    pub clamp: Option<DepthClampControl>,
+    pub bias: Option<DepthBiasRepresentation>,
     pub clip: Option<DepthClipState>,
     pub samples: Option<SampleLocationState>,
     pub conservative: Option<ConservativeState>,
@@ -337,7 +339,7 @@ pub(super) unsafe fn parse(mut p: *const Record) -> Result<States, Status> {
     let mut count = 0;
     while !p.is_null() {
         count += 1;
-        if count > 6 {
+        if count > 8 {
             return Err(INVALID);
         }
         let h = unsafe { &*p };
@@ -354,6 +356,10 @@ pub(super) unsafe fn parse(mut p: *const Record) -> Result<States, Status> {
         match h.kind {
             SAMPLE_LOCATION_STATE => take!(samples, SampleLocationState, SAMPLE_LOCATION_STATE),
             DEPTH_CLIP_STATE => take!(clip, DepthClipState, DEPTH_CLIP_STATE),
+            DEPTH_CLAMP_CONTROL_STATE => take!(clamp, DepthClampControl, DEPTH_CLAMP_CONTROL_STATE),
+            DEPTH_BIAS_REPRESENTATION => {
+                take!(bias, DepthBiasRepresentation, DEPTH_BIAS_REPRESENTATION)
+            }
             CONSERVATIVE_STATE => take!(conservative, ConservativeState, CONSERVATIVE_STATE),
             LINE_STATE => take!(line, LineState, LINE_STATE),
             PROVOKING_STATE => take!(provoking, ProvokingState, PROVOKING_STATE),
@@ -503,6 +509,8 @@ impl Commands {
     }
 }
 pub(super) struct Prepared {
+    pub clamp: Option<DepthClampControl>,
+    bias: Option<vk::VkDepthBiasRepresentationInfoEXT>,
     pub samples: Option<SampleLocationState>,
     clip: Option<vk::VkPipelineRasterizationDepthClipStateCreateInfoEXT>,
     conservative: Option<vk::VkPipelineRasterizationConservativeStateCreateInfoEXT>,
@@ -521,6 +529,7 @@ impl Prepared {
                 }
             };
         }
+        link!(bias);
         link!(clip);
         link!(conservative);
         link!(line);
@@ -540,7 +549,16 @@ pub(super) unsafe fn prepare(
     {
         return Err(UNSUPPORTED);
     }
+    let bias = if dynamic & DYNAMIC_DEPTH_BIAS_STATE != 0 {
+        None
+    } else {
+        s.bias
+            .map(|b| raster_profiles::bias(b.representation, b.exact, enabled))
+            .transpose()?
+    };
     let mut result = Prepared {
+        clamp: s.clamp,
+        bias,
         samples: s.samples,
         clip: None,
         conservative: None,

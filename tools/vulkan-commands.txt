@@ -184,3 +184,7 @@ vkCmdSetLogicOpEXT
 
 vkCmdSetViewportWithCount
 vkCmdSetScissorWithCount
+
+vkCmdSetDepthClampRangeEXT
+vkCmdSetDepthBias2EXT
+vkCmdSetColorWriteEnableEXT

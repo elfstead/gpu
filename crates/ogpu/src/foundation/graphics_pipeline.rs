@@ -56,7 +56,7 @@ fn raster_options(o: &RasterOptions, features: FeatureBits, topology: u32) -> Re
         o.depth_bias_slope,
         features,
     )?;
-    core_raster::depth_bounds(o.min_depth_bounds, o.max_depth_bounds)?;
+    core_raster::depth_bounds(o.min_depth_bounds, o.max_depth_bounds, features)?;
     if o.primitive_restart != 0 {
         raster_controls::restart(topology, features)?;
     }
@@ -678,11 +678,30 @@ pub(super) unsafe fn prepare(
         d.snapshot.features.enabled,
         &d.snapshot.viewport_limits,
     )?;
+    let clamp = raster_profiles::prepare_clamp(
+        mechanisms.clamp,
+        desc.dynamic_state,
+        d.snapshot.features.enabled,
+    )?;
+    let clamp_range = clamp.map(|c| vk::VkDepthClampRangeEXT {
+        minDepthClamp: c.min,
+        maxDepthClamp: c.max,
+    });
+    let native_clamp = clamp.map(|c| vk::VkPipelineViewportDepthClampControlCreateInfoEXT {
+        sType:vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLAMP_CONTROL_CREATE_INFO_EXT,
+        pNext:mechanisms.convention.as_ref().map_or(ptr::null(),|v|ptr::from_ref(v).cast()),
+        depthClampMode:c.mode,pDepthClampRange:if c.mode==1 { clamp_range.as_ref().map_or(ptr::null(),ptr::from_ref) } else { ptr::null() },
+    });
     let viewport = vk::VkPipelineViewportStateCreateInfo {
-        pNext: mechanisms
-            .convention
-            .as_ref()
-            .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
+        pNext: native_clamp.as_ref().map_or_else(
+            || {
+                mechanisms
+                    .convention
+                    .as_ref()
+                    .map_or(ptr::null(), |v| ptr::from_ref(v).cast())
+            },
+            |v| ptr::from_ref(v).cast(),
+        ),
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         viewportCount: viewport_counts[0],
         scissorCount: viewport_counts[1],
@@ -742,7 +761,18 @@ pub(super) unsafe fn prepare(
         back,
         ..Default::default()
     };
+    let color_write = unsafe {
+        raster_profiles::prepare_color(
+            extensions.color_write,
+            state.color_count,
+            desc.dynamic_state,
+            d.snapshot.features.enabled,
+        )?
+    };
     let blend = vk::VkPipelineColorBlendStateCreateInfo {
+        pNext: color_write
+            .as_ref()
+            .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         logicOpEnable: state.logic_op_enable,
         logicOp: state.logic_op,
@@ -751,7 +781,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 45];
+    let mut dynamic_states = [0; 47];
     dynamic_states[0] = if desc.dynamic_state & DYNAMIC_VIEWPORT_COUNT_STATE != 0 {
         vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT
     } else {
@@ -797,6 +827,7 @@ pub(super) unsafe fn prepare(
         .iter()
         .chain(core_raster::STATES)
         .chain(extended_raster::STATES)
+        .chain(raster_profiles::STATES)
     {
         if desc.dynamic_state & mask != 0 {
             dynamic_states[dynamic_count] = state;
@@ -1111,7 +1142,10 @@ mod tests {
                 ..base
             },
         ] {
-            assert_eq!(raster_options(&options, FeatureBits::MAX, 3), Err(INVALID));
+            assert_eq!(
+                raster_options(&options, FeatureBits::MAX & !UNRESTRICTED_DEPTH_RANGE, 3),
+                Err(INVALID)
+            );
         }
         assert_eq!(
             raster_options(
