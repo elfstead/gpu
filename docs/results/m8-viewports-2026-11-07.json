@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 12,
+  "implementation": "248f71fc0fd40052c04bfe74bd1a841345e37605",
+  "source_dirty": false,
+  "runtime_sha256": "78d442c87ad3fb9013a7f59ac06156221041cb7ef782b58fce9554731f104c94",
+  "checks": {
+    "host_tests": 116,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "tool_tests": 21,
+    "abi_values": 2332,
+    "surface": {
+      "operations": 187,
+      "records": 157,
+      "constants": 280,
+      "values": 1497
+    },
+    "clippy": "pass",
+    "bindings": "reproduce",
+    "shader_artifacts": 72,
+    "gpu": {
+      "profiles": 5,
+      "submissions": 40,
+      "pixels": 5120,
+      "rejected_recordings": 5
+    },
+    "validation_errors": 0,
+    "full_fixture_preexisting_warnings": 4,
+    "installed_c": "optimized fixture pass",
+    "native_rust": "relocated build, correspondence, missing-loader and headless pass"
+  },
+  "review_corrections": [
+    "Retired incomplete viewport_set history check; updated explicit caller contract and obsolete negative fixture. Initial validation failure retained in evidence."
+  ],
+  "unverified": [
+    "geometry/mesh viewport routing",
+    "layered/multiview viewport combinations",
+    "secondary/generated viewport composition",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-viewports-sdk/share/ogpu/manifest.json": "1256f37150d3a972831971125cce3749005edfd7d9a11463c6080347b5291a90",
+    "/tmp/ogpu-rust-external-scci6eu1/report.json": "09d526743c2e17e5ee72799d4b53c093a7d04f3fee80093fb0a907b8be0d8449",
+    "/tmp/ogpu-run-viewports-installed.py": "7c7124a00bdbef890e5a41a516da00e43dbc7de0bf87996d386b25cc374cfa8a",
+    "/tmp/ogpu-viewports-bindings.log": "978d9991cb50fd91b7e68b10ee32acdbe22846cc3a77d33c475deb91cafa2522",
+    "/tmp/ogpu-viewports-abi.log": "2cfb7b0c84bdf55aa14d18364b7e8f3f18b3b7cdd882ec839bf92b7de12c5b79",
+    "/tmp/ogpu-viewports-clippy.log": "4df6262fea774c2bb272329e0302a3aba23563c8ebb7056a46f3a09dd9b74c11",
+    "/tmp/ogpu-viewports-shaders-check.log": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+    "/tmp/ogpu-viewports-host.log": "c082d9005a25317ea1ccc9ad4ef78d320c726c70c11a4f70a360c66a2b810b7e",
+    "/tmp/ogpu-viewports-tools.log": "9ce568394a7127f9db793e19cb26017f519f1ea5bfc731d4906d66077f2a1758",
+    "/tmp/ogpu-viewports-install.log": "add926231501d23ee599d31f3d6e9fa79c492cfe5b6ad413d599c092ad7a844e",
+    "/tmp/ogpu-viewports-surface.log": "b2aa764c99c75d76be2fd76557e31832c06cc14551695ae9c3a02be2b167c11a",
+    "/tmp/ogpu-viewports-bindings-check.log": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+    "/tmp/ogpu-viewports-rust-sdk.log": "122218af9ef6a36e31313ae7936bf6ab80719db66b4b125e616f39d7d810bc01",
+    "/tmp/ogpu-viewports-stale-test.log": "0610bc54bac329286e5603ccb3f8a1bfb6cb7147d1fc55fdfec144db9cc89bb0",
+    "/tmp/ogpu-viewports-native.log": "de803fcfaba1c1917172ba95d3cc0005ce490c56694da5b8729c7a567314307f",
+    "/tmp/ogpu-viewports-shaders.log": "c5e5cd43f42b2b51e2cbdf12bc0b38043553fb93c6e7f5d63fbf53318890c5b6",
+    "/tmp/ogpu-viewports-installed-fixture.log": "7f5b5958e73a107c77c2f8e28be37d499c19f4094b2305e547908ab0cadac9e9",
+    "/tmp/ogpu-viewports-gpu.log": "5bb2afcf0670706d42c358a270cdde992c47876fd8410a273b09cd62181e52c5"
+  }
+}

@@ -69,3 +69,9 @@ binding/shader reproduction and 21 tooling tests pass. The two new shader artifa
 are pinned; the full fixture now takes 72 artifacts. The first full run exposed
 the obsolete missing-viewport negative test described above; the corrected run
 passes without weakening a valid-draw obligation or suppressing native validation.
+
+Clean installed acceptance at `248f71fc0fd40052c04bfe74bd1a841345e37605` (`source_dirty=false`)
+also passes: optimized full C fixture with 72 artifact inputs and separately
+relocated native Rust build/correspondence/missing-loader/headless checks.
+The [receipt](results/m8-viewports-2026-11-07.json) records exact runtime identity
+and evidence hashes, including the obsolete-test failure and corrected run.
