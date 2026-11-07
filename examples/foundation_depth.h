@@ -126,7 +126,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     if (stencil_resolve) ogpu_next_queries_reset(encoder,occlusion,0,2);
-    ogpu_next_image_barrier barrier = {{0,0,0,OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_image_barrier barrier = {{0,0,0,OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
     ogpu_next_barrier_scope dep_scope = {0,OGPU_NEXT_STAGE_DEPTH,0,0};
     ogpu_next_host_span dep_scratch = {bs,br.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier};

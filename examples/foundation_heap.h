@@ -166,7 +166,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_list *list = NULL;
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     ogpu_next_image_barrier barriers[2];
-    for (uint32_t i = 0; i < 2; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,i ? OGPU_NEXT_ACCESS_SHADER_WRITE : OGPU_NEXT_ACCESS_COPY_WRITE},images[i],all_texels,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    for (uint32_t i = 0; i < 2; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,i ? OGPU_NEXT_ACCESS_SHADER_WRITE : OGPU_NEXT_ACCESS_COPY_WRITE},images[i],all_texels,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
     ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COPY_WRITE | OGPU_NEXT_ACCESS_SHADER_WRITE};
     ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
     ogpu_next_dependency dep = {1,0,2,0,&dep_scope,NULL,barriers};

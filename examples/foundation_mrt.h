@@ -123,7 +123,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_image_barrier barriers[4]; ogpu_next_attachment attachments[2];
     for (uint32_t i = 0; i < image_count; ++i) {
-        barriers[i] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COLOR_READ | OGPU_NEXT_ACCESS_COLOR_WRITE},images[i],range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+        barriers[i] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COLOR_READ | OGPU_NEXT_ACCESS_COLOR_WRITE},images[i],range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
         if (i < 2) attachments[i] = (ogpu_next_attachment){views[i],samples == 1 ? NULL : views[i+2],OGPU_NEXT_STATE_COLOR_ATTACHMENT,
             samples == 1 ? 0 : OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,
             samples == 1 ? OGPU_NEXT_ATTACHMENT_RESOLVE_NONE : OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE,{.f32={0,0,0,0}}};

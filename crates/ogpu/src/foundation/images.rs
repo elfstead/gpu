@@ -269,7 +269,7 @@ impl Device {
     pub(super) unsafe fn prepare_image(&self, desc: &ImageDesc) -> Result<Prepared, Status> {
         self.ready()?;
         desc.header.validate::<ImageDesc>(IMAGE_DESC)?;
-        if desc.flags & !7 != 0 {
+        if desc.flags & !15 != 0 {
             return Err(UNSUPPORTED);
         }
         if desc.usage & IMAGE_SHADING_RATE != 0
@@ -278,6 +278,7 @@ impl Device {
             return Err(UNSUPPORTED);
         }
         let base = format(desc.format)?;
+        sample_locations::image_flags(desc.flags, base.aspects, self.snapshot.features.enabled)?;
         let native_usage = usage(desc.usage, base.aspects)?;
         let ty = dimensions(desc)?;
         // These require separately enabled features, not silently requested ones.
@@ -684,6 +685,21 @@ impl Image {
             subresourceRange: range,
             ..Default::default()
         })
+    }
+    pub(super) unsafe fn sample_transition(
+        &self,
+        p: *const Record,
+    ) -> Result<vk::VkSampleLocationsInfoEXT, Status> {
+        let d = unsafe { &*self.device };
+        unsafe {
+            sample_locations::transition(
+                p,
+                d.snapshot.features.enabled,
+                &d.snapshot.sample_location_limits,
+                self.prepared.desc.flags,
+                self.prepared.desc.sample_count,
+            )
+        }
     }
     pub(super) fn record_clear(
         &self,

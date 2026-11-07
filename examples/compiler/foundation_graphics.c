@@ -71,7 +71,7 @@ static int run_case(ogpu_next_device *device, ogpu_next_executable *pipeline, og
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
-    ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_COPY_READ,OGPU_NEXT_ACCESS_COLOR_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_COPY_READ,OGPU_NEXT_ACCESS_COLOR_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
     ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COLOR,0,0};
     ogpu_next_host_span dep_scratch = {bs,br.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier}; common_barrier(encoder,&dep,&dep_scope,dep_scratch);

@@ -988,6 +988,35 @@ impl List {
         self.viewport_set.set(true);
         Ok(())
     }
+    pub(in crate::foundation) unsafe fn sample_locations(
+        &self,
+        p: &SampleLocations,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let native = unsafe {
+            sample_locations::pattern(
+                p,
+                d.snapshot.features.enabled,
+                &d.snapshot.sample_location_limits,
+            )?
+        };
+        unsafe {
+            d.sample_commands.positions.ok_or(UNSUPPORTED)?(self.command, &native);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn sample_locations_enable(&self, value: u32) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        if value > 1 {
+            return Err(INVALID);
+        }
+        unsafe {
+            d.sample_commands.enable.ok_or(UNSUPPORTED)?(self.command, value);
+        }
+        Ok(())
+    }
     pub(in crate::foundation) fn raster_mechanism_value(
         &self,
         field: u64,

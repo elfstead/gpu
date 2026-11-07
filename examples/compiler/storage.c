@@ -195,7 +195,7 @@ int main(void) {
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_image_barrier barriers[2];
-    for (uint32_t i = 0; i < 2; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,0,i ? OGPU_NEXT_ACCESS_STORAGE_WRITE : OGPU_NEXT_ACCESS_COPY_WRITE},images[i],all,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    for (uint32_t i = 0; i < 2; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,0,i ? OGPU_NEXT_ACCESS_STORAGE_WRITE : OGPU_NEXT_ACCESS_COPY_WRITE},images[i],all,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
     ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_COMPUTE,0,0};
     ogpu_next_host_span dep_scratch = {barrier_scratch,bs.size};
     ogpu_next_dependency dep = {1,0,2,0,&dep_scope,NULL,barriers};

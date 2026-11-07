@@ -46,6 +46,24 @@ pub(super) fn layout(
         .map_err(|_| INVALID)?;
     Ok((layout.pad_to_align(), memory_offset, image_offset))
 }
+fn sample_layout(
+    globals: u32,
+    memory: u32,
+    images: u32,
+    samples: bool,
+) -> Result<(Layout, usize, usize, usize), Status> {
+    let (base, mo, io) = layout(globals, memory, images)?;
+    if !samples || images == 0 {
+        return Ok((base, mo, io, 0));
+    }
+    let (result, offset) = base
+        .extend(array_layout::<vk::VkSampleLocationsInfoEXT>(images)?)
+        .map_err(|_| INVALID)?;
+    Ok((result.pad_to_align(), mo, io, offset))
+}
+fn has_sample_locations(d: &Device) -> bool {
+    d.snapshot.features.enabled & SAMPLE_LOCATIONS != 0
+}
 fn requirements(layout: Layout) -> HostRequirements {
     HostRequirements {
         size: layout.size() as u64,
@@ -59,13 +77,15 @@ pub(in crate::foundation) fn barrier_requirements(
     images: u32,
 ) -> Result<HostRequirements, Status> {
     d.ready()?;
-    Ok(requirements(layout(globals, memory, images)?.0))
+    Ok(requirements(
+        sample_layout(globals, memory, images, has_sample_locations(d))?.0,
+    ))
 }
-fn entry_layout(dep: &Dependency) -> Result<Layout, Status> {
+fn entry_layout(dep: &Dependency, samples: bool) -> Result<Layout, Status> {
     if dep.flags & !(DEPENDENCY_BY_REGION | DEPENDENCY_VIEW_LOCAL) != 0 {
         return Err(UNSUPPORTED);
     }
-    Ok(layout(dep.global_count, dep.memory_count, dep.image_count)?.0)
+    Ok(sample_layout(dep.global_count, dep.memory_count, dep.image_count, samples)?.0)
 }
 fn split_headers(count: u32) -> Result<(Layout, usize), Status> {
     array_layout::<vk::VkEvent>(count)?
@@ -73,14 +93,17 @@ fn split_headers(count: u32) -> Result<(Layout, usize), Status> {
         .map_err(|_| INVALID)
 }
 // Counts/flags only. Do not touch split handles or nested barrier arrays here.
-unsafe fn split_layout(waits: &[SplitDependency]) -> Result<Layout, Status> {
+unsafe fn split_layout(waits: &[SplitDependency], samples: bool) -> Result<Layout, Status> {
     let (mut result, _) = split_headers(u32::try_from(waits.len()).map_err(|_| INVALID)?)?;
     for wait in waits {
         let dep = unsafe { wait.dependency.as_ref() }.ok_or(INVALID)?;
         if dep.flags != 0 {
             return Err(UNSUPPORTED);
         }
-        result = result.extend(entry_layout(dep)?).map_err(|_| INVALID)?.0;
+        result = result
+            .extend(entry_layout(dep, samples)?)
+            .map_err(|_| INVALID)?
+            .0;
     }
     Ok(result.pad_to_align())
 }
@@ -89,7 +112,9 @@ pub(in crate::foundation) unsafe fn split_requirements(
     waits: &[SplitDependency],
 ) -> Result<HostRequirements, Status> {
     d.ready()?;
-    Ok(requirements(unsafe { split_layout(waits)? }))
+    Ok(requirements(unsafe {
+        split_layout(waits, has_sample_locations(d))?
+    }))
 }
 
 fn scope(
@@ -219,10 +244,11 @@ impl List {
             self.view_mask.get(),
             dep.flags,
         )?;
-        let allocation = entry_layout(dep)?;
+        let samples = has_sample_locations(d);
+        let allocation = entry_layout(dep, samples)?;
         let base = scratch(storage.data, storage.size, requirements(allocation))?;
-        let (_, memory_offset, image_offset) =
-            layout(dep.global_count, dep.memory_count, dep.image_count)?;
+        let (_, memory_offset, image_offset, sample_offset) =
+            sample_layout(dep.global_count, dep.memory_count, dep.image_count, samples)?;
         let globals = base.cast::<vk::VkMemoryBarrier2>();
         let memory = base
             .wrapping_add(memory_offset)
@@ -284,6 +310,17 @@ impl List {
             }
             let image = unsafe { entry.image.as_ref() }.ok_or(INVALID)?;
             let mut native = image.barrier(d, self.domain, entry)?;
+            if !entry.next.is_null() {
+                let sample = unsafe { image.sample_transition(entry.next)? };
+                let out = base
+                    .wrapping_add(sample_offset)
+                    .cast::<vk::VkSampleLocationsInfoEXT>()
+                    .wrapping_add(i);
+                unsafe {
+                    out.write(sample);
+                }
+                native.pNext = out.cast();
+            }
             native.srcStageMask = s.srcStageMask;
             native.dstStageMask = s.dstStageMask;
             native.srcAccessMask = s.srcAccessMask;
@@ -350,7 +387,7 @@ impl List {
         storage: HostSpan,
     ) -> Result<(), Status> {
         let d = self.split_recording()?;
-        let allocation = unsafe { split_layout(waits)? };
+        let allocation = unsafe { split_layout(waits, has_sample_locations(d))? };
         let base = scratch(storage.data, storage.size, requirements(allocation))?;
         if waits.is_empty() {
             return Ok(());
@@ -365,7 +402,7 @@ impl List {
             let split = unsafe { wait.split.as_ref() }.ok_or(INVALID)?;
             let dep = unsafe { wait.dependency.as_ref() }.ok_or(INVALID)?;
             split.check(d)?;
-            let entry_layout = entry_layout(dep)?;
+            let entry_layout = entry_layout(dep, has_sample_locations(d))?;
             let (next, offset) = cursor.extend(entry_layout).map_err(|_| INVALID)?;
             cursor = next;
             let region = HostSpan {

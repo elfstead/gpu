@@ -228,6 +228,7 @@ pub unsafe fn transition(
     scratch: &mut Scratch,
 ) {
     let barrier = ImageBarrier {
+        next: std::ptr::null(),
         scope: BarrierScope {
             stages_before: before,
             stages_after: after,

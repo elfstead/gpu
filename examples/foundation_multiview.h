@@ -89,7 +89,7 @@ static int multiview_execution(ogpu_next_device *device, ogpu_next_memory_desc m
         ogpu_next_queries_reset(encoder,occlusion,0,2);
         ogpu_next_queries_reset(encoder,timestamps,0,2);
         ogpu_next_image_barrier barrier = {{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image,range,
-            OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+            OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
         ogpu_next_barrier_scope scope = {0,OGPU_NEXT_STAGE_CLEAR,0,0};
         ogpu_next_dependency dep = {1,0,1,0,&scope,NULL,&barrier}; ogpu_next_host_span scratch = {bs,br.size};
         common_barrier(encoder,&dep,&scope,scratch);

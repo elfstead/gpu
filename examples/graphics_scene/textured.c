@@ -133,7 +133,7 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
 }
 static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *directory) {
     Scene *s=&t->scene; NEED(texture_update(t,mode,frame==1) && begin(s));
-    ogpu_next_image_barrier b={{0,0,OGPU_NEXT_ACCESS_SAMPLED_READ,OGPU_NEXT_ACCESS_COPY_WRITE},t->texture,{OGPU_NEXT_ASPECT_COLOR,0,4,0,1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_image_barrier b={{0,0,OGPU_NEXT_ACCESS_SAMPLED_READ,OGPU_NEXT_ACCESS_COPY_WRITE},t->texture,{OGPU_NEXT_ASPECT_COLOR,0,4,0,1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
     ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_COPY,0,0};
     ogpu_next_host_span dep_scratch = {s->bs,s->barrier_scratch.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&b};

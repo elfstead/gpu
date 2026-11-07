@@ -157,7 +157,8 @@ def install(prefix, *, legacy=False):
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
     for name in ("release-policy.md", "support.md", "foundation-quickstart.md", "legacy-sdk.md",
                  "minimal-core-arguments.md", "minimal-core-descriptors.md",
-                 "minimal-core-dependencies.md", "minimal-core-presentation.md"):
+                 "minimal-core-dependencies.md", "minimal-core-presentation.md",
+                 "sample-locations.md", "raster-mechanisms.md", "raster-controls.md"):
         copy(ROOT / "docs" / name, f"share/ogpu/{name}")
     if legacy:
         # Keep the measured consumer's relative source graph intact. Only the public

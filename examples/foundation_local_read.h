@@ -120,7 +120,7 @@ static int local_read_execution(ogpu_next_device *device, ogpu_next_memory_desc 
         TRY(ogpu_next_commands_begin(arena,&rd,&e));
         ogpu_next_image_barrier ib[2];
         for (uint32_t i=0;i<2;++i) ib[i]=(ogpu_next_image_barrier){{0,OGPU_NEXT_STAGE_COLOR,0,OGPU_NEXT_ACCESS_COLOR_WRITE},images[i],range,
-            OGPU_NEXT_STATE_UNDEFINED,state,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+            OGPU_NEXT_STATE_UNDEFINED,state,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
         ogpu_next_dependency dep={0,0,2,0,NULL,NULL,ib}; ogpu_next_barrier(e,&dep,bs);
         ogpu_next_attachment a[2];
         for (uint32_t i=0;i<2;++i) a[i]=(ogpu_next_attachment){views[i],NULL,state,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
@@ -137,13 +137,13 @@ static int local_read_execution(ogpu_next_device *device, ogpu_next_memory_desc 
             OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ|OGPU_NEXT_ACCESS_STORAGE_READ};
         ogpu_next_memory_barrier mb={{OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ},
             {memory,512,256},OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED};
-        ib[0]=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ},images[0],range,state,state,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+        ib[0]=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ},images[0],range,state,state,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
         dep=(ogpu_next_dependency){mode<2?1u:0u,mode<2?0u:1u,mode<2?0u:1u,OGPU_NEXT_DEPENDENCY_BY_REGION,mode<2?&global:NULL,mode<2?NULL:&mb,mode<2?NULL:ib};
         ogpu_next_barrier(e,&dep,bs);
         locations.locations=locs[1]; ogpu_next_set_render_locations(e,&locations); ogpu_next_bind_executable(e,pipelines[1]); ogpu_next_draw(e,&draw);
         ogpu_next_render_end(e);
         for (uint32_t i=0;i<2;++i) ib[i]=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_COPY,
-            OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ,OGPU_NEXT_ACCESS_COPY_READ},images[i],range,state,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+            OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ,OGPU_NEXT_ACCESS_COPY_READ},images[i],range,state,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
         dep=(ogpu_next_dependency){0,0,2,0,NULL,NULL,ib}; ogpu_next_barrier(e,&dep,bs);
         ogpu_next_image_copy copy={{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
         for (uint32_t i=0;i<2;++i) ogpu_next_copy_from_image(e,(ogpu_next_span){memory,1024+i*256,256},images[i],&copy);
@@ -194,7 +194,7 @@ static int local_read_execution(ogpu_next_device *device, ogpu_next_memory_desc 
             ogpu_next_set_render_inputs(e,&in);
         } else {
             ogpu_next_barrier_scope scope={OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ};
-            ogpu_next_image_barrier image={scope,images[0],range,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+            ogpu_next_image_barrier image={scope,images[0],range,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
             ogpu_next_dependency dep={1,0,0,OGPU_NEXT_DEPENDENCY_BY_REGION,&scope,NULL,NULL};
             if (test==8) dep.flags=0;
             if (test==9) { scope.stages_before=OGPU_NEXT_STAGE_COMPUTE; scope.access_before=OGPU_NEXT_ACCESS_STORAGE_WRITE; }

@@ -357,9 +357,10 @@ independent depth clipping, instance divisors and list/patch restart. Ten local
 profiles pass; [clean installed C/native Rust acceptance](results/m8-raster-controls-2026-11-06.md)
 also passes. Native patch restart remains unavailable. [Conservative rasterization,
 line/stipple controls, provoking vertex and depth convention](raster-mechanisms.md)
-now include independent dynamic controls and local execution evidence. Next finish
-sample positions with depth-content contracts, complete dynamic vertex input/divisors,
-remaining raster controls and the extension-format inventory. Geometry capture,
+now include independent dynamic controls and local execution evidence. [Sample positions](sample-locations.md) now add explicit patterns and depth-content
+transition metadata, including split dependencies, in revision 12. Next implement
+complete dynamic vertex input/divisors, remaining raster controls and the
+extension-format inventory. Geometry capture,
 dynamic patch and contract/composition consolidation follow before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows

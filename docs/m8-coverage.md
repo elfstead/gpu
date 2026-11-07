@@ -42,9 +42,11 @@ remains execution debt:
    direct dynamic controls, including independent depth clip enable. Local
    [execution and clean SDK evidence](results/m8-raster-mechanisms-2026-11-07.md) separates
    supported profiles from unavailable dynamic extra overestimation and stipple
-   variants. **Next:** programmable sample positions together with depth-image
-   compatibility and transition metadata; complete dynamic vertex input/divisor
-   descriptions and remaining native dynamic raster controls; inventory the pinned
+   variants. [Programmable sample positions](sample-locations.md) now include
+   depth-image compatibility and explicit ordinary/split transition metadata in
+   revision 12, with local coverage/depth/LOAD evidence. **Next:** complete dynamic
+   vertex input/divisor descriptions and remaining native dynamic raster controls;
+   inventory the pinned
    registry's extension-specific raster formats. These remain in this batch, not
    silently deferred to M9. No draw-time synthesis or shader substitute for a
    distinct native mechanism.

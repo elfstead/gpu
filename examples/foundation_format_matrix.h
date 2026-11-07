@@ -203,7 +203,7 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
             ogpu_next_recording_desc rd={HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_ONE_SHOT,0,NULL};
             ogpu_next_encoder *encoder=NULL; ogpu_next_list *list=NULL;
             TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
-            ogpu_next_image_barrier ib={{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image,{aspects,0,1,0,2},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+            ogpu_next_image_barrier ib={{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image,{aspects,0,1,0,2},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
             ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COPY,aspect==1 ? OGPU_NEXT_STAGE_COPY : OGPU_NEXT_STAGE_CLEAR,0,0};
     ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&ib};

@@ -1062,3 +1062,23 @@ pub unsafe extern "C" fn ogpu_next_set_line_stipple(encoder: *mut List, factor: 
         encode(encoder, |e| e.line_stipple(factor, pattern));
     }
 }
+
+/// # Safety
+/// Exclusive live recording; readable pattern for this call and compatible native draw state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_sample_locations(
+    encoder: *mut List,
+    p: *const SampleLocations,
+) {
+    unsafe {
+        encode(encoder, |e| e.sample_locations(p.as_ref().ok_or(INVALID)?));
+    }
+}
+/// # Safety
+/// Exclusive live recording; caller proves native sample/depth/pass compatibility.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_sample_locations_enable(encoder: *mut List, enable: u32) {
+    unsafe {
+        encode(encoder, |e| e.sample_locations_enable(enable));
+    }
+}

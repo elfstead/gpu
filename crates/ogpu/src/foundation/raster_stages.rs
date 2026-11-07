@@ -246,6 +246,7 @@ mod tests {
                 count: 1,
                 priority: 0.5,
             }];
+            eprintln!("Sample locations: {:?}", snapshot.sample_location_limits);
             let available = snapshot.features.available;
             let adapter = Adapter {
                 instance: instance.clone(),
@@ -253,6 +254,8 @@ mod tests {
                 snapshot,
             };
             for bit in [
+                SAMPLE_LOCATIONS,
+                SAMPLE_LOCATIONS | DYNAMIC_SAMPLE_LOCATIONS_ENABLE,
                 CONSERVATIVE_RASTER,
                 PROVOKING_LAST,
                 DEPTH_NEGATIVE_ONE_TO_ONE,

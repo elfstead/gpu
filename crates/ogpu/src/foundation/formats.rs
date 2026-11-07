@@ -82,7 +82,7 @@ pub(in crate::foundation::native) fn format_snapshot(
     Ok(result)
 }
 pub(super) fn image_flags(flags: u32) -> Result<u32, Status> {
-    if flags & !7 != 0 {
+    if flags & !15 != 0 {
         return Err(UNSUPPORTED);
     }
     Ok(if flags & 1 != 0 {
@@ -91,6 +91,10 @@ pub(super) fn image_flags(flags: u32) -> Result<u32, Status> {
         0
     } | if flags & 2 != 0 {
         vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+    } else {
+        0
+    } | if flags & IMAGE_SAMPLE_LOCATIONS_DEPTH != 0 {
+        vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT
     } else {
         0
     } | if flags & 4 != 0 {
@@ -118,6 +122,11 @@ impl Device {
             }
         }
         let format = format(profile.format)?;
+        sample_locations::image_flags(
+            profile.image_flags,
+            format.aspects,
+            self.snapshot.features.enabled,
+        )?;
         let native_usage = usage(profile.usage, format.aspects)?;
         let flags = image_flags(profile.image_flags)?;
         let ty = match profile.dimension {
@@ -338,6 +347,6 @@ mod tests {
                 | vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
                 | vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_ALIAS_BIT)
         );
-        assert_eq!(image_flags(8), Err(UNSUPPORTED));
+        assert_eq!(image_flags(16), Err(UNSUPPORTED));
     }
 }

@@ -65,7 +65,7 @@ _Static_assert(offsetof(ogpu_next_submit_desc, binary_waits) == 48, "submit scra
 _Static_assert(offsetof(ogpu_next_dependency, global) == 16, "barrier scratch ABI");
 _Static_assert(sizeof(ogpu_next_image_desc) == 96, "image description ABI");
 _Static_assert(sizeof(ogpu_next_view_desc) == 72, "view description ABI");
-_Static_assert(sizeof(ogpu_next_image_barrier) == 88, "image barrier ABI");
+_Static_assert(sizeof(ogpu_next_image_barrier) == 96, "image barrier ABI");
 _Static_assert(sizeof(ogpu_next_image_copy) == 64, "image copy ABI");
 _Static_assert(offsetof(ogpu_next_image_desc, concurrent_domains) == 88, "image domains ABI");
 _Static_assert(sizeof(ogpu_next_descriptor_limits) == 56, "descriptor limits ABI");
@@ -140,6 +140,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_raster_stages.h"
 #include "foundation_raster_controls.h"
 #include "foundation_raster_mechanisms.h"
+#include "foundation_sample_locations.h"
 #include "foundation_multiview.h"
 #include "foundation_blend.h"
 #include "foundation_float_atomics.h"
@@ -616,9 +617,9 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     ogpu_next_subresources full = {OGPU_NEXT_ASPECT_COLOR, 0, 3, 0, 2};
     ogpu_next_image_barrier barriers[4];
-    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image[i],full,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image[i],full,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     ogpu_next_subresources depth_range = {OGPU_NEXT_ASPECT_DEPTH, 0, 1, 0, 1};
-    barriers[3] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image[3],depth_range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    barriers[3] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image[3],depth_range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     ogpu_next_barrier_scope dep_scope = {0,OGPU_NEXT_STAGE_CLEAR,0,0};
     ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
     ogpu_next_dependency dep = {1,0,4,0,&dep_scope,NULL,barriers};
@@ -688,8 +689,8 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     /* Native image copies: pitched upload -> another mip/layer region, then a
      * disjoint same-image copy in GENERAL. Multisample copy then partial resolve. */
     ogpu_next_subresources ms_range = {OGPU_NEXT_ASPECT_COLOR,0,1,0,2};
-    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image[4+i],ms_range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
-    barriers[3] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_READ,OGPU_NEXT_ACCESS_COPY_WRITE},image[1],full,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image[4+i],ms_range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
+    barriers[3] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_READ,OGPU_NEXT_ACCESS_COPY_WRITE},image[1],full,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     dep_scope.stages_before = OGPU_NEXT_STAGE_COPY; dep_scope.stages_after = OGPU_NEXT_STAGE_CLEAR | OGPU_NEXT_STAGE_COPY; dep_scope.access_before = dep_scope.access_after = 0;
     dep.image_count = 4; dep.images = barriers;
     common_barrier(encoder,&dep,&dep_scope,dep_scratch);
@@ -713,14 +714,14 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     transfer = (ogpu_next_image_transfer){{OGPU_NEXT_ASPECT_COLOR,0,0,2,{0,0,0},{8,4,1}},
         {OGPU_NEXT_ASPECT_COLOR,0,0,2,{0,0,0},{8,4,1}},OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_STATE_COPY_DST};
     ogpu_next_copy_image(encoder,image[5],image[4],&transfer);
-    barriers[0] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image[5],ms_range,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    barriers[0] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image[5],ms_range,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     dep_scope.stages_before = OGPU_NEXT_STAGE_COPY; dep_scope.stages_after = OGPU_NEXT_STAGE_RESOLVE;
     dep.image_count = 1; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     transfer.source.offset = (ogpu_next_offset){1,1,0}; transfer.destination.offset = (ogpu_next_offset){2,1,0};
     transfer.source.extent = transfer.destination.extent = (ogpu_next_extent){3,2,1};
     ogpu_next_resolve_image(encoder,image[6],image[5],&transfer,OGPU_NEXT_RESOLVE_NATIVE_COLOR);
-    barriers[0] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image[6],ms_range,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
-    barriers[1] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image[1],full,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    barriers[0] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image[6],ms_range,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
+    barriers[1] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image[1],full,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     dep_scope.stages_before = OGPU_NEXT_STAGE_RESOLVE | OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_CLEAR;
     dep_scope.stages_after = OGPU_NEXT_STAGE_COPY;
     dep.image_count = 2; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
@@ -1016,7 +1017,7 @@ int main(int argc, char **argv) {
         REQUIRE(desc.required_features.count <= 128);
         memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
         for (uint32_t f=0; f<features.available.count; ++f)
-            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_LINE_STIPPLE_ENABLE)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
+            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
         desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
@@ -1095,7 +1096,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 67);
+    REQUIRE(argc == 69);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1121,6 +1122,7 @@ int main(int argc, char **argv) {
     REQUIRE(raster_stages_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[52]) == EXIT_SUCCESS);
     REQUIRE(raster_controls_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[59]) == EXIT_SUCCESS);
     REQUIRE(raster_mechanisms_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[65]) == EXIT_SUCCESS);
+    REQUIRE(sample_locations_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[67]) == EXIT_SUCCESS);
     REQUIRE(multiview_execution(device,memory_desc,graphics_domain,argv[48]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);

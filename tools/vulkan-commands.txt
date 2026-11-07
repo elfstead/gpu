@@ -154,3 +154,7 @@ vkCmdSetDepthClipNegativeOneToOneEXT
 vkCmdSetLineRasterizationModeEXT
 vkCmdSetLineStippleEnableEXT
 vkCmdSetLineStipple
+
+vkGetPhysicalDeviceMultisamplePropertiesEXT
+vkCmdSetSampleLocationsEXT
+vkCmdSetSampleLocationsEnableEXT

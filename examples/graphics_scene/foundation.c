@@ -340,7 +340,7 @@ static void transition(Scene *s,unsigned i,int discard) {
     uint32_t state=i ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT;
     uint64_t access=i ? OGPU_NEXT_ACCESS_DEPTH_READ|OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE;
     uint64_t stage=i ? OGPU_NEXT_STAGE_DEPTH : OGPU_NEXT_STAGE_COLOR;
-    ogpu_next_image_barrier b={{0,0,discard ? OGPU_NEXT_ACCESS_COPY_READ : access,discard ? access : OGPU_NEXT_ACCESS_COPY_READ},s->images[i],{aspect,0,1,0,1},discard ? OGPU_NEXT_STATE_UNDEFINED : state,discard ? state : OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,(uint32_t)discard,0};
+    ogpu_next_image_barrier b={{0,0,discard ? OGPU_NEXT_ACCESS_COPY_READ : access,discard ? access : OGPU_NEXT_ACCESS_COPY_READ},s->images[i],{aspect,0,1,0,1},discard ? OGPU_NEXT_STATE_UNDEFINED : state,discard ? state : OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,(uint32_t)discard,0,NULL};
     ogpu_next_barrier_scope dep_scope = {discard ? OGPU_NEXT_STAGE_COPY : stage,discard ? stage : OGPU_NEXT_STAGE_COPY,0,0};
     ogpu_next_host_span dep_scratch = {s->bs,s->barrier_scratch.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&b}; common_barrier(s->encoder,&dep,&dep_scope,dep_scratch);

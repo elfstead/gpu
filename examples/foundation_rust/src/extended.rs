@@ -472,6 +472,7 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             gpu::memory_flush(c.memory.span(0, 4096))?;
             let list = gpu::commands_begin(c.arena, &recording())?;
             let mut barrier = ImageBarrier {
+                next: std::ptr::null(),
                 scope: BarrierScope {
                     stages_before: 0,
                     stages_after: STAGE_TRANSFER,

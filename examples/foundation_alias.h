@@ -44,7 +44,7 @@ static int alias_execution(ogpu_next_device *device, ogpu_next_memory_desc host_
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     for (uint32_t step = 0; step < 3; ++step) {
         uint32_t which = step % 2;
-        ogpu_next_image_barrier image = {{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},images[which],{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+        ogpu_next_image_barrier image = {{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},images[which],{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
         /* Global availability covers writes through the OTHER image alias. An
          * image-only barrier on the new alias would not cover those accesses.
          * Execution ordering also waits for prior readback before overwriting. */

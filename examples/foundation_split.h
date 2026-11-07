@@ -34,7 +34,7 @@ static int split_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         {host,1024,128},OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED};
     ogpu_next_subresources all_texels = {OGPU_NEXT_ASPECT_COLOR,0,1,0,1};
     ogpu_next_image_barrier image_barrier = {{OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},
-        image,all_texels,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+        image,all_texels,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     ogpu_next_barrier_scope global_scope = {OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ};
     ogpu_next_dependency deps[2] = {{0,1,0,0,NULL,&memory_barrier,NULL},{1,0,1,0,&global_scope,NULL,&image_barrier}};
     ogpu_next_split_dependency waits[2] = {{splits[0],&deps[0]},{splits[1],&deps[1]}};

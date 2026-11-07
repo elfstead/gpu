@@ -1,6 +1,6 @@
 #ifndef OGPU_NEXT_H
 #define OGPU_NEXT_H
-/* Experimental foundation revision 11, not ABI 20; the default Linux SDK surface.
+/* Experimental foundation revision 12, not ABI 20; the default Linux SDK surface.
  * Only declarations in THIS header are implemented (Linux Vulkan for now).
  * The remaining design lives in docs/drafts/ogpu_next.h.
  *
@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 11u
+#define OGPU_NEXT_VERSION 12u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -1808,6 +1808,49 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_DYNAMIC_LINE_STIPPLE_ENABLE (UINT64_C(1) << 20)
 #define OGPU_NEXT_DYNAMIC_LINE_STIPPLE (UINT64_C(1) << 21)
 
+#define OGPU_NEXT_FEATURE_SAMPLE_LOCATIONS UINT32_C(96)
+#define OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE UINT32_C(97)
+#define OGPU_NEXT_QUERY_SAMPLE_LOCATION_LIMITS UINT32_C(26)
+#define OGPU_NEXT_SAMPLE_LOCATIONS UINT32_C(140)
+#define OGPU_NEXT_SAMPLE_LOCATION_STATE UINT32_C(141)
+#define OGPU_NEXT_IMAGE_SAMPLE_LOCATIONS_DEPTH UINT32_C(8)
+#define OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS (UINT64_C(1) << 22)
+#define OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS_ENABLE (UINT64_C(1) << 23)
+typedef struct ogpu_next_sample_location_limits {
+    uint32_t samples, max_grid[2];
+    float coordinate_range[2];
+    uint32_t subpixel_bits, variable, grids[7][2];
+} ogpu_next_sample_location_limits;
+typedef struct ogpu_next_sample_location { float x, y; } ogpu_next_sample_location;
+typedef struct ogpu_next_sample_locations {
+    ogpu_next_record header;
+    uint32_t samples, grid[2], count;
+    const ogpu_next_sample_location *locations;
+} ogpu_next_sample_locations;
+typedef struct ogpu_next_sample_location_state {
+    ogpu_next_record header;
+    uint32_t enable, reserved;
+    const ogpu_next_sample_locations *locations;
+} ogpu_next_sample_location_state;
+/* SAMPLE_LOCATION_STATE extends raster_options.header.next. Its pattern and the
+ * SAMPLE_LOCATIONS record on image_barrier.next require next=NULL. Pattern count
+ * equals samples*grid[0]*grid[1]; grid dimensions divide grids[log2(samples)].
+ * samples is a supported power of two <=64. Coordinates are finite, natively
+ * clamped/quantized; ordering is ((y*grid.width+x)*samples+sample).
+ * Dynamic pattern/enable ignore only their selected static fields. Enable is
+ * boolean, reserved=0. Initialize selected dynamic state before use.
+ * Depth attachments used with custom positions need IMAGE_SAMPLE_LOCATIONS_DEPTH.
+ * Preserving their depth across layout transitions needs the last-written pattern
+ * on the barrier; NULL deliberately leaves transition depth contents undefined.
+ * Changing that pattern requires clearing depth before reusing it. Matching the
+ * historical pattern, draw samples, pass-wide consistency when variable=0,
+ * secondary/continuation rules and shader/shading-rate compatibility are TRUSTED
+ * caller obligations; OGPU stores no last-pattern/pipeline cache. Arrays borrow
+ * only through preparation/recording. See docs/sample-locations.md.
+ */
+void ogpu_next_set_sample_locations(ogpu_next_encoder *, const ogpu_next_sample_locations *);
+void ogpu_next_set_sample_locations_enable(ogpu_next_encoder *, uint32_t enable);
+
 #define OGPU_NEXT_QUERY_RASTER_MECHANISM_LIMITS UINT32_C(25)
 #define OGPU_NEXT_CONSERVATIVE_DISABLED UINT32_C(0)
 #define OGPU_NEXT_CONSERVATIVE_OVERESTIMATE UINT32_C(1)
@@ -1832,7 +1875,7 @@ typedef struct ogpu_next_conservative_state { ogpu_next_record header; uint32_t 
 typedef struct ogpu_next_line_state { ogpu_next_record header; uint32_t mode, stipple_enable, factor, pattern; } ogpu_next_line_state;
 typedef struct ogpu_next_provoking_state { ogpu_next_record header; uint32_t mode, reserved; } ogpu_next_provoking_state;
 typedef struct ogpu_next_depth_convention_state { ogpu_next_record header; uint32_t negative_one_to_one, reserved; } ogpu_next_depth_convention_state;
-/* Optional raster_options.header.next chain: one of each of these records and
+/* Optional raster_options.header.next chain: one of each of these records, SAMPLE_LOCATION_STATE and
  * DEPTH_CLIP_STATE, in any order. Unknown/duplicate/cyclic records reject. Reserved
  * fields=0. Conservative mode=0 disabled, 1 overestimate, 2 underestimate; mode 2
  * needs the queried property. Extra size is finite, nonnegative and <= maximum.
@@ -1921,7 +1964,7 @@ typedef struct ogpu_next_raster_options {
  * static discard omits multisample state. Multisample attached discard remains work.
  * The viewport/scissor dynamic bit remains required by this profile.
  * Sample bit n controls sample n; bits beyond samples are ignored, including the
- * high 32 bits for counts <=32. No custom sample locations or mask expansion.
+ * high 32 bits for counts <=32. Custom positions use SAMPLE_LOCATION_STATE; no mask expansion.
  * Sample shading specifies a minimum fraction, not an exact invocation count.
  * Alpha coverage uses fragment output zero's alpha; conversion is native, not
  * portable bit-exact coverage. Alpha-to-one applies after that coverage operation.
@@ -2523,6 +2566,7 @@ struct ogpu_next_image_barrier {
     ogpu_next_image_state old_state, new_state;
     ogpu_next_queue_domain source_domain, destination_domain;
     uint32_t discard, reserved;
+    const ogpu_next_record *next; /* optional SAMPLE_LOCATIONS; NULL otherwise */
 };
 typedef struct ogpu_next_dependency {
     uint32_t global_count, memory_count, image_count, flags;

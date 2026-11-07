@@ -1,7 +1,7 @@
 # C1: dependency and submission decisions
 
 Selected 2026-11-03. **Public Vulkan dependency and submission cutovers implemented
-2026-11-05, included in current foundation schema 7.** The [C records](drafts/ogpu_dependencies.h)
+2026-11-05, introduced in foundation schema 7.** The [C records](drafts/ogpu_dependencies.h)
 and [Rust mirror](drafts/dependencies.rs) record the selected contract.
 The [dependency checkpoint](minimal-core-migration.md#c2-dependency-public-cutover)
 installs independent scopes, explicit scratch and enabled-domain capabilities.
@@ -17,6 +17,13 @@ entry specifies its own execution stages and memory accesses. One `barrier` call
 records the complete batch using caller scratch. An empty description is a no-op;
 an execution-only dependency is an explicit global entry with zero access masks.
 There is no implicit all-stage dependency and no state/hazard inference.
+
+Revision 12 adds an optional `ImageBarrier.next` record for [sample-location
+metadata](sample-locations.md). It describes the last-written pattern when a native
+depth transition must preserve custom-sampled contents. All ordinary and split
+operations retain the same dependency description and explicit scratch; there is
+no hidden last-pattern tracker. Callers rebuild with the matching revision and
+initialize the new pointer to NULL when unused.
 
 This corrects the previous limitation: `Dependency.before/after` supplied
 the same stage pair to every native barrier. For example, compute→indirect and

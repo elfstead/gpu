@@ -331,7 +331,7 @@ static void order(ogpu_next_encoder *batch)
 }
 static void discard_image(struct backend *b, ogpu_next_encoder *batch, struct texture *t)
 {
-    const ogpu_next_image_barrier image = {{OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE},t->image,{OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    const ogpu_next_image_barrier image = {{OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE},t->image,{OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
     const ogpu_next_host_span dep_scratch = {b->scratch.data,b->scratch.size};
         const ogpu_next_dependency dep = {0,0,1,0,NULL,NULL,&image};
     ogpu_next_barrier(batch,&dep,dep_scratch);

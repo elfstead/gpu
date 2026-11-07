@@ -93,7 +93,7 @@ static void dispatch(ogpu_next_encoder *encoder, ogpu_next_executable *pipeline,
 }
 static void image_readback(ogpu_next_encoder *encoder, ogpu_next_image *target, ogpu_next_memory *readback,
     uint32_t width, uint32_t height, size_t bytes, void *scratch, uint64_t scratch_size) {
-    ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},target,{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},target,{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};
     ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,0,0};
     ogpu_next_host_span dep_scratch = {scratch,scratch_size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier};
@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
         dispatch(encoder, kernels[2], arguments[2], process_grid, &process, sizeof(process));
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
-        ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COLOR_WRITE},target,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+        ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COLOR_WRITE},target,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
         ogpu_next_barrier_scope image_dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COLOR,0,0};
     ogpu_next_host_span image_dep_scratch = {bs,br.size};
     ogpu_next_dependency image_dep = {1,0,1,0,&image_dep_scope,NULL,&barrier};

@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "sample_locations.rs"]
+mod sample_locations;
+
 #[path = "raster_mechanisms.rs"]
 mod raster_mechanisms;
 
@@ -315,6 +318,7 @@ pub(super) fn snapshot(
     let mut raster_stage_limits = RasterStageLimits::default();
     let mut raster_control_limits = RasterControlLimits::default();
     let mut raster_mechanism_limits = RasterMechanismLimits::default();
+    let mut sample_location_limits = SampleLocationLimits::default();
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -460,6 +464,9 @@ pub(super) fn snapshot(
         )?;
         features.available |= mechanisms;
         raster_mechanism_limits = mechanism_limits;
+        let (samples, sample_limits) = sample_locations::snapshot(instance, physical, &f)?;
+        features.available |= samples;
+        sample_location_limits = sample_limits;
 
         for (value, bit) in [
             (root.features.largePoints, LARGE_POINTS),
@@ -687,6 +694,7 @@ pub(super) fn snapshot(
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
     for (dynamic, base) in [
+        (DYNAMIC_SAMPLE_LOCATIONS_ENABLE, SAMPLE_LOCATIONS),
         (
             DYNAMIC_CONSERVATIVE_MODE | DYNAMIC_EXTRA_OVERESTIMATION,
             CONSERVATIVE_RASTER,
@@ -799,6 +807,7 @@ pub(super) fn snapshot(
         raster_stage_limits,
         raster_control_limits,
         raster_mechanism_limits,
+        sample_location_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -814,6 +823,7 @@ pub struct Device {
     f: Functions,
     shading_rate_function: vk::PFN_vkCmdSetFragmentShadingRateKHR,
     raster_commands: raster_mechanisms::Commands,
+    sample_commands: sample_locations::Commands,
     mesh_functions: Option<mesh::MeshFunctions>,
     generated_functions: Option<generated::GeneratedFunctions>,
     pub(super) snapshot: Snapshot,
@@ -876,6 +886,7 @@ impl Device {
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
             raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
+            sample_commands: sample_locations::Commands::load(&adapter.instance, enabled)?,
             shading_rate_function: if enabled & shading_rate::INPUTS != 0 {
                 shading_rate::load(&adapter.instance)?
             } else {
@@ -1100,6 +1111,7 @@ impl Device {
         };
 
         for (bit, name) in [
+            (SAMPLE_LOCATIONS, c"VK_EXT_sample_locations"),
             (CONSERVATIVE_RASTER, c"VK_EXT_conservative_rasterization"),
             (PROVOKING_LAST, c"VK_EXT_provoking_vertex"),
             (DEPTH_NEGATIVE_ONE_TO_ONE, c"VK_EXT_depth_clip_control"),

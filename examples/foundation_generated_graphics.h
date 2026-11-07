@@ -180,7 +180,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
                     common_barrier(encoder,&dep,&scope,scratch);
                 }
                 ogpu_next_image_barrier barrier = {{0,0,0,OGPU_NEXT_ACCESS_COLOR_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,
-                    OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+                    OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
                 scope = (ogpu_next_barrier_scope){0,OGPU_NEXT_STAGE_COLOR,0,0}; dep.image_count = 1; dep.images = &barrier;
                 common_barrier(encoder,&dep,&scope,scratch);
                 ogpu_next_render_begin(encoder,&render); ogpu_next_generated_execute(encoder,&batch,separate); ogpu_next_render_end(encoder);

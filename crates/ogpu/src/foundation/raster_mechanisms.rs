@@ -8,8 +8,17 @@ pub(super) const DYNAMIC_FEATURES: FeatureBits = DYNAMIC_CONSERVATIVE_MODE
     | DYNAMIC_DEPTH_CLIP
     | DYNAMIC_DEPTH_CONVENTION
     | DYNAMIC_LINE_MODE
-    | DYNAMIC_LINE_STIPPLE_ENABLE;
+    | DYNAMIC_LINE_STIPPLE_ENABLE
+    | DYNAMIC_SAMPLE_LOCATIONS_ENABLE;
 pub(super) const DYNAMIC_STATES: &[(u64, vk::VkDynamicState)] = &[
+    (
+        DYNAMIC_SAMPLE_LOCATIONS_STATE,
+        vk::VkDynamicState_VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT,
+    ),
+    (
+        DYNAMIC_SAMPLE_LOCATIONS_ENABLE_STATE,
+        vk::VkDynamicState_VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT,
+    ),
     (
         DYNAMIC_CONSERVATIVE_MODE_STATE,
         vk::VkDynamicState_VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT,
@@ -70,6 +79,12 @@ pub(super) fn dynamic_mask(enabled: FeatureBits) -> u64 {
     if enabled & DYNAMIC_LINE_STIPPLE_ENABLE != 0 {
         mask |= DYNAMIC_LINE_STIPPLE_ENABLE_STATE;
     }
+    if enabled & SAMPLE_LOCATIONS != 0 {
+        mask |= DYNAMIC_SAMPLE_LOCATIONS_STATE;
+    }
+    if enabled & DYNAMIC_SAMPLE_LOCATIONS_ENABLE != 0 {
+        mask |= DYNAMIC_SAMPLE_LOCATIONS_ENABLE_STATE;
+    }
     mask
 }
 pub(super) struct Native {
@@ -92,6 +107,7 @@ impl Native {
             },
             dynamic: vk::VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
+                extendedDynamicState3SampleLocationsEnable: u32::from(enabled & DYNAMIC_SAMPLE_LOCATIONS_ENABLE != 0),
                 extendedDynamicState3ConservativeRasterizationMode: u32::from(
                     enabled & DYNAMIC_CONSERVATIVE_MODE != 0,
                 ),
@@ -188,6 +204,9 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut props);
     }
     let mut available = selected & CONSERVATIVE_RASTER;
+    if native.dynamic.extendedDynamicState3SampleLocationsEnable != 0 {
+        available |= DYNAMIC_SAMPLE_LOCATIONS_ENABLE;
+    }
     if native.provoking.provokingVertexLast != 0 {
         available |= PROVOKING_LAST;
     }
@@ -250,6 +269,7 @@ pub(super) fn snapshot(
 #[derive(Default)]
 pub(super) struct States {
     pub clip: Option<DepthClipState>,
+    pub samples: Option<SampleLocationState>,
     pub conservative: Option<ConservativeState>,
     pub line: Option<LineState>,
     pub provoking: Option<ProvokingState>,
@@ -260,7 +280,7 @@ pub(super) unsafe fn parse(mut p: *const Record) -> Result<States, Status> {
     let mut count = 0;
     while !p.is_null() {
         count += 1;
-        if count > 5 {
+        if count > 6 {
             return Err(INVALID);
         }
         let h = unsafe { &*p };
@@ -275,6 +295,7 @@ pub(super) unsafe fn parse(mut p: *const Record) -> Result<States, Status> {
             }};
         }
         match h.kind {
+            SAMPLE_LOCATION_STATE => take!(samples, SampleLocationState, SAMPLE_LOCATION_STATE),
             DEPTH_CLIP_STATE => take!(clip, DepthClipState, DEPTH_CLIP_STATE),
             CONSERVATIVE_STATE => take!(conservative, ConservativeState, CONSERVATIVE_STATE),
             LINE_STATE => take!(line, LineState, LINE_STATE),
@@ -425,6 +446,7 @@ impl Commands {
     }
 }
 pub(super) struct Prepared {
+    pub samples: Option<SampleLocationState>,
     clip: Option<vk::VkPipelineRasterizationDepthClipStateCreateInfoEXT>,
     conservative: Option<vk::VkPipelineRasterizationConservativeStateCreateInfoEXT>,
     line: Option<vk::VkPipelineRasterizationLineStateCreateInfo>,
@@ -462,6 +484,7 @@ pub(super) unsafe fn prepare(
         return Err(UNSUPPORTED);
     }
     let mut result = Prepared {
+        samples: s.samples,
         clip: None,
         conservative: None,
         line: None,

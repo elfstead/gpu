@@ -18,7 +18,7 @@ require,digest,rows=scene.require,scene.digest,scene.rows
 def profile(stdout,stderr,device,capacity):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require(rows(stdout,'DEVICE ')==[device],'range device mismatch')
-    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=11,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=12,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
     require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
     require(rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'missing draw identity')
     features=rows(stdout,'FRONTIER_FEATURES ')
@@ -87,7 +87,7 @@ def main():
     try:
         pkg=os.getenv('PKG_CONFIG','pkg-config')
         def variable(name):return subprocess.check_output([pkg,'--variable='+name,'ogpu-foundation'],text=True).strip()
-        report['foundation']=int(variable('ogpu_foundation'));require(report['foundation']==11,'unsupported foundation revision')
+        report['foundation']=int(variable('ogpu_foundation'));require(report['foundation']==12,'unsupported foundation revision')
         report['sdk']=dict(revision=variable('ogpu_revision'),runtime_sha256=digest(Path(variable('libdir'))/'libogpu.so'))
         report['sources']={p.name:digest(p) for p in sorted(HERE.iterdir()) if p.is_file() and p.suffix in ('.c','.h','.py','.slang')}
         report['executables']={name:digest(HERE/name) for name in ('baseline','consumer','reuse','scopes')}

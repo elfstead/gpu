@@ -115,3 +115,6 @@ record!(fn set_line_mode(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_L
 record!(fn set_line_stipple_enable(list, value:u32) |e| e.raster_mechanism_value(DYNAMIC_LINE_STIPPLE_ENABLE_STATE,value));
 
 record!(fn set_line_stipple(list, factor:u32, pattern:u32) |e| e.line_stipple(factor,pattern));
+
+record!(fn set_sample_locations(list, locations: &SampleLocations) |e| e.sample_locations(locations));
+record!(fn set_sample_locations_enable(list, enable: u32) |e| e.sample_locations_enable(enable));

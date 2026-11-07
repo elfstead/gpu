@@ -25,9 +25,11 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 11;
+pub const VERSION: u32 = 12;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const SAMPLE_LOCATIONS: u32 = 96;
+    pub const DYNAMIC_SAMPLE_LOCATIONS_ENABLE: u32 = 97;
     pub const CONSERVATIVE_RASTER: u32 = 80;
     pub const PROVOKING_LAST: u32 = 81;
     pub const DEPTH_NEGATIVE_ONE_TO_ONE: u32 = 82;
@@ -718,6 +720,7 @@ pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
     for (dynamic, base) in [
+        (DYNAMIC_SAMPLE_LOCATIONS_ENABLE, SAMPLE_LOCATIONS),
         (
             DYNAMIC_CONSERVATIVE_MODE | DYNAMIC_EXTRA_OVERESTIMATION,
             CONSERVATIVE_RASTER,
@@ -1735,6 +1738,7 @@ pub struct ImageBarrier {
     pub destination_domain: u32,
     pub discard: u32,
     pub reserved: u32,
+    pub next: *const Record,
 }
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -2025,4 +2029,45 @@ pub struct DepthConventionState {
     pub header: Record,
     pub negative_one_to_one: u32,
     pub reserved: u32,
+}
+
+// Programmable sample positions and explicit depth-transition metadata.
+pub const SAMPLE_LOCATION_LIMITS: u32 = 26;
+pub const SAMPLE_LOCATIONS_RECORD: u32 = 140;
+pub const SAMPLE_LOCATION_STATE: u32 = 141;
+pub const IMAGE_SAMPLE_LOCATIONS_DEPTH: u32 = 8;
+pub const DYNAMIC_SAMPLE_LOCATIONS_STATE: u64 = 1 << 22;
+pub const DYNAMIC_SAMPLE_LOCATIONS_ENABLE_STATE: u64 = 1 << 23;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct SampleLocationLimits {
+    pub samples: u32,
+    pub max_grid: [u32; 2],
+    pub coordinate_range: [f32; 2],
+    pub subpixel_bits: u32,
+    pub variable: u32,
+    pub grids: [[u32; 2]; 7],
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct SampleLocation {
+    pub x: f32,
+    pub y: f32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SampleLocations {
+    pub header: Record,
+    pub samples: u32,
+    pub grid: [u32; 2],
+    pub count: u32,
+    pub locations: *const SampleLocation,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SampleLocationState {
+    pub header: Record,
+    pub enable: u32,
+    pub reserved: u32,
+    pub locations: *const SampleLocations,
 }

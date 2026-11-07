@@ -97,7 +97,7 @@ static int raster_mechanisms_execution(ogpu_next_device *device,ogpu_next_memory
         }
         TRY(ogpu_next_executable_create(device,&ed,arguments,&pipeline));
         ogpu_next_encoder *e=NULL;ogpu_next_list *list=NULL;TRY(ogpu_next_commands_begin(arena,&rd,&e));
-        ogpu_next_image_barrier ib={{0,OGPU_NEXT_STAGE_COLOR,0,OGPU_NEXT_ACCESS_COLOR_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+        ogpu_next_image_barrier ib={{0,OGPU_NEXT_STAGE_COLOR,0,OGPU_NEXT_ACCESS_COLOR_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
         ogpu_next_dependency dep={0,0,1,0,NULL,NULL,&ib};ogpu_next_barrier(e,&dep,bs);
         ogpu_next_attachment a={view,NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
         ogpu_next_render_desc render={.header=HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),.width=8,.height=8,.layers=1,.samples=1,.color_count=1,.colors=&a,.scratch={render_scratch,rr.size}};
@@ -110,7 +110,7 @@ static int raster_mechanisms_execution(ogpu_next_device *device,ogpu_next_memory
         if(mode==16){ogpu_next_set_line_mode(e,0);ogpu_next_set_line_mode(e,2);ogpu_next_set_line_stipple_enable(e,0);ogpu_next_set_line_stipple_enable(e,1);ogpu_next_set_line_stipple(e,1,0);ogpu_next_set_line_stipple(e,1,0x5555);}
         if(clip){ogpu_next_set_depth_clip(e,1);ogpu_next_set_depth_clip(e,0);}
         ogpu_next_draw_desc draw={line?2u:3u,1,0,0,0};ogpu_next_draw(e,&draw);ogpu_next_render_end(e);
-        ib=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image,range,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};ogpu_next_barrier(e,&dep,bs);
+        ib=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image,range,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};ogpu_next_barrier(e,&dep,bs);
         ogpu_next_image_copy copy={{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};ogpu_next_copy_from_image(e,(ogpu_next_span){memory,1024,256},image,&copy);
         ogpu_next_barrier_scope host={OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ};dep=(ogpu_next_dependency){1,0,0,0,&host,NULL,NULL};ogpu_next_barrier(e,&dep,bs);
         TRY(ogpu_next_commands_end(e,&list));

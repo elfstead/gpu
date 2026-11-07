@@ -47,6 +47,7 @@ fn fixture() -> Snapshot {
         raster_stage_limits: RasterStageLimits::default(),
         raster_control_limits: RasterControlLimits::default(),
         raster_mechanism_limits: RasterMechanismLimits::default(),
+        sample_location_limits: SampleLocationLimits::default(),
         shading_rate_limits: ShadingRateLimits::default(),
         shading_rates: Vec::new(),
         formats: vec![],
@@ -333,7 +334,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(std::mem::offset_of!(Dependency, global), 16);
     assert_eq!(size_of::<ImageDesc>(), 96);
     assert_eq!(size_of::<ViewDesc>(), 72);
-    assert_eq!(size_of::<ImageBarrier>(), 88);
+    assert_eq!(size_of::<ImageBarrier>(), 96);
     assert_eq!(size_of::<ImageCopy>(), 64);
     assert_eq!(size_of::<ClearValue>(), 16);
     assert_eq!(size_of::<DescriptorLimits>(), 56);

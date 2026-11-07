@@ -1,5 +1,5 @@
 {
-  "revision": 11,
+  "revision": 12,
   "operations": [
     "ogpu_next_adapter_query",
     "ogpu_next_arena_create",
@@ -113,6 +113,8 @@
     "ogpu_next_set_provoking_vertex",
     "ogpu_next_set_render_inputs",
     "ogpu_next_set_render_locations",
+    "ogpu_next_set_sample_locations",
+    "ogpu_next_set_sample_locations_enable",
     "ogpu_next_set_shading_rate",
     "ogpu_next_set_stencil_compare_mask",
     "ogpu_next_set_stencil_ops",
@@ -396,7 +398,15 @@
     "OGPU_NEXT_LINE_BRESENHAM": "LINE_BRESENHAM",
     "OGPU_NEXT_LINE_SMOOTH_RECTANGULAR": "LINE_SMOOTH_RECTANGULAR",
     "OGPU_NEXT_PROVOKING_VERTEX_FIRST": "PROVOKING_VERTEX_FIRST",
-    "OGPU_NEXT_PROVOKING_VERTEX_LAST": "PROVOKING_VERTEX_LAST"
+    "OGPU_NEXT_PROVOKING_VERTEX_LAST": "PROVOKING_VERTEX_LAST",
+    "OGPU_NEXT_FEATURE_SAMPLE_LOCATIONS": "feature_ids::SAMPLE_LOCATIONS",
+    "OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE": "feature_ids::DYNAMIC_SAMPLE_LOCATIONS_ENABLE",
+    "OGPU_NEXT_QUERY_SAMPLE_LOCATION_LIMITS": "SAMPLE_LOCATION_LIMITS",
+    "OGPU_NEXT_SAMPLE_LOCATIONS": "SAMPLE_LOCATIONS_RECORD",
+    "OGPU_NEXT_SAMPLE_LOCATION_STATE": "SAMPLE_LOCATION_STATE",
+    "OGPU_NEXT_IMAGE_SAMPLE_LOCATIONS_DEPTH": "IMAGE_SAMPLE_LOCATIONS_DEPTH",
+    "OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS": "DYNAMIC_SAMPLE_LOCATIONS_STATE",
+    "OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS_ENABLE": "DYNAMIC_SAMPLE_LOCATIONS_ENABLE_STATE"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

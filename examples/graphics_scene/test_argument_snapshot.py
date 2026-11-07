@@ -60,7 +60,7 @@ class ArgumentSnapshots(unittest.TestCase):
             lines={'DEVICE':device,'ARGUMENT_LIMIT':limit,
                 'ARGUMENT_SNAPSHOTS':dict(bytes=64,snapshots=4,draws=8,invalid_retries=8 if backend=='public' else 0)}
             if backend=='foundation':lines['ARGUMENT_SNAPSHOTS']['invalid_recordings']=8
-            api={'foundation':11} if backend=='foundation' else {'abi':20}
+            api={'foundation':12} if backend=='foundation' else {'abi':20}
             lines.update({'DRAW_IDENTITY_FEATURES':dict(shaderDrawParameters=True)} if backend=='native' else
                          {'PUBLIC_SCENE':dict(**api,index_bytes=4,gpu_generated=True)})
             log='\n'.join(k+' '+json.dumps(v) for k,v in lines.items())+'\nArgument snapshot control drained'
@@ -71,7 +71,7 @@ class ArgumentSnapshots(unittest.TestCase):
             for error in ('Validation Error: bad','SYNC-HAZARD bad'):
                 with self.assertRaises(ValueError):a.check_log(log,error,backend,64)
             if backend=='foundation':
-                for bad in (log.replace('"invalid_recordings": 8','"invalid_recordings": 0'),log.replace('"foundation": 11','"abi": 20'),log.replace('"invalid_retries": 0','"invalid_retries": 8')):
+                for bad in (log.replace('"invalid_recordings": 8','"invalid_recordings": 0'),log.replace('"foundation": 12','"abi": 20'),log.replace('"invalid_retries": 0','"invalid_retries": 8')):
                     with self.assertRaises(ValueError):a.check_log(bad,'',backend,64)
 
 

@@ -628,9 +628,11 @@ passes C/native Rust and the optimized fixture. The [raster mechanisms tranche](
 now adds conservative coverage, line/stipple modes, provoking vertex, depth
 convention and independent dynamic controls, with [clean installed C/native Rust
 and local GPU acceptance](results/m8-raster-mechanisms-2026-11-07.md) at `92c1184`.
-Next complete programmable sample positions with depth-content contracts, dynamic
-vertex input/divisors and remaining raster controls, plus the extension-format
-inventory. Geometry capture/dynamic patch and consolidation follow before M9.
+[Programmable sample positions](sample-locations.md) now implement explicit
+patterns, independent dynamic enable, compatible-depth images and ordinary/split
+transition metadata in revision 12; [local evidence](results/m8-sample-locations-2026-11-07.md)
+checks coverage and depth preservation. Next complete dynamic vertex input/divisors
+and remaining raster controls, plus the extension-format inventory. Geometry capture/dynamic patch and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 

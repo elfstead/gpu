@@ -300,6 +300,7 @@ pub unsafe fn run() -> gpu::Result<()> {
                         gpu::ImageHandle::from_raw(acquired_frame.image).ok_or(BACKEND_ERROR)?;
                     assert_eq!(image, borrowed[i][acquired_frame.index as usize]);
                     let mut barrier = ImageBarrier {
+                        next: std::ptr::null(),
                         scope: BarrierScope {
                             stages_before: STAGE_TRANSFER,
                             stages_after: STAGE_TRANSFER,

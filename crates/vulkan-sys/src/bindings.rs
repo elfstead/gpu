@@ -14832,6 +14832,229 @@ pub type PFN_vkCmdPushDataEXT = ::std::option::Option<
     ),
 >;
 #[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkSampleLocationEXT {
+    pub x: f32,
+    pub y: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSampleLocationEXT",
+    ][::std::mem::size_of::<VkSampleLocationEXT>() - 8usize];
+    [
+        "Alignment of VkSampleLocationEXT",
+    ][::std::mem::align_of::<VkSampleLocationEXT>() - 4usize];
+    [
+        "Offset of field: VkSampleLocationEXT::x",
+    ][::std::mem::offset_of!(VkSampleLocationEXT, x) - 0usize];
+    [
+        "Offset of field: VkSampleLocationEXT::y",
+    ][::std::mem::offset_of!(VkSampleLocationEXT, y) - 4usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSampleLocationsInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub sampleLocationsPerPixel: VkSampleCountFlagBits,
+    pub sampleLocationGridSize: VkExtent2D,
+    pub sampleLocationsCount: u32,
+    pub pSampleLocations: *const VkSampleLocationEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSampleLocationsInfoEXT",
+    ][::std::mem::size_of::<VkSampleLocationsInfoEXT>() - 40usize];
+    [
+        "Alignment of VkSampleLocationsInfoEXT",
+    ][::std::mem::align_of::<VkSampleLocationsInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkSampleLocationsInfoEXT::sType",
+    ][::std::mem::offset_of!(VkSampleLocationsInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkSampleLocationsInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkSampleLocationsInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkSampleLocationsInfoEXT::sampleLocationsPerPixel",
+    ][::std::mem::offset_of!(VkSampleLocationsInfoEXT, sampleLocationsPerPixel)
+        - 16usize];
+    [
+        "Offset of field: VkSampleLocationsInfoEXT::sampleLocationGridSize",
+    ][::std::mem::offset_of!(VkSampleLocationsInfoEXT, sampleLocationGridSize)
+        - 20usize];
+    [
+        "Offset of field: VkSampleLocationsInfoEXT::sampleLocationsCount",
+    ][::std::mem::offset_of!(VkSampleLocationsInfoEXT, sampleLocationsCount) - 28usize];
+    [
+        "Offset of field: VkSampleLocationsInfoEXT::pSampleLocations",
+    ][::std::mem::offset_of!(VkSampleLocationsInfoEXT, pSampleLocations) - 32usize];
+};
+impl Default for VkSampleLocationsInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineSampleLocationsStateCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub sampleLocationsEnable: VkBool32,
+    pub sampleLocationsInfo: VkSampleLocationsInfoEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineSampleLocationsStateCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineSampleLocationsStateCreateInfoEXT>() - 64usize];
+    [
+        "Alignment of VkPipelineSampleLocationsStateCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineSampleLocationsStateCreateInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkPipelineSampleLocationsStateCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPipelineSampleLocationsStateCreateInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineSampleLocationsStateCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPipelineSampleLocationsStateCreateInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineSampleLocationsStateCreateInfoEXT::sampleLocationsEnable",
+    ][::std::mem::offset_of!(
+        VkPipelineSampleLocationsStateCreateInfoEXT, sampleLocationsEnable
+    ) - 16usize];
+    [
+        "Offset of field: VkPipelineSampleLocationsStateCreateInfoEXT::sampleLocationsInfo",
+    ][::std::mem::offset_of!(
+        VkPipelineSampleLocationsStateCreateInfoEXT, sampleLocationsInfo
+    ) - 24usize];
+};
+impl Default for VkPipelineSampleLocationsStateCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceSampleLocationsPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub sampleLocationSampleCounts: VkSampleCountFlags,
+    pub maxSampleLocationGridSize: VkExtent2D,
+    pub sampleLocationCoordinateRange: [f32; 2usize],
+    pub sampleLocationSubPixelBits: u32,
+    pub variableSampleLocations: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceSampleLocationsPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceSampleLocationsPropertiesEXT>() - 48usize];
+    [
+        "Alignment of VkPhysicalDeviceSampleLocationsPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceSampleLocationsPropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSampleLocationsPropertiesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSampleLocationsPropertiesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::sampleLocationSampleCounts",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSampleLocationsPropertiesEXT, sampleLocationSampleCounts
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::maxSampleLocationGridSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSampleLocationsPropertiesEXT, maxSampleLocationGridSize
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::sampleLocationCoordinateRange",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSampleLocationsPropertiesEXT, sampleLocationCoordinateRange
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::sampleLocationSubPixelBits",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSampleLocationsPropertiesEXT, sampleLocationSubPixelBits
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceSampleLocationsPropertiesEXT::variableSampleLocations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSampleLocationsPropertiesEXT, variableSampleLocations
+    ) - 40usize];
+};
+impl Default for VkPhysicalDeviceSampleLocationsPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMultisamplePropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxSampleLocationGridSize: VkExtent2D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMultisamplePropertiesEXT",
+    ][::std::mem::size_of::<VkMultisamplePropertiesEXT>() - 24usize];
+    [
+        "Alignment of VkMultisamplePropertiesEXT",
+    ][::std::mem::align_of::<VkMultisamplePropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkMultisamplePropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkMultisamplePropertiesEXT, sType) - 0usize];
+    [
+        "Offset of field: VkMultisamplePropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkMultisamplePropertiesEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkMultisamplePropertiesEXT::maxSampleLocationGridSize",
+    ][::std::mem::offset_of!(VkMultisamplePropertiesEXT, maxSampleLocationGridSize)
+        - 16usize];
+};
+impl Default for VkMultisamplePropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetSampleLocationsEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pSampleLocationsInfo: *const VkSampleLocationsInfoEXT,
+    ),
+>;
+pub type PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        samples: VkSampleCountFlagBits,
+        pMultisampleProperties: *mut VkMultisamplePropertiesEXT,
+    ),
+>;
+#[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceMemoryBudgetPropertiesEXT {
     pub sType: VkStructureType,
@@ -15608,6 +15831,9 @@ pub type PFN_vkCmdSetExtraPrimitiveOverestimationSizeEXT = ::std::option::Option
 >;
 pub type PFN_vkCmdSetDepthClipEnableEXT = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthClipEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetSampleLocationsEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, sampleLocationsEnable: VkBool32),
 >;
 pub type PFN_vkCmdSetProvokingVertexModeEXT = ::std::option::Option<
     unsafe extern "C" fn(

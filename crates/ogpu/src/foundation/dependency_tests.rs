@@ -125,7 +125,7 @@ fn scratch_covers_all_arrays_without_reading_nested_inputs() {
         }
     );
     assert_eq!(
-        requirements(unsafe { split_layout(&[]) }.unwrap()),
+        requirements(unsafe { split_layout(&[], false) }.unwrap()),
         HostRequirements {
             size: 0,
             alignment: 1
@@ -151,7 +151,7 @@ fn scratch_covers_all_arrays_without_reading_nested_inputs() {
             split: ptr::null(),
             dependency: &dep,
         }; 3];
-        let all = unsafe { split_layout(&waits) }.unwrap();
+        let all = unsafe { split_layout(&waits, false) }.unwrap();
         let (headers, _) = split_headers(3).unwrap();
         assert!(all.size() >= headers.size() + 3 * l.size());
         assert_eq!(all.align(), l.align().max(headers.align()));
@@ -161,23 +161,29 @@ fn scratch_covers_all_arrays_without_reading_nested_inputs() {
         };
         assert!(matches!(
             unsafe {
-                split_layout(&[
-                    waits[0],
-                    SplitDependency {
-                        dependency: &bad,
-                        ..waits[1]
-                    },
-                ])
+                split_layout(
+                    &[
+                        waits[0],
+                        SplitDependency {
+                            dependency: &bad,
+                            ..waits[1]
+                        },
+                    ],
+                    false,
+                )
             },
             Err(UNSUPPORTED)
         ));
     }
     assert!(matches!(
         unsafe {
-            split_layout(&[SplitDependency {
-                split: ptr::null(),
-                dependency: ptr::null(),
-            }])
+            split_layout(
+                &[SplitDependency {
+                    split: ptr::null(),
+                    dependency: ptr::null(),
+                }],
+                false,
+            )
         },
         Err(INVALID)
     ));
@@ -187,6 +193,24 @@ fn scratch_covers_all_arrays_without_reading_nested_inputs() {
         assert!(huge.unwrap().0.size() > u32::MAX as usize);
     } else {
         assert!(huge.is_err());
+    }
+}
+
+#[test]
+fn sample_metadata_scratch_is_optional_aligned_and_covers_every_entry() {
+    for count in [0, 1, 7] {
+        let base = layout(1, 2, count).unwrap();
+        let plain = sample_layout(1, 2, count, false).unwrap();
+        assert_eq!(plain.0, base.0);
+        let extended = sample_layout(1, 2, count, true).unwrap();
+        if count != 0 {
+            assert!(extended.3 >= base.0.size());
+            assert_eq!(extended.3 % align_of::<vk::VkSampleLocationsInfoEXT>(), 0);
+            assert!(
+                extended.0.size()
+                    >= extended.3 + count as usize * size_of::<vk::VkSampleLocationsInfoEXT>()
+            );
+        }
     }
 }
 
@@ -463,6 +487,7 @@ fn gpu_dependency_entries() {
         unsafe { d.image_requirements(&im_desc, &mut req) }.unwrap();
         unsafe { im.bind(span(&backing, 0, req.size)) }.unwrap();
         let image = ImageBarrier {
+            next: ptr::null(),
             scope: BarrierScope {
                 stages_after: COPY_SCOPE,
                 access_after: 8,

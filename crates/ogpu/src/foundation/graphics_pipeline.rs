@@ -706,7 +706,19 @@ pub(super) unsafe fn prepare(
         options.sample_mask as u32,
         (options.sample_mask >> 32) as u32,
     ];
+    let sample_state = unsafe {
+        sample_locations::prepare(
+            mechanisms.samples,
+            d.snapshot.features.enabled,
+            &d.snapshot.sample_location_limits,
+            desc.dynamic_state,
+            state.samples,
+        )?
+    };
     let multi = vk::VkPipelineMultisampleStateCreateInfo {
+        pNext: sample_state
+            .as_ref()
+            .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         rasterizationSamples: state.samples,
         sampleShadingEnable: options.sample_shading,
@@ -738,7 +750,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 23];
+    let mut dynamic_states = [0; 25];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;

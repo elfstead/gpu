@@ -86,8 +86,8 @@ input/readback guards. The [receipt](results/m8-raster-mechanisms-2026-11-07.md)
 separates supported Radeon profiles from unsupported ones. Smooth-line coverage
 is bounded; the fixture does not claim an exact universal antialiasing oracle.
 
-Programmable sample positions remain a coherent follow-up including depth-image
-compatibility and transition metadata. Dynamic complete vertex input/divisors,
+[Programmable sample positions](sample-locations.md) now implement depth-image
+compatibility and explicit transition metadata in revision 12. Dynamic complete vertex input/divisors,
 remaining native raster controls, the extension-format inventory, geometry
 capture and dynamic patch state remain in [M8](m8-coverage.md). No Metal/DX12
 implementation, unavailable native profile, general shader-interface tooling or
