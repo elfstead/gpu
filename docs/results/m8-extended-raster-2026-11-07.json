@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 12,
+  "implementation": "ebf6abb30669018c314c6f9193213bc1bf20ca6c",
+  "source_dirty": false,
+  "runtime_sha256": "b917e792b9869b627cabbaa505832cf6c612ca55761be1bfc81f69b49ff9123e",
+  "header_sha256": "533f440eb268c1c4264473c63dc378729c96e01473d94a246a813aa199971091",
+  "checks": {
+    "host_tests": 114,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "tool_tests": 21,
+    "clippy": "pass",
+    "abi_values": 2313,
+    "surface": {
+      "operations": 185,
+      "records": 153,
+      "constants": 273,
+      "values": 1467
+    },
+    "bindings": "reproduce",
+    "shader_artifacts": "70 existing artifacts reproduce and validate",
+    "extended_dynamic_raster": {
+      "profiles": 11,
+      "submissions": 88,
+      "pixels": 11264,
+      "rejected_recordings": 11,
+      "sample_counts": [
+        1,
+        4
+      ],
+      "color_attachments": 2
+    },
+    "sample_positions": {
+      "profiles": 12,
+      "new_profiles": 3,
+      "submissions": 24,
+      "color_depth_pixel_pairs": 3072,
+      "rejected_preparations_recordings": 10
+    },
+    "validation_errors": 0,
+    "new_profile_validation_warnings": 0,
+    "full_fixture_preexisting_unused_output_warnings": 4,
+    "installed_optimized_fixture": "full C regression, 70 artifact inputs, static/dynamic raster and sample-position comparisons",
+    "installed_exports": "exact match",
+    "native_rust": "isolated source bundle: build, correspondence, missing loader and headless execution"
+  },
+  "review_corrections": [
+    "preserve both static sample-mask words with dynamic rasterization count",
+    "compare static custom-position sample count only when rasterization count is static; retain exact image-transition metadata checks"
+  ],
+  "unverified": [
+    "8–64-sample output",
+    "dynamic dual-source rendering",
+    "all format/sample-shading combinations",
+    "secondary/generated extended-raster composition",
+    "other hardware",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "not_repeated": [
+    "external GGML/libplacebo acceptance",
+    "presentation/human acceptance"
+  ],
+  "next_implementation": [
+    "multiple viewport/scissor arrays and viewport-index capability",
+    "extended depth profiles and independent color-write-enable audit",
+    "extension-format inventory",
+    "geometry capture and dynamic patch/domain state",
+    "M8 consolidation"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-extended-raster-sdk/share/ogpu/manifest.json": "9ef9fbcad7e3b92f000cec0fdca265bee60cfa0a37f39e08e2f2e841ee7310eb",
+    "/tmp/ogpu-rust-external-flj9fd88/report.json": "1c64d691c38239f8d7844e6bc83123d8b1234961a8eac621b541091af34c4306",
+    "/tmp/ogpu-run-extended-raster-installed.py": "f8ba2ffd22c7f7c37529251bdbaa6d6ddb389196c523dcf03239e28025acea5d",
+    "/tmp/ogpu-extended-host.log": "2967dd74939e0ef880a366e427752f2a65e84f3e0f69aea4bda7d4c780c24146",
+    "/tmp/ogpu-extended-native.log": "004069f8f990888a6c3cc13497cdd1475466f1afbe8d67a81b2869a8c842d5d5",
+    "/tmp/ogpu-extended-clippy.log": "4aadcf3932cd160db867a41cdd5c2846d83b25df7e89b8685f97ee308bf4b87b",
+    "/tmp/ogpu-extended-abi.log": "138483aec0dd6c7c860ebb6ef5e7874f6d04d9bd78ac441dad83422655274e54",
+    "/tmp/ogpu-extended-surface.log": "ed9132b07baf5d9c1c0b7003d3f88db6f2c3a86253822f91a1eb9759eae86b37",
+    "/tmp/ogpu-extended-bindings.log": "2ec25bb29243e3d493f84ab9480033724c8161cb10b82a66e9d8837d850019f6",
+    "/tmp/ogpu-extended-shaders.log": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+    "/tmp/ogpu-extended-tools.log": "4a387da545952bfdf2e2a54fadf19e617f219b066c3ab85c7cc7d563c1437309",
+    "/tmp/ogpu-extended-gpu.log": "f759320cf21d4411ba7b49bb0f911404703dfffec3cf9353b238ca18662b2e5f",
+    "/tmp/ogpu-extended-install.log": "ae5f011a518186b3651fc6cd1e12db4f50f8d6ed7135e087772b0bd31c93b826",
+    "/tmp/ogpu-extended-installed-fixture.log": "4bb2b917398e5a478f95cdea3ee4a590ae77e9aec1f51f6e6fcb77dc13135e42",
+    "/tmp/ogpu-extended-installed-surface.log": "f477064cd7539eda8c2b7688a977b78680571f555f6ec1ff0c57d24ef25e721b",
+    "/tmp/ogpu-extended-rust-sdk.log": "5bad145bc6fe63f0715f4068592e9c830c31b38d334f40c90a5f6feb3404ece3"
+  }
+}

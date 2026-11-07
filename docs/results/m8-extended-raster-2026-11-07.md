@@ -89,3 +89,19 @@ acceptance. No new external ML/video consumer or human presentation acceptance i
 claimed. M8 continues with viewport arrays, extended depth behavior, the independent
 color-write-enable audit, format inventory, geometry capture/dynamic patch state,
 and final consolidation before M9.
+
+## Clean installed acceptance
+
+Implementation `ebf6abb30669018c314c6f9193213bc1bf20ca6c` installed with
+`source_dirty=false` into `/tmp/ogpu-m8-extended-raster-sdk`. Runtime SHA-256:
+`b917e792b9869b627cabbaa505832cf6c612ca55761be1bfc81f69b49ff9123e`.
+
+The optimized C fixture passes against the installed header/runtime with all 70
+shader inputs, including the eleven new control profiles and all twelve
+sample-position profiles. Exact shared-library exports match the reviewed surface.
+The separately relocated native Rust source bundle builds and passes correspondence,
+missing-loader rejection and headless execution without linking the C SDK. The
+new contract is packaged in the installed documentation and Rust source bundle.
+
+The [machine-readable receipt](m8-extended-raster-2026-11-07.json) records source,
+runtime and header identity, check counts, evidence hashes and remaining limits.
