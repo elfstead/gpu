@@ -77,3 +77,21 @@ new presentation/human acceptance or external ML/video integration acceptance is
 claimed by this step. Remaining M8 implementation is dynamic raster controls and
 the extension-format inventory, then geometry capture/dynamic patch state and
 consolidation before M9.
+
+## Clean installed acceptance
+
+Implementation `1089406d066ed1b961eeaa1dc9dd322accc78a16` installed with
+`source_dirty=false` into `/tmp/ogpu-m8-dynamic-vertex-sdk`. Runtime SHA-256:
+`6752f614246fbff87417c71aa6bf8b591e301e1438c71c490c68ab909e1b5e02`.
+
+The optimized C fixture passes against the installed header and shared library,
+including all six new fetch profiles and the dynamic-input generated scene. Exact
+shared-library exports match the reviewed surface. The separately relocated native
+Rust source bundle builds and passes correspondence, missing-loader rejection and
+headless execution without using the C SDK. The bundle also contains the new
+contract. These checks retain the verification scope and limitations above; this
+step does not repeat unrelated external integration acceptance.
+
+The [machine-readable receipt](m8-dynamic-vertex-input-2026-11-07.json) records the
+source/runtime identity, counts and evidence hashes, including the initial fixture
+failure and successful corrected run.

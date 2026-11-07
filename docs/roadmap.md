@@ -634,7 +634,8 @@ transition metadata in revision 12; [local evidence](results/m8-sample-locations
 checks coverage and depth preservation. Clean installed C/native Rust and
 GGML/libplacebo acceptance passes at `73090dd`. [Complete dynamic vertex input/divisors](dynamic-vertex-input.md)
 now add direct recording and generated-buffer-token composition without a new
-fetch schema or pipeline permutations. Next: remaining raster controls and the
+fetch schema or pipeline permutations. [Clean installed C/native Rust acceptance](results/m8-dynamic-vertex-input-2026-11-07.md)
+passes at `1089406`. Next: remaining raster controls and the
 extension-format inventory. Geometry capture/dynamic patch and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.

@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 12,
+  "implementation": "1089406d066ed1b961eeaa1dc9dd322accc78a16",
+  "source_dirty": false,
+  "runtime_sha256": "6752f614246fbff87417c71aa6bf8b591e301e1438c71c490c68ab909e1b5e02",
+  "header_sha256": "6db13a60b3471a535c949204daf3a468ab4cfc536ace3706fd29710d78864262",
+  "checks": {
+    "host_tests": 109,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "tool_tests": 21,
+    "clippy": "pass",
+    "abi_values": 2304,
+    "surface": {
+      "operations": 166,
+      "records": 151,
+      "constants": 242,
+      "values": 1425
+    },
+    "bindings": "reproduce",
+    "shader_artifacts": "unchanged",
+    "raster_controls": {
+      "profiles": 16,
+      "new_dynamic_input_profiles": 6,
+      "submissions": 32,
+      "pixels": 2048,
+      "rejected_preparations": 6,
+      "rejected_recordings": 7
+    },
+    "generated_dynamic_input": {
+      "state_tokens": 2,
+      "submissions": 48,
+      "pixels": 98304,
+      "actions": 4,
+      "preprocessing_modes": 2,
+      "executable_selection": "unavailable"
+    },
+    "validation_errors": 0,
+    "new_profile_validation_warnings": 0,
+    "full_fixture_preexisting_unused_output_warnings": 4,
+    "installed_optimized_fixture": "full C regression with 68 shader artifact inputs; dynamic fetch and generated composition",
+    "installed_exports": "exact match",
+    "native_rust": "isolated source bundle: build, correspondence, missing loader and headless execution"
+  },
+  "initial_fixture_findings": [
+    "four instances at first-instance one with divisor one need five input colors; corrected fixture upload"
+  ],
+  "unverified": [
+    "secondary/multiview custom input composition",
+    "tessellation/geometry dynamic input composition",
+    "generated executable selection",
+    "other hardware",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "not_repeated": [
+    "GGML/libplacebo external acceptance",
+    "presentation/human acceptance"
+  ],
+  "next_implementation": [
+    "remaining native dynamic raster controls",
+    "extension-specific raster-format inventory",
+    "geometry capture and dynamic patch state",
+    "M8 contract and composition consolidation"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-dynamic-vertex-sdk/share/ogpu/manifest.json": "72e8b5388e083857277d35e1c8049c47601472aded1724fe6618cdf941d0cde1",
+    "/tmp/ogpu-rust-external-78c640f2/report.json": "73d50761d398e59f48061689d2f59aeb7f25d0224d89a34be5550ac53f86e7de",
+    "/tmp/ogpu-run-vertex-installed.py": "d7e38cfaccee91774f2725069710c65a61af4e350cb523fcfbd8b370ab5f6b8a",
+    "/tmp/m8-vertex-host.log": "19f7bd27a0e27f6cb399b17da391550db3aa1b51ad36312df7273675542ee0f1",
+    "/tmp/m8-vertex-native.log": "9f6df34d886bdbab88bedb6ea2533c899b635fdbb85073204f612d7ecdb90cf6",
+    "/tmp/m8-vertex-clippy.log": "6b36d071b3bbabfd00af0c389ef2f898d2a626ddaf10e17e6e3d5a778a0d8eba",
+    "/tmp/m8-vertex-abi.log": "9db20c53fadd9a67fcc2a6ddfe906e459c19d256ec2ca8aa3cbb5cbc10639f7f",
+    "/tmp/m8-vertex-surface.log": "bc8adb2b9a982f98d1aa3f50510743223c6dbdc63a8af3b246f1b0e401739ca4",
+    "/tmp/m8-vertex-bindings-check.log": "2ec25bb29243e3d493f84ab9480033724c8161cb10b82a66e9d8837d850019f6",
+    "/tmp/m8-vertex-tools.log": "7728e008e2fc8480eeeead771e824440bb78ad355d39b289ad6abada28984fc7",
+    "/tmp/m8-vertex-gpu.log": "5d70f6506f43163f8f9a2625377be03a3c84215b9533ee50320386ada7d8f021",
+    "/tmp/m8-vertex-initial-fixture.log": "190690f95c1f97d622affadfda873ce3b0b06015257f39a0f24ff5510cfb987c",
+    "/tmp/m8-vertex-install.log": "4682bc7a2de28bfde5bc135267847ae2f9d904aa4050dfdbc512c3445429eba5",
+    "/tmp/m8-vertex-installed-fixture.log": "f6e24bdf38cac9095c5480521f3c4cd3edc1fbf36bfb8d6cb9f138491ea00977",
+    "/tmp/m8-vertex-installed-surface.log": "345aa087146f2ad2cc988719b10762794b7229f0dda5c1ced2de0fcf86f3d467",
+    "/tmp/m8-vertex-rust-sdk.log": "2604b2ca9533a33e1682fe4de9a58e84eee97d205c5c5704801376508ae86faa"
+  }
+}
