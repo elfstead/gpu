@@ -206,3 +206,14 @@ The shader consumer checks two input values for every invocation and rejects its
 artifact requirements on a device without the necessary feature enablement.
 These are bounded consumers, not a promise that every newly exposed capability
 has executed on this GPU. See `docs/m11-compute-media.md` in the repository.
+
+
+`matrix_ml` runs a bounded two-layer 16x16 MLP using an exact native subgroup
+16x16x16 half-input/float-accumulator tuple. It explicitly dispatches matrix,
+ReLU/half conversion, and matrix, then checks both float intermediates, half
+storage, preserved input/root bytes and guards across A/B/A replay. Inputs are
+exact binary fractions, so this witness uses exact references rather than claiming
+an error bound for arbitrary ML data. It returns exit 77 if native requirements
+are unavailable; there is no scalar fallback. The installed checker `--matrix-ml`
+requires actual execution and must not be used as a local success claim without
+matrix hardware. The binary and shaders are included even on unsupported hosts.

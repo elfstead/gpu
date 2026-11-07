@@ -76,3 +76,14 @@ prints per-profile native exclusions; it does not emulate unavailable features.
 Run relocated acceptance with `--execution-controls --shader-profiles` on
 `tools/test-rust-install.py`. [The M11 brief](docs/m11-compute-media.md) distinguishes
 implementation, feature enablement, executed artifacts, and remaining acceptance.
+
+
+`matrix_ml` runs a bounded two-layer 16x16 MLP using an exact native subgroup
+16x16x16 half-input/float-accumulator tuple. It explicitly dispatches matrix,
+ReLU/half conversion, and matrix, then checks both float intermediates, half
+storage, preserved input/root bytes and guards across A/B/A replay. Inputs are
+exact binary fractions, so this witness uses exact references rather than claiming
+an error bound for arbitrary ML data. It returns exit 77 if native requirements
+are unavailable; there is no scalar fallback. The installed checker `--matrix-ml`
+requires actual execution and must not be used as a local success claim without
+matrix hardware. The binary and shaders are included even on unsupported hosts.

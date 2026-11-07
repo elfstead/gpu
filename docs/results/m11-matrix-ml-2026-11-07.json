@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-07",
+  "base_commit": "20fd46f",
+  "consumer": "examples/foundation_rust/src/bin/matrix_ml.rs",
+  "shape": {
+    "batch": 16,
+    "input": 16,
+    "hidden": 16,
+    "output": 16
+  },
+  "operations": [
+    "native cooperative matrix FP16 inputs / FP32 accumulator",
+    "explicit ReLU and FP16 conversion",
+    "native cooperative matrix FP16 inputs / FP32 accumulator"
+  ],
+  "phases": [
+    "A",
+    "B",
+    "A"
+  ],
+  "reference": "FP64, exact representable binary fractions; all intermediate elements and non-output bytes checked",
+  "checks": {
+    "host_reference_and_selection": 2,
+    "shader_compilation": "Slang 2026.14.1",
+    "spirv_validation": "pass",
+    "artifact_reproduction": "pass",
+    "strict_clippy": "pass",
+    "standalone_bins": "all built",
+    "tool_tests": 22
+  },
+  "local_result": {
+    "missing_features": [
+      46
+    ],
+    "matching_tuple": false,
+    "execution": "not accepted; unavailable, no scalar fallback",
+    "validation_errors": 0
+  },
+  "future_acceptance": [
+    "Run matrix_ml on a device with the exact declared tuple and features",
+    "Run installed --matrix-ml and native synchronization validation",
+    "Separate numerical/throughput witnesses for arbitrary data and other shapes/scopes/types"
+  ]
+}

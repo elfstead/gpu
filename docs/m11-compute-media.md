@@ -79,7 +79,8 @@ predication and primitive queries without transform feedback pass; inherited
 conditional execution is unavailable on this device. The selected shader profiles are now implemented (32 independent native enables;
 four bounded artifact consumers pass). The [launch/matrix audit](m11-launch-mapping.md) is recorded and native dispatch
 origins now pass. Extended matrix profiles and exact fixed/flexible discovery
-are implemented; the accelerated ML consumer and binaries are next; native execution graphs remain an explicit subsequent package. No
+are implemented. The bounded accelerated ML consumer is implemented with compiled
+artifacts and explicit local exclusion; pipeline binaries are next; native execution graphs remain an explicit subsequent package. No
 hardware-matrix acceptance is claimed.
 The remaining rows are scheduled work, not implemented claims or vague examples.
 
@@ -226,3 +227,35 @@ Native references: [matrix profiles](https://docs.vulkan.org/refpages/latest/ref
 [FP8](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderFloat8FeaturesEXT.html).
 
 [Matrix profile receipt](results/m11-matrix-profiles-2026-11-07.json).
+
+## Bounded accelerated ML consumer (2026-11-07)
+
+The independent [Rust MLP consumer](../examples/foundation_rust/src/bin/matrix_ml.rs)
+implements `Y = ReLU(X W1 + B1) W2 + B2`: batch/input/hidden/output dimensions 16,
+row-major FP16 input and weights, FP32 accumulation and bias, and an explicitly
+permitted FP16 hidden representation. It selects only a complete advertised
+16x16x16, subgroup-scope, compute, nonsaturating FP16/FP32 tuple. It separately
+requests native cooperative matrices, FLOAT16, Vulkan memory model and exact/full
+subgroup control. Neither a smaller tile nor a flexible/workgroup/low-precision
+alternative is substituted. Those profiles need their own artifact witnesses.
+
+The caller owns all storage, both address roots, compiled pipelines, three recorded
+dispatches and dependencies. The second matrix receives the GPU-produced hidden
+array; there is no intervening host readback. ReLU and the half conversion are a
+visible consumer kernel, not implicit backend staging. The same list executes
+A/B/A input phases, with changed weights too. Both FP32 outputs and the FP16 hidden
+array are checked against a double-precision host reference; input/root bytes and
+all unused allocation bytes must remain unchanged. Values are small exact binary
+fractions whose intermediates fit the chosen formats exactly. This tests dataflow,
+layout and changed-input reuse, not arbitrary-data numerical error or throughput.
+
+Both real Slang artifacts compile and pass Vulkan SPIR-V validation. Host tests
+verify reference representability and reject tuple/type/scope substitutions.
+Local RADV lacks feature 46 and the exact tuple; public discovery returns an
+explicit unavailable result before allocation or executable creation. **No native
+matrix numerical acceptance is claimed.** The source SDK includes the binary and
+artifacts; `test-rust-install.py --matrix-ml` requires successful real execution
+on a future suitable host. This is a bounded acceleration witness, not replacement
+acceptance for the complete M5 transformer or quantized consumer.
+
+[ML consumer receipt](results/m11-matrix-ml-2026-11-07.json).

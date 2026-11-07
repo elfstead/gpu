@@ -29,6 +29,8 @@ def install(root, staging, copy, revision, dirty):
         put(path.relative_to(root), path.relative_to(root))
     for path in sorted((root / "examples/shaders").glob("foundation-shader-profiles*")):
         put(path.relative_to(root), path.relative_to(root))
+    for path in sorted((root / "examples/shaders").glob("foundation-matrix-ml*")):
+        put(path.relative_to(root), path.relative_to(root))
     for name in ("foundation-compute.comp.spv", "foundation-compute.slang", "foundation-graphics.vert.spv", "foundation-graphics.slang"):
         put(f"examples/shaders/{name}", f"examples/shaders/{name}")
     for name in ("textured_scene.generated.h", "textured.vert.slang", "textured.frag.slang"):

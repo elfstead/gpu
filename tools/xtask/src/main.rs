@@ -519,6 +519,18 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
             "origin.comp",
         ),
         ("foundation-matrix", "matrixMain", "compute", "comp"),
+        (
+            "foundation-matrix-ml",
+            "linearMain",
+            "compute",
+            "linear.comp",
+        ),
+        (
+            "foundation-matrix-ml",
+            "activationMain",
+            "compute",
+            "activation.comp",
+        ),
         ("foundation-integer-dot", "dotMain", "compute", "comp"),
         (
             "foundation-float16-atomics",
