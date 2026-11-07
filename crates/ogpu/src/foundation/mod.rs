@@ -1,6 +1,8 @@
 //! Explicit foundation setup. C lifetime/threading contract: include/ogpu_next.h.
 //! No execution, allocation, completion-retention or scheduler policy is borrowed
 //! from ABI 20. Both paths currently share only the native instance/query loader.
+mod acceleration_api;
+pub use acceleration_api::*;
 mod commands_api;
 mod descriptors_api;
 mod executables_api;
@@ -24,6 +26,7 @@ pub use presentation_api::*;
 pub mod rust;
 pub mod types;
 use crate::vulkan::Instance;
+pub use native::Acceleration;
 pub use native::DescriptorHeap;
 pub use native::ExecutableCache;
 pub use native::Memory;
@@ -72,6 +75,7 @@ struct Snapshot {
     dynamic_raster_limits: DynamicRasterLimits,
     viewport_limits: ViewportLimits,
     capture_limits: CaptureLimits,
+    ray_limits: RayLimits,
     shading_rate_limits: ShadingRateLimits,
     shading_rates: Vec<ShadingRate>,
     formats: Vec<FormatInfo>,
@@ -151,6 +155,7 @@ impl Snapshot {
                 DEPENDENCY_LIMITS if self.features.device_scope != 0 => {
                     copy_out(query, &self.dependency_limits)
                 }
+                RAY_LIMITS => copy_out(query, std::slice::from_ref(&self.ray_limits)),
                 CAPTURE_LIMITS => copy_out(query, std::slice::from_ref(&self.capture_limits)),
                 VIEWPORT_LIMITS => copy_out(query, std::slice::from_ref(&self.viewport_limits)),
                 DYNAMIC_RASTER_LIMITS => {

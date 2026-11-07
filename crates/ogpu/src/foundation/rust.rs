@@ -42,6 +42,7 @@ macro_rules! handle {
         }
     };
 }
+handle!(AccelerationHandle, Acceleration);
 handle!(DeviceHandle, Device);
 handle!(MemoryHandle, Memory);
 handle!(TimelineHandle, Timeline);
@@ -63,6 +64,8 @@ handle!(BinaryHandle, Binary);
 handle!(FenceHandle, Fence);
 handle!(SwapchainHandle, Swapchain);
 
+mod acceleration;
+pub use acceleration::*;
 mod commands;
 mod generated;
 mod presentation;

@@ -98,7 +98,9 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                     | TESS_CONTROL_STAGE
                     | TESS_EVALUATION_STAGE
                     | GEOMETRY_STAGE
-                    | CAPTURE_STAGE),
+                    | CAPTURE_STAGE
+                    | ACCELERATION_BUILD_STAGE
+                    | ACCELERATION_COPY_STAGE),
         ),
         (
             GRAPHICS | COMPUTE,
@@ -109,7 +111,9 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                 | ATTACHMENT_SHADING_RATE
                 | TESSELLATION
                 | GEOMETRY
-                | TRANSFORM_FEEDBACK,
+                | TRANSFORM_FEEDBACK
+                | ACCELERATION_STRUCTURE
+                | RAY_MAINTENANCE,
             KNOWN_SCOPES & !256,
         ),
     ] {

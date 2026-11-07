@@ -1531,3 +1531,89 @@ pub unsafe extern "C" fn ogpu_next_set_rasterization_stream(encoder: *mut List, 
         });
     }
 }
+/// # Safety
+/// Exclusive live encoder; valid work/nested arrays and disjoint scratch. All
+/// backing, raw addresses and objects outlive every recorded/pending use.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_build_accelerations(
+    encoder: *mut List,
+    count: u32,
+    work: *const AccelerationBuild,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.build_accelerations(native::command_slice(work, count)?, scratch)
+        });
+    }
+}
+/// # Safety
+/// Live same-device objects; explicit copy/build ordering and sufficient destination.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_copy_acceleration(
+    encoder: *mut List,
+    dst: *mut Acceleration,
+    src: *const Acceleration,
+    mode: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.copy_acceleration(
+                dst.as_ref().ok_or(INVALID)?,
+                src.as_ref().ok_or(INVALID)?,
+                mode,
+            )
+        });
+    }
+}
+/// # Safety
+/// Live object and native destination address/size/usage with explicit lifetime/order.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_serialize_acceleration(
+    encoder: *mut List,
+    dst: DeviceRange,
+    src: *const Acceleration,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.serialize_acceleration(src.as_ref().ok_or(INVALID)?, dst, true)
+        });
+    }
+}
+/// # Safety
+/// Valid compatible serialized contents, destination and restored bottom-level references.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_deserialize_acceleration(
+    encoder: *mut List,
+    dst: *mut Acceleration,
+    src: DeviceRange,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.serialize_acceleration(dst.as_ref().ok_or(INVALID)?, src, false)
+        });
+    }
+}
+/// # Safety
+/// Live same-device objects/query storage; readable array and disjoint scratch;
+/// caller orders property reads, query reset and resolve after required builds.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_acceleration_properties(
+    encoder: *mut List,
+    count: u32,
+    objects: *const *mut Acceleration,
+    pool: *mut QueryPool,
+    first: u32,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.acceleration_properties(
+                native::command_slice(objects, count)?,
+                pool.as_ref().ok_or(INVALID)?,
+                first,
+                scratch,
+            )
+        });
+    }
+}

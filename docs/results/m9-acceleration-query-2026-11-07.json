@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M9 acceleration structures and inline queries",
+  "revision": 13,
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "native_ray_support": false,
+  "diagnostic_environment": {
+    "RADV_EXPERIMENTAL": "emulate_rt",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1"
+  },
+  "ray_diagnostic": {
+    "states": [
+      "original",
+      "updated_z_2",
+      "clone_original",
+      "compacted_clone",
+      "deserialized_clone"
+    ],
+    "rays_per_state": 4,
+    "hits_per_state": 2,
+    "instance_id": 37,
+    "primitive_id": 0,
+    "guards": "pass",
+    "invalid_recordings": 5,
+    "bottom_storage_bytes": 384,
+    "top_storage_bytes": 448,
+    "max_scratch_bytes": 98596,
+    "compacted_bytes": 384,
+    "serialized_bytes": 512,
+    "native_version_compatible": true,
+    "validation_errors": 0
+  },
+  "checks": {
+    "host_tests": 126,
+    "normal_native_tests": 32,
+    "full_c_regression": "pass",
+    "clippy": "pass",
+    "abi_values": 2442,
+    "surface_operations": 209,
+    "surface_records": 175,
+    "surface_constants": 355,
+    "surface_values": 1700,
+    "bindings_reproduce": "pass"
+  },
+  "unaccepted": [
+    "native hardware traversal and performance",
+    "multiple geometry identity",
+    "AABB traversal",
+    "indirect builds",
+    "ray pipelines and shader tables (next tranche)",
+    "Metal/DX12 ray execution",
+    "cross-device serialization compatibility"
+  ],
+  "logs": [
+    "/tmp/ogpu-m9-ray-query-validation.log",
+    "/tmp/ogpu-m9-as-host.log",
+    "/tmp/ogpu-m9-as-native.log",
+    "/tmp/ogpu-m9-as-full-c.log",
+    "/tmp/ogpu-m9-as-abi.log",
+    "/tmp/ogpu-m9-as-surface.log",
+    "/tmp/ogpu-m9-as-clippy.log"
+  ]
+}

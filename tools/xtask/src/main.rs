@@ -561,6 +561,7 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
             "compute",
             "shared-exchange.comp",
         ),
+        ("foundation-ray-query", "queryMain", "compute", "comp"),
         ("foundation-mrt", "fragmentMain", "fragment", "frag"),
         ("foundation-dual-source", "fragmentMain", "fragment", "frag"),
         ("foundation-layer", "vertexMain", "vertex", "vert"),

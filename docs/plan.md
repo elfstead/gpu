@@ -376,6 +376,15 @@ to revision 13 with an explicit stream argument on existing query begin/end oper
 acceptance are complete. M9 ray tracing follows; private feature storage now spans
 256 bits without changing the public counted-ID interface. M6 remains incomplete until native development is possible.
 
+## Current: M9 ray tracing
+
+Follow the [implementation brief](m9-ray-tracing.md): caller-backed acceleration
+structures and explicit build/copy/query operations, independently usable inline
+ray queries, then ray executable groups/tables and direct/indirect execution.
+Normal local RADV does not advertise ray support. Explicit driver-emulated tests
+may diagnose correctness; they never close hardware acceleration acceptance.
+M10 and M11 follow, while M6/native DX12 acceptance remain deferred.
+
 ## Parallel candidate: native DX12 on Windows
 
 Review checkpoint, 2026-10-30: branch `34930b0` has native implementation and

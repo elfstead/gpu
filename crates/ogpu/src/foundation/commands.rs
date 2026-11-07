@@ -1,6 +1,8 @@
 //! Explicit native command storage. No pending registry, resource retention,
 //! hot-path allocator, implicit signal, or host wait.
 use super::*;
+#[path = "acceleration_commands.rs"]
+mod acceleration_commands;
 #[path = "capture_commands.rs"]
 mod capture_commands;
 #[path = "generated_commands.rs"]
@@ -338,7 +340,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 28) - 1;
+const KNOWN_SCOPES: u64 = (1 << 30) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -367,7 +369,8 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
     }
     if mask & RASTER_SCOPES != 0 && (flags & GRAPHICS == 0 || !raster)
         || mask & (RESOLVE_SCOPE | BLIT_SCOPE) != 0 && flags & GRAPHICS == 0
-        || mask & 4 != 0 && flags & COMPUTE == 0
+        || mask & (4 | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE) != 0
+            && flags & COMPUTE == 0
         || mask & (32 | PREPROCESS_STAGE) != 0 && flags & (COMPUTE | GRAPHICS) == 0
         || mask & (2 | COPY_SCOPE | CLEAR_SCOPE) != 0
             && flags & (COMPUTE | GRAPHICS | TRANSFER) == 0
@@ -404,13 +407,17 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT,
         vk::VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT,
         vk::VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT,
+        vk::VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        vk::VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
 fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
-    if mask & (TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE) != 0 && enabled & TESSELLATION == 0
+    if mask & ACCELERATION_BUILD_STAGE != 0 && enabled & ACCELERATION_STRUCTURE == 0
+        || mask & ACCELERATION_COPY_STAGE != 0 && enabled & RAY_MAINTENANCE == 0
+        || mask & (TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE) != 0 && enabled & TESSELLATION == 0
         || mask & CAPTURE_STAGE != 0 && enabled & TRANSFORM_FEEDBACK == 0
         || mask & GEOMETRY_STAGE != 0 && enabled & GEOMETRY == 0
         || mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
@@ -439,7 +446,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 28) - 1) != 0 {
+    if mask & !((1 << 30) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -453,20 +460,25 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         | TASK_STAGE
         | TESS_CONTROL_STAGE
         | TESS_EVALUATION_STAGE
-        | GEOMETRY_STAGE
-        | CAPTURE_STAGE;
-    let transfer_read = 1 | 2 | COPY_SCOPE | RESOLVE_SCOPE | BLIT_SCOPE;
+        | GEOMETRY_STAGE;
+    let transfer_read = 1
+        | 2
+        | COPY_SCOPE
+        | RESOLVE_SCOPE
+        | BLIT_SCOPE
+        | ACCELERATION_BUILD_STAGE
+        | ACCELERATION_COPY_STAGE;
     let depth = 1 | 128 | EARLY_SCOPE | LATE_SCOPE | GRAPHICS_SCOPE;
     let allowed = [
         KNOWN_SCOPES,
         KNOWN_SCOPES,
         transfer_read,
         transfer_read | CLEAR_SCOPE,
-        shaders,
+        shaders | ACCELERATION_BUILD_STAGE,
         shaders,
         256,
         256,
-        1 | 32 | GRAPHICS_SCOPE,
+        1 | 32 | GRAPHICS_SCOPE | ACCELERATION_BUILD_STAGE,
         1 | INDEX_SCOPE | INPUT_SCOPE | GRAPHICS_SCOPE,
         1 | FETCH_SCOPE | INPUT_SCOPE | GRAPHICS_SCOPE,
         shaders,
@@ -486,6 +498,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         1 | GRAPHICS_SCOPE | CAPTURE_STAGE,
         1 | GRAPHICS_SCOPE | CAPTURE_STAGE | 32,
         1 | GRAPHICS_SCOPE | CAPTURE_STAGE,
+        shaders | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE,
+        1 | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -516,6 +530,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT,
         vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT,
         vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT,
+        vk::VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR,
+        vk::VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -2473,7 +2489,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 28, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 30, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

@@ -5,6 +5,19 @@ use super::types::*;
 #[path = "feature_bits.rs"]
 mod storage;
 pub(super) use storage::FeatureBits;
+pub(super) const ACCELERATION_STRUCTURE: FeatureBits =
+    FeatureBits::bit(feature_ids::ACCELERATION_STRUCTURE - 1);
+pub(super) const RAY_QUERY: FeatureBits = FeatureBits::bit(feature_ids::RAY_QUERY - 1);
+pub(super) const RAY_PIPELINE: FeatureBits = FeatureBits::bit(feature_ids::RAY_PIPELINE - 1);
+pub(super) const RAY_INDIRECT: FeatureBits = FeatureBits::bit(feature_ids::RAY_INDIRECT - 1);
+pub(super) const RAY_INDIRECT_TABLE: FeatureBits =
+    FeatureBits::bit(feature_ids::RAY_INDIRECT_TABLE - 1);
+pub(super) const ACCELERATION_INDIRECT_BUILD: FeatureBits =
+    FeatureBits::bit(feature_ids::ACCELERATION_INDIRECT_BUILD - 1);
+pub(super) const RAY_MAINTENANCE: FeatureBits = FeatureBits::bit(feature_ids::RAY_MAINTENANCE - 1);
+pub(super) const RAY_PRIMITIVE_CULLING: FeatureBits =
+    FeatureBits::bit(feature_ids::RAY_PRIMITIVE_CULLING - 1);
+
 pub(super) const TRANSFORM_FEEDBACK: FeatureBits =
     FeatureBits::bit(feature_ids::TRANSFORM_FEEDBACK - 1);
 pub(super) const GEOMETRY_STREAMS: FeatureBits =
@@ -224,7 +237,7 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::DYNAMIC_RASTERIZATION_STREAM;
+const MAX_ID: u32 = feature_ids::RAY_PRIMITIVE_CULLING;
 const _: () = assert!(MAX_ID <= FeatureBits::CAPACITY);
 pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     let mut mask = FeatureBits::ZERO;
@@ -304,7 +317,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [124, 128, u32::MAX] {
+        for id in [MAX_ID + 1, 256, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

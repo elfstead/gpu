@@ -22,6 +22,17 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        acceleration_scratch_requirements,
+        acceleration_requirements,
+        acceleration_create,
+        acceleration_destroy,
+        acceleration_address,
+        acceleration_compatibility,
+        build_accelerations,
+        copy_acceleration,
+        serialize_acceleration,
+        deserialize_acceleration,
+        acceleration_properties,
         set_depth_clamp_range,
         set_depth_bias_control,
         set_color_write_enable,
@@ -298,6 +309,7 @@ fn native_operations_do_not_call_c_adapters() {
     for source in [
         include_str!("../src/foundation/rust.rs"),
         include_str!("../src/foundation/rust/resources.rs"),
+        include_str!("../src/foundation/rust/acceleration.rs"),
         include_str!("../src/foundation/rust/commands.rs"),
         include_str!("../src/foundation/rust/presentation.rs"),
         include_str!("../../../examples/foundation_rust/src/main.rs"),

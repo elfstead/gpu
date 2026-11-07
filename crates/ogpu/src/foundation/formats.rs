@@ -36,6 +36,7 @@ fn buffer_features(native: u64) -> u64 {
             vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT,
             vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT,
             vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT,
+            vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR,
         ],
     )
 }
@@ -333,7 +334,7 @@ mod tests {
         assert_eq!(image_features(0), 0);
         assert_eq!(buffer_features(0), 0);
         assert_eq!(image_features(u64::MAX), 16383);
-        assert_eq!(buffer_features(u64::MAX), 15);
+        assert_eq!(buffer_features(u64::MAX), 31);
         assert_eq!(image_features(1 << 31), 2048);
         assert_eq!(image_features(1 << 32), 4096);
         assert_eq!(buffer_features((1 << 31) | (1 << 32)), 0);

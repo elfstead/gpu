@@ -24,6 +24,8 @@ use std::{
     },
 };
 
+#[path = "acceleration.rs"]
+pub(super) mod acceleration;
 #[path = "capture.rs"]
 mod capture;
 #[path = "core_raster.rs"]
@@ -32,6 +34,9 @@ mod core_raster;
 mod extended_raster;
 #[path = "raster_profiles.rs"]
 mod raster_profiles;
+pub use acceleration::Acceleration;
+#[path = "ray.rs"]
+mod ray;
 #[path = "viewports.rs"]
 mod viewports;
 
@@ -347,6 +352,8 @@ pub(super) fn snapshot(
     let mut sample_location_limits = SampleLocationLimits::default();
     let mut dynamic_raster_limits = DynamicRasterLimits::default();
     let mut viewport_limits = ViewportLimits::default();
+    let (ray_features, ray_limits) = ray::snapshot(instance, physical, &f)?;
+    features.available |= ray_features;
     let (capture_features, capture_limits) = capture::snapshot(instance, physical, &f)?;
     features.available |= capture_features;
     let mut local_read_limits = LocalReadLimits::default();
@@ -858,6 +865,7 @@ pub(super) fn snapshot(
         dynamic_raster_limits,
         viewport_limits,
         capture_limits,
+        ray_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -876,6 +884,7 @@ pub struct Device {
     extended_commands: extended_raster::Commands,
     profile_commands: raster_profiles::Commands,
     capture_commands: capture::Commands,
+    acceleration_commands: acceleration::Commands,
     sample_commands: sample_locations::Commands,
     vertex_input_command: vk::PFN_vkCmdSetVertexInputEXT,
     mesh_functions: Option<mesh::MeshFunctions>,
@@ -942,6 +951,7 @@ impl Device {
             raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
             extended_commands: extended_raster::Commands::load(&adapter.instance, enabled)?,
             capture_commands: capture::Commands::load(&adapter.instance, enabled)?,
+            acceleration_commands: acceleration::Commands::load(&adapter.instance, enabled)?,
             profile_commands: raster_profiles::Commands::load(&adapter.instance, enabled)?,
             sample_commands: sample_locations::Commands::load(&adapter.instance, enabled)?,
             vertex_input_command: vertex_input::load(&adapter.instance, enabled)?,
@@ -1060,6 +1070,7 @@ impl Device {
         let mut v12 = vk::VkPhysicalDeviceVulkan12Features {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             bufferDeviceAddress: 1,
+            descriptorIndexing: u32::from(enabled & ACCELERATION_STRUCTURE != 0),
             timelineSemaphore: 1,
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
             shaderOutputLayer: u32::from(enabled & SHADER_OUTPUT_LAYER != 0),
@@ -1171,6 +1182,11 @@ impl Device {
         };
 
         for (bit, name) in [
+            (ACCELERATION_STRUCTURE, c"VK_KHR_acceleration_structure"),
+            (ACCELERATION_STRUCTURE, c"VK_KHR_deferred_host_operations"),
+            (RAY_QUERY, c"VK_KHR_ray_query"),
+            (ray::PIPELINE_FEATURES, c"VK_KHR_ray_tracing_pipeline"),
+            (RAY_MAINTENANCE, c"VK_KHR_ray_tracing_maintenance1"),
             (capture::FEATURES, c"VK_EXT_transform_feedback"),
             (UNRESTRICTED_DEPTH_RANGE, c"VK_EXT_depth_range_unrestricted"),
             (DEPTH_CLAMP_CONTROL, c"VK_EXT_depth_clamp_control"),
@@ -1200,6 +1216,8 @@ impl Device {
         } else {
             previous
         };
+        let mut ray = ray::Native::new(enabled);
+        let previous = ray.link(previous.cast_mut(), enabled).cast_const();
         let capture = capture::native(enabled, previous.cast_mut());
         let previous = if enabled & capture::FEATURES != 0 {
             ptr::from_ref(&capture).cast()

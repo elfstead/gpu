@@ -3,6 +3,7 @@ use super::*;
 fn fixture() -> Snapshot {
     Snapshot {
         capture_limits: CaptureLimits::default(),
+        ray_limits: RayLimits::default(),
         dependency_limits: Vec::new(),
         cache_uuid: [0; 16],
         info: AdapterInfo {

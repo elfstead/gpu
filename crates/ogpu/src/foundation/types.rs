@@ -28,6 +28,15 @@ pub mod image_formats {
 pub const VERSION: u32 = 13;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const ACCELERATION_STRUCTURE: u32 = 124;
+    pub const RAY_QUERY: u32 = 125;
+    pub const RAY_PIPELINE: u32 = 126;
+    pub const RAY_INDIRECT: u32 = 127;
+    pub const RAY_INDIRECT_TABLE: u32 = 128;
+    pub const ACCELERATION_INDIRECT_BUILD: u32 = 129;
+    pub const RAY_MAINTENANCE: u32 = 130;
+    pub const RAY_PRIMITIVE_CULLING: u32 = 131;
+
     pub const TRANSFORM_FEEDBACK: u32 = 121;
     pub const GEOMETRY_STREAMS: u32 = 122;
     pub const DYNAMIC_RASTERIZATION_STREAM: u32 = 123;
@@ -747,7 +756,20 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
+    if required & RAY_INDIRECT_TABLE != 0
+        && required & (RAY_PIPELINE | RAY_MAINTENANCE) != (RAY_PIPELINE | RAY_MAINTENANCE)
+    {
+        return Err(INVALID);
+    }
+    if required & RAY_PRIMITIVE_CULLING != 0 && required & (RAY_QUERY | RAY_PIPELINE) == 0 {
+        return Err(INVALID);
+    }
     for (dynamic, base) in [
+        (
+            RAY_QUERY | RAY_PIPELINE | ACCELERATION_INDIRECT_BUILD | RAY_MAINTENANCE,
+            ACCELERATION_STRUCTURE,
+        ),
+        (RAY_INDIRECT, RAY_PIPELINE),
         (TRANSFORM_FEEDBACK, RASTER),
         (GEOMETRY_STREAMS, GEOMETRY),
         (
@@ -2251,3 +2273,157 @@ pub struct RasterizationStream {
     pub stream: u32,
     pub reserved: u32,
 }
+
+pub const RAY_LIMITS: u32 = 30;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RayLimits {
+    pub max_geometries: u64,
+    pub max_instances: u64,
+    pub max_primitives: u64,
+    pub storage_alignment: u64,
+    pub scratch_alignment: u64,
+    pub group_handle_size: u32,
+    pub group_handle_alignment: u32,
+    pub table_alignment: u32,
+    pub max_table_stride: u32,
+    pub max_recursion: u32,
+    pub max_trace_invocations: u32,
+    pub max_hit_attribute_size: u32,
+    pub reserved: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DeviceRange {
+    pub address: u64,
+    pub size: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationTriangles {
+    pub vertices: u64,
+    pub stride: u64,
+    pub indices: u64,
+    pub transform: u64,
+    pub format: u32,
+    pub max_vertex: u32,
+    pub index_type: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationAabbs {
+    pub data: u64,
+    pub stride: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationInstances {
+    pub data: u64,
+    pub pointers: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union AccelerationGeometryData {
+    pub triangles: AccelerationTriangles,
+    pub aabbs: AccelerationAabbs,
+    pub instances: AccelerationInstances,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationGeometry {
+    pub kind: u32,
+    pub flags: u32,
+    pub data: AccelerationGeometryData,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationBuildDesc {
+    pub header: Record,
+    pub kind: u32,
+    pub flags: u32,
+    pub geometry_count: u32,
+    pub reserved: u32,
+    pub geometries: *const AccelerationGeometry,
+    pub max_primitives: *const u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationRequirements {
+    pub storage_size: u64,
+    pub storage_alignment: u64,
+    pub build_scratch_size: u64,
+    pub update_scratch_size: u64,
+    pub scratch_alignment: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationDesc {
+    pub header: Record,
+    pub kind: u32,
+    pub reserved: u32,
+    pub backing: Span,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationRange {
+    pub primitive_count: u32,
+    pub primitive_offset: u32,
+    pub first_vertex: u32,
+    pub transform_offset: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationBuild {
+    pub description: *const AccelerationBuildDesc,
+    pub source: *mut super::Acceleration,
+    pub destination: *mut super::Acceleration,
+    pub update: u32,
+    pub indirect_stride: u32,
+    pub scratch: DeviceRange,
+    pub ranges: *const AccelerationRange,
+    pub indirect: DeviceRange,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AccelerationInstance {
+    pub transform: [f32; 12],
+    pub custom_index_and_mask: u32,
+    pub table_offset_and_flags: u32,
+    pub reference: u64,
+}
+pub const ACCELERATION_BUILD_DESC: u32 = 147;
+pub const ACCELERATION_DESC: u32 = 148;
+pub const ACCELERATION_BUILD_STAGE: u64 = 1 << 28;
+pub const ACCELERATION_COPY_STAGE: u64 = 1 << 29;
+pub const ACCELERATION_INPUT_USAGE: u64 = 1 << 11;
+pub const ACCELERATION_STORAGE_USAGE: u64 = 1 << 12;
+
+pub const ACCELERATION_READ: u64 = 1 << 28;
+pub const ACCELERATION_WRITE: u64 = 1 << 29;
+pub const FORMAT_BUFFER_ACCELERATION_VERTEX: u64 = 16;
+pub const ACCELERATION_TOP: u32 = 1;
+pub const ACCELERATION_BOTTOM: u32 = 2;
+pub const ACCELERATION_GENERIC: u32 = 3;
+pub const GEOMETRY_TRIANGLES: u32 = 1;
+pub const GEOMETRY_AABBS: u32 = 2;
+pub const GEOMETRY_INSTANCES: u32 = 3;
+pub const GEOMETRY_OPAQUE: u32 = 1;
+pub const GEOMETRY_NO_DUPLICATE_ANY_HIT: u32 = 2;
+pub const BUILD_ALLOW_UPDATE: u32 = 1;
+pub const BUILD_ALLOW_COMPACTION: u32 = 2;
+pub const BUILD_PREFER_TRACE: u32 = 4;
+pub const BUILD_PREFER_BUILD: u32 = 8;
+pub const BUILD_LOW_MEMORY: u32 = 16;
+pub const ACCELERATION_CLONE: u32 = 0;
+pub const ACCELERATION_COMPACT: u32 = 1;
+pub const QUERY_ACCELERATION_COMPACTED_SIZE: u32 = 5;
+pub const QUERY_ACCELERATION_SERIALIZED_SIZE: u32 = 6;
+pub const QUERY_ACCELERATION_SIZE: u32 = 7;
+pub const QUERY_ACCELERATION_SERIALIZED_POINTERS: u32 = 8;
+pub const INSTANCE_DISABLE_CULL: u32 = 1;
+pub const INSTANCE_FRONT_COUNTERCLOCKWISE: u32 = 2;
+pub const INSTANCE_FORCE_OPAQUE: u32 = 4;
+pub const INSTANCE_FORCE_NON_OPAQUE: u32 = 8;

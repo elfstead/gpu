@@ -12223,6 +12223,64 @@ pub type PFN_vkCmdSetFragmentShadingRateKHR = ::std::option::Option<
         combinerOps: *const VkFragmentShadingRateCombinerOpKHR,
     ),
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDeferredOperationKHR_T {
+    _unused: [u8; 0],
+}
+pub type VkDeferredOperationKHR = *mut VkDeferredOperationKHR_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineLibraryCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub libraryCount: u32,
+    pub pLibraries: *const VkPipeline,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineLibraryCreateInfoKHR",
+    ][::std::mem::size_of::<VkPipelineLibraryCreateInfoKHR>() - 32usize];
+    [
+        "Alignment of VkPipelineLibraryCreateInfoKHR",
+    ][::std::mem::align_of::<VkPipelineLibraryCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineLibraryCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineLibraryCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineLibraryCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineLibraryCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineLibraryCreateInfoKHR::libraryCount",
+    ][::std::mem::offset_of!(VkPipelineLibraryCreateInfoKHR, libraryCount) - 16usize];
+    [
+        "Offset of field: VkPipelineLibraryCreateInfoKHR::pLibraries",
+    ][::std::mem::offset_of!(VkPipelineLibraryCreateInfoKHR, pLibraries) - 24usize];
+};
+impl Default for VkPipelineLibraryCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAccelerationStructureKHR_T {
+    _unused: [u8; 0],
+}
+pub type VkAccelerationStructureKHR = *mut VkAccelerationStructureKHR_T;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR: VkAccelerationStructureTypeKHR = 0;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR: VkAccelerationStructureTypeKHR = 1;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR: VkAccelerationStructureTypeKHR = 2;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_OPACITY_MICROMAP_KHR: VkAccelerationStructureTypeKHR = 1000623000;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV: VkAccelerationStructureTypeKHR = 0;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV: VkAccelerationStructureTypeKHR = 1;
+pub const VkAccelerationStructureTypeKHR_VK_ACCELERATION_STRUCTURE_TYPE_MAX_ENUM_KHR: VkAccelerationStructureTypeKHR = 2147483647;
+pub type VkAccelerationStructureTypeKHR = ::std::os::raw::c_uint;
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_PROTECTED_BIT_KHR: VkAddressCommandFlagBitsKHR = 1;
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR: VkAddressCommandFlagBitsKHR = 2;
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR: VkAddressCommandFlagBitsKHR = 4;
@@ -12232,6 +12290,7 @@ pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_UNKNOWN_TRANSFORM_FEEDB
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FLAG_BITS_MAX_ENUM_KHR: VkAddressCommandFlagBitsKHR = 2147483647;
 pub type VkAddressCommandFlagBitsKHR = ::std::os::raw::c_uint;
 pub type VkAddressCommandFlagsKHR = VkFlags;
+pub type VkAccelerationStructureCreateFlagsKHR = VkFlags;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkDeviceAddressRangeKHR {
@@ -12722,6 +12781,55 @@ impl Default for VkBindTransformFeedbackBuffer2InfoEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAccelerationStructureCreateInfo2KHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub createFlags: VkAccelerationStructureCreateFlagsKHR,
+    pub addressRange: VkDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+    pub type_: VkAccelerationStructureTypeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureCreateInfo2KHR",
+    ][::std::mem::size_of::<VkAccelerationStructureCreateInfo2KHR>() - 48usize];
+    [
+        "Alignment of VkAccelerationStructureCreateInfo2KHR",
+    ][::std::mem::align_of::<VkAccelerationStructureCreateInfo2KHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureCreateInfo2KHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureCreateInfo2KHR, sType) - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureCreateInfo2KHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureCreateInfo2KHR, pNext) - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureCreateInfo2KHR::createFlags",
+    ][::std::mem::offset_of!(VkAccelerationStructureCreateInfo2KHR, createFlags)
+        - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureCreateInfo2KHR::addressRange",
+    ][::std::mem::offset_of!(VkAccelerationStructureCreateInfo2KHR, addressRange)
+        - 24usize];
+    [
+        "Offset of field: VkAccelerationStructureCreateInfo2KHR::addressFlags",
+    ][::std::mem::offset_of!(VkAccelerationStructureCreateInfo2KHR, addressFlags)
+        - 40usize];
+    [
+        "Offset of field: VkAccelerationStructureCreateInfo2KHR::type_",
+    ][::std::mem::offset_of!(VkAccelerationStructureCreateInfo2KHR, type_) - 44usize];
+};
+impl Default for VkAccelerationStructureCreateInfo2KHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type PFN_vkCmdBindIndexBuffer3KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -12822,6 +12930,67 @@ pub type PFN_vkCmdDrawMeshTasksIndirectCount2EXT = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pInfo: *const VkDrawIndirectCount2InfoKHR,
+    ),
+>;
+pub type PFN_vkCreateAccelerationStructure2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkAccelerationStructureCreateInfo2KHR,
+        pAllocator: *const VkAllocationCallbacks,
+        pAccelerationStructure: *mut VkAccelerationStructureKHR,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub rayTracingMaintenance1: VkBool32,
+    pub rayTracingPipelineTraceRaysIndirect2: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR::rayTracingMaintenance1",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR, rayTracingMaintenance1
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR::rayTracingPipelineTraceRaysIndirect2",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR,
+        rayTracingPipelineTraceRaysIndirect2
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdTraceRaysIndirect2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        indirectDeviceAddress: VkDeviceAddress,
     ),
 >;
 #[repr(C)]
@@ -15388,6 +15557,44 @@ pub type PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT = ::std::option::Option
         pMultisampleProperties: *mut VkMultisamplePropertiesEXT,
     ),
 >;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR: VkRayTracingShaderGroupTypeKHR = 0;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR: VkRayTracingShaderGroupTypeKHR = 1;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR: VkRayTracingShaderGroupTypeKHR = 2;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV: VkRayTracingShaderGroupTypeKHR = 0;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV: VkRayTracingShaderGroupTypeKHR = 1;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV: VkRayTracingShaderGroupTypeKHR = 2;
+pub const VkRayTracingShaderGroupTypeKHR_VK_RAY_TRACING_SHADER_GROUP_TYPE_MAX_ENUM_KHR: VkRayTracingShaderGroupTypeKHR = 2147483647;
+pub type VkRayTracingShaderGroupTypeKHR = ::std::os::raw::c_uint;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_TRIANGLES_KHR: VkGeometryTypeKHR = 0;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_AABBS_KHR: VkGeometryTypeKHR = 1;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_INSTANCES_KHR: VkGeometryTypeKHR = 2;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_SPHERES_NV: VkGeometryTypeKHR = 1000429004;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_LINEAR_SWEPT_SPHERES_NV: VkGeometryTypeKHR = 1000429005;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_MICROMAP_KHR: VkGeometryTypeKHR = 1000623000;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_TRIANGLES_NV: VkGeometryTypeKHR = 0;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_AABBS_NV: VkGeometryTypeKHR = 1;
+pub const VkGeometryTypeKHR_VK_GEOMETRY_TYPE_MAX_ENUM_KHR: VkGeometryTypeKHR = 2147483647;
+pub type VkGeometryTypeKHR = ::std::os::raw::c_uint;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_KHR: VkCopyAccelerationStructureModeKHR = 0;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR: VkCopyAccelerationStructureModeKHR = 1;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_SERIALIZE_KHR: VkCopyAccelerationStructureModeKHR = 2;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_DESERIALIZE_KHR: VkCopyAccelerationStructureModeKHR = 3;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_NV: VkCopyAccelerationStructureModeKHR = 0;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_NV: VkCopyAccelerationStructureModeKHR = 1;
+pub const VkCopyAccelerationStructureModeKHR_VK_COPY_ACCELERATION_STRUCTURE_MODE_MAX_ENUM_KHR: VkCopyAccelerationStructureModeKHR = 2147483647;
+pub type VkCopyAccelerationStructureModeKHR = ::std::os::raw::c_uint;
+pub type VkGeometryFlagsKHR = VkFlags;
+pub type VkBuildAccelerationStructureFlagsKHR = VkFlags;
+pub type PFN_vkGetRayTracingShaderGroupHandlesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipeline: VkPipeline,
+        firstGroup: u32,
+        groupCount: u32,
+        dataSize: usize,
+        pData: *mut ::std::os::raw::c_void,
+    ) -> VkResult,
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceMemoryBudgetPropertiesEXT {
@@ -15923,6 +16130,36 @@ pub type PFN_vkCmdSetDepthBias2EXT = ::std::option::Option<
     ),
 >;
 #[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkDeviceOrHostAddressConstKHR {
+    pub deviceAddress: VkDeviceAddress,
+    pub hostAddress: *const ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceOrHostAddressConstKHR",
+    ][::std::mem::size_of::<VkDeviceOrHostAddressConstKHR>() - 8usize];
+    [
+        "Alignment of VkDeviceOrHostAddressConstKHR",
+    ][::std::mem::align_of::<VkDeviceOrHostAddressConstKHR>() - 8usize];
+    [
+        "Offset of field: VkDeviceOrHostAddressConstKHR::deviceAddress",
+    ][::std::mem::offset_of!(VkDeviceOrHostAddressConstKHR, deviceAddress) - 0usize];
+    [
+        "Offset of field: VkDeviceOrHostAddressConstKHR::hostAddress",
+    ][::std::mem::offset_of!(VkDeviceOrHostAddressConstKHR, hostAddress) - 0usize];
+};
+impl Default for VkDeviceOrHostAddressConstKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT {
     pub sType: VkStructureType,
@@ -16335,6 +16572,45 @@ pub type PFN_vkCmdSetColorWriteEnableEXT = ::std::option::Option<
         pColorWriteEnables: *const VkBool32,
     ),
 >;
+pub const VkAccelerationStructureCompatibilityKHR_VK_ACCELERATION_STRUCTURE_COMPATIBILITY_COMPATIBLE_KHR: VkAccelerationStructureCompatibilityKHR = 0;
+pub const VkAccelerationStructureCompatibilityKHR_VK_ACCELERATION_STRUCTURE_COMPATIBILITY_INCOMPATIBLE_KHR: VkAccelerationStructureCompatibilityKHR = 1;
+pub const VkAccelerationStructureCompatibilityKHR_VK_ACCELERATION_STRUCTURE_COMPATIBILITY_MAX_ENUM_KHR: VkAccelerationStructureCompatibilityKHR = 2147483647;
+pub type VkAccelerationStructureCompatibilityKHR = ::std::os::raw::c_uint;
+pub const VkAccelerationStructureBuildTypeKHR_VK_ACCELERATION_STRUCTURE_BUILD_TYPE_HOST_KHR: VkAccelerationStructureBuildTypeKHR = 0;
+pub const VkAccelerationStructureBuildTypeKHR_VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR: VkAccelerationStructureBuildTypeKHR = 1;
+pub const VkAccelerationStructureBuildTypeKHR_VK_ACCELERATION_STRUCTURE_BUILD_TYPE_HOST_OR_DEVICE_KHR: VkAccelerationStructureBuildTypeKHR = 2;
+pub const VkAccelerationStructureBuildTypeKHR_VK_ACCELERATION_STRUCTURE_BUILD_TYPE_MAX_ENUM_KHR: VkAccelerationStructureBuildTypeKHR = 2147483647;
+pub type VkAccelerationStructureBuildTypeKHR = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkDeviceOrHostAddressKHR {
+    pub deviceAddress: VkDeviceAddress,
+    pub hostAddress: *mut ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceOrHostAddressKHR",
+    ][::std::mem::size_of::<VkDeviceOrHostAddressKHR>() - 8usize];
+    [
+        "Alignment of VkDeviceOrHostAddressKHR",
+    ][::std::mem::align_of::<VkDeviceOrHostAddressKHR>() - 8usize];
+    [
+        "Offset of field: VkDeviceOrHostAddressKHR::deviceAddress",
+    ][::std::mem::offset_of!(VkDeviceOrHostAddressKHR, deviceAddress) - 0usize];
+    [
+        "Offset of field: VkDeviceOrHostAddressKHR::hostAddress",
+    ][::std::mem::offset_of!(VkDeviceOrHostAddressKHR, hostAddress) - 0usize];
+};
+impl Default for VkDeviceOrHostAddressKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
@@ -16885,6 +17161,77 @@ const _: () = {
     ) - 20usize];
 };
 impl Default for VkPhysicalDeviceShaderFloat8FeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkStridedDeviceAddressRegionKHR {
+    pub deviceAddress: VkDeviceAddress,
+    pub stride: VkDeviceSize,
+    pub size: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkStridedDeviceAddressRegionKHR",
+    ][::std::mem::size_of::<VkStridedDeviceAddressRegionKHR>() - 24usize];
+    [
+        "Alignment of VkStridedDeviceAddressRegionKHR",
+    ][::std::mem::align_of::<VkStridedDeviceAddressRegionKHR>() - 8usize];
+    [
+        "Offset of field: VkStridedDeviceAddressRegionKHR::deviceAddress",
+    ][::std::mem::offset_of!(VkStridedDeviceAddressRegionKHR, deviceAddress) - 0usize];
+    [
+        "Offset of field: VkStridedDeviceAddressRegionKHR::stride",
+    ][::std::mem::offset_of!(VkStridedDeviceAddressRegionKHR, stride) - 8usize];
+    [
+        "Offset of field: VkStridedDeviceAddressRegionKHR::size",
+    ][::std::mem::offset_of!(VkStridedDeviceAddressRegionKHR, size) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAccelerationStructureBuildSizesInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub accelerationStructureSize: VkDeviceSize,
+    pub updateScratchSize: VkDeviceSize,
+    pub buildScratchSize: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureBuildSizesInfoKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureBuildSizesInfoKHR>() - 40usize];
+    [
+        "Alignment of VkAccelerationStructureBuildSizesInfoKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureBuildSizesInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildSizesInfoKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildSizesInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildSizesInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildSizesInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildSizesInfoKHR::accelerationStructureSize",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureBuildSizesInfoKHR, accelerationStructureSize
+    ) - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildSizesInfoKHR::updateScratchSize",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildSizesInfoKHR, updateScratchSize)
+        - 24usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildSizesInfoKHR::buildScratchSize",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildSizesInfoKHR, buildScratchSize)
+        - 32usize];
+};
+impl Default for VkAccelerationStructureBuildSizesInfoKHR {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -17932,6 +18279,1215 @@ const _: () = {
     ) - 28usize];
 };
 impl Default for VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const VkBuildAccelerationStructureModeKHR_VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR: VkBuildAccelerationStructureModeKHR = 0;
+pub const VkBuildAccelerationStructureModeKHR_VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR: VkBuildAccelerationStructureModeKHR = 1;
+pub const VkBuildAccelerationStructureModeKHR_VK_BUILD_ACCELERATION_STRUCTURE_MODE_MAX_ENUM_KHR: VkBuildAccelerationStructureModeKHR = 2147483647;
+pub type VkBuildAccelerationStructureModeKHR = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkAccelerationStructureBuildRangeInfoKHR {
+    pub primitiveCount: u32,
+    pub primitiveOffset: u32,
+    pub firstVertex: u32,
+    pub transformOffset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureBuildRangeInfoKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureBuildRangeInfoKHR>() - 16usize];
+    [
+        "Alignment of VkAccelerationStructureBuildRangeInfoKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureBuildRangeInfoKHR>() - 4usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildRangeInfoKHR::primitiveCount",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildRangeInfoKHR, primitiveCount)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildRangeInfoKHR::primitiveOffset",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildRangeInfoKHR, primitiveOffset)
+        - 4usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildRangeInfoKHR::firstVertex",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildRangeInfoKHR, firstVertex)
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildRangeInfoKHR::transformOffset",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildRangeInfoKHR, transformOffset)
+        - 12usize];
+};
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkAccelerationStructureGeometryTrianglesDataKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub vertexFormat: VkFormat,
+    pub vertexData: VkDeviceOrHostAddressConstKHR,
+    pub vertexStride: VkDeviceSize,
+    pub maxVertex: u32,
+    pub indexType: VkIndexType,
+    pub indexData: VkDeviceOrHostAddressConstKHR,
+    pub transformData: VkDeviceOrHostAddressConstKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureGeometryTrianglesDataKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureGeometryTrianglesDataKHR>()
+        - 64usize];
+    [
+        "Alignment of VkAccelerationStructureGeometryTrianglesDataKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureGeometryTrianglesDataKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryTrianglesDataKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryTrianglesDataKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::vertexFormat",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureGeometryTrianglesDataKHR, vertexFormat
+    ) - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::vertexData",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryTrianglesDataKHR, vertexData)
+        - 24usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::vertexStride",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureGeometryTrianglesDataKHR, vertexStride
+    ) - 32usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::maxVertex",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryTrianglesDataKHR, maxVertex)
+        - 40usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::indexType",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryTrianglesDataKHR, indexType)
+        - 44usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::indexData",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryTrianglesDataKHR, indexData)
+        - 48usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryTrianglesDataKHR::transformData",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureGeometryTrianglesDataKHR, transformData
+    ) - 56usize];
+};
+impl Default for VkAccelerationStructureGeometryTrianglesDataKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkAccelerationStructureGeometryAabbsDataKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub data: VkDeviceOrHostAddressConstKHR,
+    pub stride: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureGeometryAabbsDataKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureGeometryAabbsDataKHR>() - 32usize];
+    [
+        "Alignment of VkAccelerationStructureGeometryAabbsDataKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureGeometryAabbsDataKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryAabbsDataKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryAabbsDataKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryAabbsDataKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryAabbsDataKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryAabbsDataKHR::data",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryAabbsDataKHR, data)
+        - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryAabbsDataKHR::stride",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryAabbsDataKHR, stride)
+        - 24usize];
+};
+impl Default for VkAccelerationStructureGeometryAabbsDataKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkAccelerationStructureGeometryInstancesDataKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub arrayOfPointers: VkBool32,
+    pub data: VkDeviceOrHostAddressConstKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureGeometryInstancesDataKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureGeometryInstancesDataKHR>()
+        - 32usize];
+    [
+        "Alignment of VkAccelerationStructureGeometryInstancesDataKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureGeometryInstancesDataKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryInstancesDataKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryInstancesDataKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryInstancesDataKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryInstancesDataKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryInstancesDataKHR::arrayOfPointers",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureGeometryInstancesDataKHR, arrayOfPointers
+    ) - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryInstancesDataKHR::data",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryInstancesDataKHR, data)
+        - 24usize];
+};
+impl Default for VkAccelerationStructureGeometryInstancesDataKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkAccelerationStructureGeometryDataKHR {
+    pub triangles: VkAccelerationStructureGeometryTrianglesDataKHR,
+    pub aabbs: VkAccelerationStructureGeometryAabbsDataKHR,
+    pub instances: VkAccelerationStructureGeometryInstancesDataKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureGeometryDataKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureGeometryDataKHR>() - 64usize];
+    [
+        "Alignment of VkAccelerationStructureGeometryDataKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureGeometryDataKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryDataKHR::triangles",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryDataKHR, triangles)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryDataKHR::aabbs",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryDataKHR, aabbs) - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryDataKHR::instances",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryDataKHR, instances)
+        - 0usize];
+};
+impl Default for VkAccelerationStructureGeometryDataKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkAccelerationStructureGeometryKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub geometryType: VkGeometryTypeKHR,
+    pub geometry: VkAccelerationStructureGeometryDataKHR,
+    pub flags: VkGeometryFlagsKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureGeometryKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureGeometryKHR>() - 96usize];
+    [
+        "Alignment of VkAccelerationStructureGeometryKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureGeometryKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryKHR, sType) - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryKHR::geometryType",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryKHR, geometryType)
+        - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryKHR::geometry",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryKHR, geometry) - 24usize];
+    [
+        "Offset of field: VkAccelerationStructureGeometryKHR::flags",
+    ][::std::mem::offset_of!(VkAccelerationStructureGeometryKHR, flags) - 88usize];
+};
+impl Default for VkAccelerationStructureGeometryKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkAccelerationStructureBuildGeometryInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub type_: VkAccelerationStructureTypeKHR,
+    pub flags: VkBuildAccelerationStructureFlagsKHR,
+    pub mode: VkBuildAccelerationStructureModeKHR,
+    pub srcAccelerationStructure: VkAccelerationStructureKHR,
+    pub dstAccelerationStructure: VkAccelerationStructureKHR,
+    pub geometryCount: u32,
+    pub pGeometries: *const VkAccelerationStructureGeometryKHR,
+    pub ppGeometries: *const *const VkAccelerationStructureGeometryKHR,
+    pub scratchData: VkDeviceOrHostAddressKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureBuildGeometryInfoKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureBuildGeometryInfoKHR>() - 80usize];
+    [
+        "Alignment of VkAccelerationStructureBuildGeometryInfoKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureBuildGeometryInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::type_",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, type_)
+        - 16usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::flags",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, flags)
+        - 20usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::mode",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, mode)
+        - 24usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::srcAccelerationStructure",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureBuildGeometryInfoKHR, srcAccelerationStructure
+    ) - 32usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::dstAccelerationStructure",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureBuildGeometryInfoKHR, dstAccelerationStructure
+    ) - 40usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::geometryCount",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, geometryCount)
+        - 48usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::pGeometries",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, pGeometries)
+        - 56usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::ppGeometries",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, ppGeometries)
+        - 64usize];
+    [
+        "Offset of field: VkAccelerationStructureBuildGeometryInfoKHR::scratchData",
+    ][::std::mem::offset_of!(VkAccelerationStructureBuildGeometryInfoKHR, scratchData)
+        - 72usize];
+};
+impl Default for VkAccelerationStructureBuildGeometryInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceAccelerationStructureFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub accelerationStructure: VkBool32,
+    pub accelerationStructureCaptureReplay: VkBool32,
+    pub accelerationStructureIndirectBuild: VkBool32,
+    pub accelerationStructureHostCommands: VkBool32,
+    pub descriptorBindingAccelerationStructureUpdateAfterBind: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceAccelerationStructureFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceAccelerationStructureFeaturesKHR>()
+        - 40usize];
+    [
+        "Alignment of VkPhysicalDeviceAccelerationStructureFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceAccelerationStructureFeaturesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceAccelerationStructureFeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceAccelerationStructureFeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::accelerationStructure",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR, accelerationStructure
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::accelerationStructureCaptureReplay",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR,
+        accelerationStructureCaptureReplay
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::accelerationStructureIndirectBuild",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR,
+        accelerationStructureIndirectBuild
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::accelerationStructureHostCommands",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR,
+        accelerationStructureHostCommands
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructureFeaturesKHR::descriptorBindingAccelerationStructureUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR,
+        descriptorBindingAccelerationStructureUpdateAfterBind
+    ) - 32usize];
+};
+impl Default for VkPhysicalDeviceAccelerationStructureFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceAccelerationStructurePropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxGeometryCount: u64,
+    pub maxInstanceCount: u64,
+    pub maxPrimitiveCount: u64,
+    pub maxPerStageDescriptorAccelerationStructures: u32,
+    pub maxPerStageDescriptorUpdateAfterBindAccelerationStructures: u32,
+    pub maxDescriptorSetAccelerationStructures: u32,
+    pub maxDescriptorSetUpdateAfterBindAccelerationStructures: u32,
+    pub minAccelerationStructureScratchOffsetAlignment: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceAccelerationStructurePropertiesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceAccelerationStructurePropertiesKHR>()
+        - 64usize];
+    [
+        "Alignment of VkPhysicalDeviceAccelerationStructurePropertiesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceAccelerationStructurePropertiesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceAccelerationStructurePropertiesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceAccelerationStructurePropertiesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxGeometryCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR, maxGeometryCount
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxInstanceCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR, maxInstanceCount
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxPrimitiveCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR, maxPrimitiveCount
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxPerStageDescriptorAccelerationStructures",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR,
+        maxPerStageDescriptorAccelerationStructures
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxPerStageDescriptorUpdateAfterBindAccelerationStructures",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR,
+        maxPerStageDescriptorUpdateAfterBindAccelerationStructures
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxDescriptorSetAccelerationStructures",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR,
+        maxDescriptorSetAccelerationStructures
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::maxDescriptorSetUpdateAfterBindAccelerationStructures",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR,
+        maxDescriptorSetUpdateAfterBindAccelerationStructures
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceAccelerationStructurePropertiesKHR::minAccelerationStructureScratchOffsetAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR,
+        minAccelerationStructureScratchOffsetAlignment
+    ) - 56usize];
+};
+impl Default for VkPhysicalDeviceAccelerationStructurePropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAccelerationStructureDeviceAddressInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub accelerationStructure: VkAccelerationStructureKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureDeviceAddressInfoKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureDeviceAddressInfoKHR>() - 24usize];
+    [
+        "Alignment of VkAccelerationStructureDeviceAddressInfoKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureDeviceAddressInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureDeviceAddressInfoKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureDeviceAddressInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureDeviceAddressInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureDeviceAddressInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureDeviceAddressInfoKHR::accelerationStructure",
+    ][::std::mem::offset_of!(
+        VkAccelerationStructureDeviceAddressInfoKHR, accelerationStructure
+    ) - 16usize];
+};
+impl Default for VkAccelerationStructureDeviceAddressInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAccelerationStructureVersionInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pVersionData: *const u8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAccelerationStructureVersionInfoKHR",
+    ][::std::mem::size_of::<VkAccelerationStructureVersionInfoKHR>() - 24usize];
+    [
+        "Alignment of VkAccelerationStructureVersionInfoKHR",
+    ][::std::mem::align_of::<VkAccelerationStructureVersionInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureVersionInfoKHR::sType",
+    ][::std::mem::offset_of!(VkAccelerationStructureVersionInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkAccelerationStructureVersionInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkAccelerationStructureVersionInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkAccelerationStructureVersionInfoKHR::pVersionData",
+    ][::std::mem::offset_of!(VkAccelerationStructureVersionInfoKHR, pVersionData)
+        - 16usize];
+};
+impl Default for VkAccelerationStructureVersionInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkCopyAccelerationStructureToMemoryInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub src: VkAccelerationStructureKHR,
+    pub dst: VkDeviceOrHostAddressKHR,
+    pub mode: VkCopyAccelerationStructureModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCopyAccelerationStructureToMemoryInfoKHR",
+    ][::std::mem::size_of::<VkCopyAccelerationStructureToMemoryInfoKHR>() - 40usize];
+    [
+        "Alignment of VkCopyAccelerationStructureToMemoryInfoKHR",
+    ][::std::mem::align_of::<VkCopyAccelerationStructureToMemoryInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureToMemoryInfoKHR::sType",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureToMemoryInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureToMemoryInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureToMemoryInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureToMemoryInfoKHR::src",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureToMemoryInfoKHR, src) - 16usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureToMemoryInfoKHR::dst",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureToMemoryInfoKHR, dst) - 24usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureToMemoryInfoKHR::mode",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureToMemoryInfoKHR, mode)
+        - 32usize];
+};
+impl Default for VkCopyAccelerationStructureToMemoryInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkCopyMemoryToAccelerationStructureInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub src: VkDeviceOrHostAddressConstKHR,
+    pub dst: VkAccelerationStructureKHR,
+    pub mode: VkCopyAccelerationStructureModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCopyMemoryToAccelerationStructureInfoKHR",
+    ][::std::mem::size_of::<VkCopyMemoryToAccelerationStructureInfoKHR>() - 40usize];
+    [
+        "Alignment of VkCopyMemoryToAccelerationStructureInfoKHR",
+    ][::std::mem::align_of::<VkCopyMemoryToAccelerationStructureInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkCopyMemoryToAccelerationStructureInfoKHR::sType",
+    ][::std::mem::offset_of!(VkCopyMemoryToAccelerationStructureInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkCopyMemoryToAccelerationStructureInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkCopyMemoryToAccelerationStructureInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkCopyMemoryToAccelerationStructureInfoKHR::src",
+    ][::std::mem::offset_of!(VkCopyMemoryToAccelerationStructureInfoKHR, src) - 16usize];
+    [
+        "Offset of field: VkCopyMemoryToAccelerationStructureInfoKHR::dst",
+    ][::std::mem::offset_of!(VkCopyMemoryToAccelerationStructureInfoKHR, dst) - 24usize];
+    [
+        "Offset of field: VkCopyMemoryToAccelerationStructureInfoKHR::mode",
+    ][::std::mem::offset_of!(VkCopyMemoryToAccelerationStructureInfoKHR, mode)
+        - 32usize];
+};
+impl Default for VkCopyMemoryToAccelerationStructureInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCopyAccelerationStructureInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub src: VkAccelerationStructureKHR,
+    pub dst: VkAccelerationStructureKHR,
+    pub mode: VkCopyAccelerationStructureModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCopyAccelerationStructureInfoKHR",
+    ][::std::mem::size_of::<VkCopyAccelerationStructureInfoKHR>() - 40usize];
+    [
+        "Alignment of VkCopyAccelerationStructureInfoKHR",
+    ][::std::mem::align_of::<VkCopyAccelerationStructureInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureInfoKHR::sType",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureInfoKHR::src",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureInfoKHR, src) - 16usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureInfoKHR::dst",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureInfoKHR, dst) - 24usize];
+    [
+        "Offset of field: VkCopyAccelerationStructureInfoKHR::mode",
+    ][::std::mem::offset_of!(VkCopyAccelerationStructureInfoKHR, mode) - 32usize];
+};
+impl Default for VkCopyAccelerationStructureInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkDestroyAccelerationStructureKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        accelerationStructure: VkAccelerationStructureKHR,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCmdBuildAccelerationStructuresKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        infoCount: u32,
+        pInfos: *const VkAccelerationStructureBuildGeometryInfoKHR,
+        ppBuildRangeInfos: *const *const VkAccelerationStructureBuildRangeInfoKHR,
+    ),
+>;
+pub type PFN_vkCmdBuildAccelerationStructuresIndirectKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        infoCount: u32,
+        pInfos: *const VkAccelerationStructureBuildGeometryInfoKHR,
+        pIndirectDeviceAddresses: *const VkDeviceAddress,
+        pIndirectStrides: *const u32,
+        ppMaxPrimitiveCounts: *const *const u32,
+    ),
+>;
+pub type PFN_vkCmdCopyAccelerationStructureKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkCopyAccelerationStructureInfoKHR,
+    ),
+>;
+pub type PFN_vkCmdCopyAccelerationStructureToMemoryKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkCopyAccelerationStructureToMemoryInfoKHR,
+    ),
+>;
+pub type PFN_vkCmdCopyMemoryToAccelerationStructureKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkCopyMemoryToAccelerationStructureInfoKHR,
+    ),
+>;
+pub type PFN_vkGetAccelerationStructureDeviceAddressKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkAccelerationStructureDeviceAddressInfoKHR,
+    ) -> VkDeviceAddress,
+>;
+pub type PFN_vkCmdWriteAccelerationStructuresPropertiesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        accelerationStructureCount: u32,
+        pAccelerationStructures: *const VkAccelerationStructureKHR,
+        queryType: VkQueryType,
+        queryPool: VkQueryPool,
+        firstQuery: u32,
+    ),
+>;
+pub type PFN_vkGetDeviceAccelerationStructureCompatibilityKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pVersionInfo: *const VkAccelerationStructureVersionInfoKHR,
+        pCompatibility: *mut VkAccelerationStructureCompatibilityKHR,
+    ),
+>;
+pub type PFN_vkGetAccelerationStructureBuildSizesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        buildType: VkAccelerationStructureBuildTypeKHR,
+        pBuildInfo: *const VkAccelerationStructureBuildGeometryInfoKHR,
+        pMaxPrimitiveCounts: *const u32,
+        pSizeInfo: *mut VkAccelerationStructureBuildSizesInfoKHR,
+    ),
+>;
+pub const VkShaderGroupShaderKHR_VK_SHADER_GROUP_SHADER_GENERAL_KHR: VkShaderGroupShaderKHR = 0;
+pub const VkShaderGroupShaderKHR_VK_SHADER_GROUP_SHADER_CLOSEST_HIT_KHR: VkShaderGroupShaderKHR = 1;
+pub const VkShaderGroupShaderKHR_VK_SHADER_GROUP_SHADER_ANY_HIT_KHR: VkShaderGroupShaderKHR = 2;
+pub const VkShaderGroupShaderKHR_VK_SHADER_GROUP_SHADER_INTERSECTION_KHR: VkShaderGroupShaderKHR = 3;
+pub const VkShaderGroupShaderKHR_VK_SHADER_GROUP_SHADER_MAX_ENUM_KHR: VkShaderGroupShaderKHR = 2147483647;
+pub type VkShaderGroupShaderKHR = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRayTracingShaderGroupCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub type_: VkRayTracingShaderGroupTypeKHR,
+    pub generalShader: u32,
+    pub closestHitShader: u32,
+    pub anyHitShader: u32,
+    pub intersectionShader: u32,
+    pub pShaderGroupCaptureReplayHandle: *const ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRayTracingShaderGroupCreateInfoKHR",
+    ][::std::mem::size_of::<VkRayTracingShaderGroupCreateInfoKHR>() - 48usize];
+    [
+        "Alignment of VkRayTracingShaderGroupCreateInfoKHR",
+    ][::std::mem::align_of::<VkRayTracingShaderGroupCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::type_",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, type_) - 16usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::generalShader",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, generalShader)
+        - 20usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::closestHitShader",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, closestHitShader)
+        - 24usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::anyHitShader",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, anyHitShader)
+        - 28usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::intersectionShader",
+    ][::std::mem::offset_of!(VkRayTracingShaderGroupCreateInfoKHR, intersectionShader)
+        - 32usize];
+    [
+        "Offset of field: VkRayTracingShaderGroupCreateInfoKHR::pShaderGroupCaptureReplayHandle",
+    ][::std::mem::offset_of!(
+        VkRayTracingShaderGroupCreateInfoKHR, pShaderGroupCaptureReplayHandle
+    ) - 40usize];
+};
+impl Default for VkRayTracingShaderGroupCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRayTracingPipelineInterfaceCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub maxPipelineRayPayloadSize: u32,
+    pub maxPipelineRayHitAttributeSize: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRayTracingPipelineInterfaceCreateInfoKHR",
+    ][::std::mem::size_of::<VkRayTracingPipelineInterfaceCreateInfoKHR>() - 24usize];
+    [
+        "Alignment of VkRayTracingPipelineInterfaceCreateInfoKHR",
+    ][::std::mem::align_of::<VkRayTracingPipelineInterfaceCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkRayTracingPipelineInterfaceCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkRayTracingPipelineInterfaceCreateInfoKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkRayTracingPipelineInterfaceCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkRayTracingPipelineInterfaceCreateInfoKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkRayTracingPipelineInterfaceCreateInfoKHR::maxPipelineRayPayloadSize",
+    ][::std::mem::offset_of!(
+        VkRayTracingPipelineInterfaceCreateInfoKHR, maxPipelineRayPayloadSize
+    ) - 16usize];
+    [
+        "Offset of field: VkRayTracingPipelineInterfaceCreateInfoKHR::maxPipelineRayHitAttributeSize",
+    ][::std::mem::offset_of!(
+        VkRayTracingPipelineInterfaceCreateInfoKHR, maxPipelineRayHitAttributeSize
+    ) - 20usize];
+};
+impl Default for VkRayTracingPipelineInterfaceCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRayTracingPipelineCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineCreateFlags,
+    pub stageCount: u32,
+    pub pStages: *const VkPipelineShaderStageCreateInfo,
+    pub groupCount: u32,
+    pub pGroups: *const VkRayTracingShaderGroupCreateInfoKHR,
+    pub maxPipelineRayRecursionDepth: u32,
+    pub pLibraryInfo: *const VkPipelineLibraryCreateInfoKHR,
+    pub pLibraryInterface: *const VkRayTracingPipelineInterfaceCreateInfoKHR,
+    pub pDynamicState: *const VkPipelineDynamicStateCreateInfo,
+    pub layout: VkPipelineLayout,
+    pub basePipelineHandle: VkPipeline,
+    pub basePipelineIndex: i32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRayTracingPipelineCreateInfoKHR",
+    ][::std::mem::size_of::<VkRayTracingPipelineCreateInfoKHR>() - 104usize];
+    [
+        "Alignment of VkRayTracingPipelineCreateInfoKHR",
+    ][::std::mem::align_of::<VkRayTracingPipelineCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::flags",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, flags) - 16usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::stageCount",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, stageCount) - 20usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::pStages",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, pStages) - 24usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::groupCount",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, groupCount) - 32usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::pGroups",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, pGroups) - 40usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::maxPipelineRayRecursionDepth",
+    ][::std::mem::offset_of!(
+        VkRayTracingPipelineCreateInfoKHR, maxPipelineRayRecursionDepth
+    ) - 48usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::pLibraryInfo",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, pLibraryInfo) - 56usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::pLibraryInterface",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, pLibraryInterface)
+        - 64usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::pDynamicState",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, pDynamicState)
+        - 72usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::layout",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, layout) - 80usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::basePipelineHandle",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, basePipelineHandle)
+        - 88usize];
+    [
+        "Offset of field: VkRayTracingPipelineCreateInfoKHR::basePipelineIndex",
+    ][::std::mem::offset_of!(VkRayTracingPipelineCreateInfoKHR, basePipelineIndex)
+        - 96usize];
+};
+impl Default for VkRayTracingPipelineCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceRayTracingPipelineFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub rayTracingPipeline: VkBool32,
+    pub rayTracingPipelineShaderGroupHandleCaptureReplay: VkBool32,
+    pub rayTracingPipelineShaderGroupHandleCaptureReplayMixed: VkBool32,
+    pub rayTracingPipelineTraceRaysIndirect: VkBool32,
+    pub rayTraversalPrimitiveCulling: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceRayTracingPipelineFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceRayTracingPipelineFeaturesKHR>() - 40usize];
+    [
+        "Alignment of VkPhysicalDeviceRayTracingPipelineFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceRayTracingPipelineFeaturesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayTracingPipelineFeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayTracingPipelineFeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::rayTracingPipeline",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR, rayTracingPipeline
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::rayTracingPipelineShaderGroupHandleCaptureReplay",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR,
+        rayTracingPipelineShaderGroupHandleCaptureReplay
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::rayTracingPipelineShaderGroupHandleCaptureReplayMixed",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR,
+        rayTracingPipelineShaderGroupHandleCaptureReplayMixed
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::rayTracingPipelineTraceRaysIndirect",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR,
+        rayTracingPipelineTraceRaysIndirect
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelineFeaturesKHR::rayTraversalPrimitiveCulling",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR, rayTraversalPrimitiveCulling
+    ) - 32usize];
+};
+impl Default for VkPhysicalDeviceRayTracingPipelineFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceRayTracingPipelinePropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderGroupHandleSize: u32,
+    pub maxRayRecursionDepth: u32,
+    pub maxShaderGroupStride: u32,
+    pub shaderGroupBaseAlignment: u32,
+    pub shaderGroupHandleCaptureReplaySize: u32,
+    pub maxRayDispatchInvocationCount: u32,
+    pub shaderGroupHandleAlignment: u32,
+    pub maxRayHitAttributeSize: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceRayTracingPipelinePropertiesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceRayTracingPipelinePropertiesKHR>()
+        - 48usize];
+    [
+        "Alignment of VkPhysicalDeviceRayTracingPipelinePropertiesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceRayTracingPipelinePropertiesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayTracingPipelinePropertiesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayTracingPipelinePropertiesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::shaderGroupHandleSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, shaderGroupHandleSize
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::maxRayRecursionDepth",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, maxRayRecursionDepth
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::maxShaderGroupStride",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, maxShaderGroupStride
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::shaderGroupBaseAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, shaderGroupBaseAlignment
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::shaderGroupHandleCaptureReplaySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR,
+        shaderGroupHandleCaptureReplaySize
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::maxRayDispatchInvocationCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, maxRayDispatchInvocationCount
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::shaderGroupHandleAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, shaderGroupHandleAlignment
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayTracingPipelinePropertiesKHR::maxRayHitAttributeSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR, maxRayHitAttributeSize
+    ) - 44usize];
+};
+impl Default for VkPhysicalDeviceRayTracingPipelinePropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdTraceRaysKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pRaygenShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        pMissShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        pHitShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        pCallableShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        width: u32,
+        height: u32,
+        depth: u32,
+    ),
+>;
+pub type PFN_vkCreateRayTracingPipelinesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        deferredOperation: VkDeferredOperationKHR,
+        pipelineCache: VkPipelineCache,
+        createInfoCount: u32,
+        pCreateInfos: *const VkRayTracingPipelineCreateInfoKHR,
+        pAllocator: *const VkAllocationCallbacks,
+        pPipelines: *mut VkPipeline,
+    ) -> VkResult,
+>;
+pub type PFN_vkCmdTraceRaysIndirectKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pRaygenShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        pMissShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        pHitShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        pCallableShaderBindingTable: *const VkStridedDeviceAddressRegionKHR,
+        indirectDeviceAddress: VkDeviceAddress,
+    ),
+>;
+pub type PFN_vkGetRayTracingShaderGroupStackSizeKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipeline: VkPipeline,
+        group: u32,
+        groupShader: VkShaderGroupShaderKHR,
+    ) -> VkDeviceSize,
+>;
+pub type PFN_vkCmdSetRayTracingPipelineStackSizeKHR = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, pipelineStackSize: u32),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceRayQueryFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub rayQuery: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceRayQueryFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceRayQueryFeaturesKHR>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceRayQueryFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceRayQueryFeaturesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayQueryFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayQueryFeaturesKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayQueryFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayQueryFeaturesKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceRayQueryFeaturesKHR::rayQuery",
+    ][::std::mem::offset_of!(VkPhysicalDeviceRayQueryFeaturesKHR, rayQuery) - 16usize];
+};
+impl Default for VkPhysicalDeviceRayQueryFeaturesKHR {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

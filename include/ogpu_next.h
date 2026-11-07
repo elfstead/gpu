@@ -185,6 +185,7 @@ typedef struct ogpu_next_memory_limits {
  * on this baseline. */
 #define OGPU_NEXT_FORMAT_STORAGE_READ_WITHOUT_FORMAT UINT64_C(2048)
 #define OGPU_NEXT_FORMAT_STORAGE_WRITE_WITHOUT_FORMAT UINT64_C(4096)
+#define OGPU_NEXT_FORMAT_BUFFER_ACCELERATION_VERTEX UINT64_C(16)
 #define OGPU_NEXT_FORMAT_BUFFER_VERTEX UINT64_C(1)
 #define OGPU_NEXT_FORMAT_BUFFER_UNIFORM_TEXEL UINT64_C(2)
 #define OGPU_NEXT_FORMAT_BUFFER_STORAGE_TEXEL UINT64_C(4)
@@ -1861,6 +1862,14 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_FEATURE_DEPTH_BIAS_FLOAT UINT32_C(116)
 #define OGPU_NEXT_FEATURE_DEPTH_BIAS_EXACT UINT32_C(117)
 #define OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE UINT32_C(118)
+#define OGPU_NEXT_FEATURE_ACCELERATION_STRUCTURE UINT32_C(124)
+#define OGPU_NEXT_FEATURE_RAY_QUERY UINT32_C(125)
+#define OGPU_NEXT_FEATURE_RAY_PIPELINE UINT32_C(126)
+#define OGPU_NEXT_FEATURE_RAY_INDIRECT UINT32_C(127)
+#define OGPU_NEXT_FEATURE_RAY_INDIRECT_TABLE UINT32_C(128)
+#define OGPU_NEXT_FEATURE_ACCELERATION_INDIRECT_BUILD UINT32_C(129)
+#define OGPU_NEXT_FEATURE_RAY_MAINTENANCE UINT32_C(130)
+#define OGPU_NEXT_FEATURE_RAY_PRIMITIVE_CULLING UINT32_C(131)
 #define OGPU_NEXT_FEATURE_TRANSFORM_FEEDBACK UINT32_C(121)
 #define OGPU_NEXT_FEATURE_GEOMETRY_STREAMS UINT32_C(122)
 #define OGPU_NEXT_FEATURE_DYNAMIC_RASTERIZATION_STREAM UINT32_C(123)
@@ -1874,6 +1883,159 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_ACCESS_CAPTURE_COUNTER_WRITE (UINT64_C(1) << 27)
 #define OGPU_NEXT_DYNAMIC_RASTERIZATION_STREAM (UINT64_C(1) << 50)
 #define OGPU_NEXT_QUERY_CAPTURE_STREAM UINT32_C(4)
+
+/* Explicit native acceleration data. Device addresses are borrowed, never registered. */
+typedef struct ogpu_next_acceleration ogpu_next_acceleration;
+typedef struct ogpu_next_device_range {
+    uint64_t address;
+    uint64_t size;
+} ogpu_next_device_range;
+typedef struct ogpu_next_acceleration_triangles {
+    uint64_t vertices;
+    uint64_t stride;
+    uint64_t indices;
+    uint64_t transform;
+    uint32_t format;
+    uint32_t max_vertex;
+    uint32_t index_type;
+    uint32_t reserved;
+} ogpu_next_acceleration_triangles;
+typedef struct ogpu_next_acceleration_aabbs {
+    uint64_t data;
+    uint64_t stride;
+} ogpu_next_acceleration_aabbs;
+typedef struct ogpu_next_acceleration_instances {
+    uint64_t data;
+    uint32_t pointers;
+    uint32_t reserved;
+} ogpu_next_acceleration_instances;
+typedef union ogpu_next_acceleration_geometry_data {
+    ogpu_next_acceleration_triangles triangles;
+    ogpu_next_acceleration_aabbs aabbs;
+    ogpu_next_acceleration_instances instances;
+} ogpu_next_acceleration_geometry_data;
+typedef struct ogpu_next_acceleration_geometry {
+    uint32_t kind;
+    uint32_t flags;
+    ogpu_next_acceleration_geometry_data data;
+} ogpu_next_acceleration_geometry;
+typedef struct ogpu_next_acceleration_build_desc {
+    ogpu_next_record header;
+    uint32_t kind;
+    uint32_t flags;
+    uint32_t geometry_count;
+    uint32_t reserved;
+    const ogpu_next_acceleration_geometry *geometries;
+    const uint32_t *max_primitives;
+} ogpu_next_acceleration_build_desc;
+typedef struct ogpu_next_acceleration_sizes {
+    uint64_t storage_size;
+    uint64_t storage_alignment;
+    uint64_t build_scratch_size;
+    uint64_t update_scratch_size;
+    uint64_t scratch_alignment;
+} ogpu_next_acceleration_sizes;
+typedef struct ogpu_next_acceleration_desc {
+    ogpu_next_record header;
+    uint32_t kind;
+    uint32_t reserved;
+    ogpu_next_span backing;
+} ogpu_next_acceleration_desc;
+typedef struct ogpu_next_acceleration_range {
+    uint32_t primitive_count;
+    uint32_t primitive_offset;
+    uint32_t first_vertex;
+    uint32_t transform_offset;
+} ogpu_next_acceleration_range;
+typedef struct ogpu_next_acceleration_build {
+    const ogpu_next_acceleration_build_desc *description;
+    ogpu_next_acceleration *source;
+    ogpu_next_acceleration *destination;
+    uint32_t update;
+    uint32_t indirect_stride;
+    ogpu_next_device_range scratch;
+    const ogpu_next_acceleration_range *ranges;
+    ogpu_next_device_range indirect;
+} ogpu_next_acceleration_build;
+typedef struct ogpu_next_acceleration_instance {
+    float transform[12];
+    uint32_t custom_index_and_mask;
+    uint32_t table_offset_and_flags;
+    uint64_t reference;
+} ogpu_next_acceleration_instance;
+
+#define OGPU_NEXT_ACCELERATION_BUILD_DESC UINT32_C(147)
+#define OGPU_NEXT_ACCELERATION_DESC UINT32_C(148)
+#define OGPU_NEXT_STAGE_ACCELERATION_BUILD (UINT64_C(1)<<28)
+#define OGPU_NEXT_STAGE_ACCELERATION_COPY (UINT64_C(1)<<29)
+#define OGPU_NEXT_USAGE_ACCELERATION_INPUT (UINT64_C(1)<<11)
+#define OGPU_NEXT_USAGE_ACCELERATION_STORAGE (UINT64_C(1)<<12)
+#define OGPU_NEXT_ACCESS_ACCELERATION_READ (UINT64_C(1)<<28)
+#define OGPU_NEXT_ACCESS_ACCELERATION_WRITE (UINT64_C(1)<<29)
+#define OGPU_NEXT_ACCELERATION_TOP UINT32_C(1)
+#define OGPU_NEXT_ACCELERATION_BOTTOM UINT32_C(2)
+#define OGPU_NEXT_ACCELERATION_GENERIC UINT32_C(3)
+#define OGPU_NEXT_GEOMETRY_TRIANGLES UINT32_C(1)
+#define OGPU_NEXT_GEOMETRY_AABBS UINT32_C(2)
+#define OGPU_NEXT_GEOMETRY_INSTANCES UINT32_C(3)
+#define OGPU_NEXT_GEOMETRY_OPAQUE UINT32_C(1)
+#define OGPU_NEXT_GEOMETRY_NO_DUPLICATE_ANY_HIT UINT32_C(2)
+#define OGPU_NEXT_BUILD_ALLOW_UPDATE UINT32_C(1)
+#define OGPU_NEXT_BUILD_ALLOW_COMPACTION UINT32_C(2)
+#define OGPU_NEXT_BUILD_PREFER_TRACE UINT32_C(4)
+#define OGPU_NEXT_BUILD_PREFER_BUILD UINT32_C(8)
+#define OGPU_NEXT_BUILD_LOW_MEMORY UINT32_C(16)
+#define OGPU_NEXT_ACCELERATION_CLONE UINT32_C(0)
+#define OGPU_NEXT_ACCELERATION_COMPACT UINT32_C(1)
+#define OGPU_NEXT_QUERY_ACCELERATION_COMPACTED_SIZE UINT32_C(5)
+#define OGPU_NEXT_QUERY_ACCELERATION_SERIALIZED_SIZE UINT32_C(6)
+#define OGPU_NEXT_QUERY_ACCELERATION_SIZE UINT32_C(7)
+#define OGPU_NEXT_QUERY_ACCELERATION_SERIALIZED_POINTERS UINT32_C(8)
+#define OGPU_NEXT_INSTANCE_DISABLE_CULL UINT32_C(1)
+#define OGPU_NEXT_INSTANCE_FRONT_COUNTERCLOCKWISE UINT32_C(2)
+#define OGPU_NEXT_INSTANCE_FORCE_OPAQUE UINT32_C(4)
+#define OGPU_NEXT_INSTANCE_FORCE_NON_OPAQUE UINT32_C(8)
+/* kind: TOP=1, BOTTOM=2, GENERIC=3 (object only). Geometry: triangles=1,
+ * AABBs=2, instances=3. Flags: opaque=1, no-duplicate-any-hit=2.
+ * Build flags: update=1, compaction=2, prefer-trace=4, prefer-build=8, low-memory=16.
+ * Triangle index_type: 0 non-indexed, INDEX_U16 or INDEX_U32. Instance words hold
+ * a low 24-bit index/offset and high 8-bit mask/flags. Transform is row-major 3x4.
+ * Host arrays are borrowed for the call. GPU inputs, backing, structures and
+ * scratch outlive every recorded use. Native input usage/alignment, geometry
+ * contents, update compatibility and sufficient queried scratch are caller duties.
+ * Build ranges use native byte offsets; indirect data contains AccelerationRange
+ * records. max_primitives bounds both requirements and indirect execution.
+ */
+
+/* Requirements use scratch_requirements(1, geometry_count). A build batch uses
+ * (build_count, sum of geometry counts); properties uses (object_count, 0).
+ * All works in one build call are direct (indirect.address=0) or indirect.
+ * Direct works provide ranges; indirect works provide a range buffer/stride and
+ * null ranges. No implicit dependency exists between builds in one batch.
+ * Copies use mode 0 clone or 1 compact. Query kinds 5 compacted bytes, 6 serialized
+ * bytes, 7 current size, 8 serialized bottom-level pointer count (7/8 maintenance).
+ * Serialization ranges require native transfer usage and 256-byte alignment;
+ * caller proves queried capacity and compatible data, including BLAS references.
+ */
+ogpu_next_status ogpu_next_acceleration_scratch_requirements(uint32_t builds, uint32_t geometries, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_acceleration_requirements(ogpu_next_device *, const ogpu_next_acceleration_build_desc *, ogpu_next_host_span scratch, ogpu_next_acceleration_sizes *);
+ogpu_next_status ogpu_next_acceleration_create(ogpu_next_device *, const ogpu_next_acceleration_desc *, ogpu_next_acceleration **);
+void ogpu_next_acceleration_destroy(ogpu_next_acceleration *);
+ogpu_next_status ogpu_next_acceleration_address(const ogpu_next_acceleration *, uint64_t *);
+ogpu_next_status ogpu_next_acceleration_compatibility(ogpu_next_device *, ogpu_next_bytes version, uint32_t *compatible);
+void ogpu_next_build_accelerations(ogpu_next_encoder *, uint32_t count, const ogpu_next_acceleration_build *, ogpu_next_host_span scratch);
+void ogpu_next_copy_acceleration(ogpu_next_encoder *, ogpu_next_acceleration *dst, const ogpu_next_acceleration *src, uint32_t mode);
+void ogpu_next_serialize_acceleration(ogpu_next_encoder *, ogpu_next_device_range dst, const ogpu_next_acceleration *src);
+void ogpu_next_deserialize_acceleration(ogpu_next_encoder *, ogpu_next_acceleration *dst, ogpu_next_device_range src);
+void ogpu_next_acceleration_properties(ogpu_next_encoder *, uint32_t count, ogpu_next_acceleration *const *, ogpu_next_query_pool *, uint32_t first, ogpu_next_host_span scratch);
+/* Optional ray capabilities. Ray queries do not require ray pipelines.
+ * Exact feature prerequisites and backing/table lifetime rules apply. */
+#define OGPU_NEXT_QUERY_RAY_LIMITS UINT32_C(30)
+typedef struct ogpu_next_ray_limits {
+    uint64_t max_geometries, max_instances, max_primitives, storage_alignment, scratch_alignment;
+    uint32_t group_handle_size, group_handle_alignment, table_alignment, max_table_stride;
+    uint32_t max_recursion, max_trace_invocations, max_hit_attribute_size, reserved;
+} ogpu_next_ray_limits;
 typedef struct ogpu_next_capture_limits {
     uint32_t max_streams, max_buffers;
     uint64_t max_buffer_size;

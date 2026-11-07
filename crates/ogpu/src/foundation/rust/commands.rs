@@ -186,3 +186,10 @@ record!(fn capture_begin(list,first:u32,counters:&[Span],scratch:HostSpan) |e| e
 record!(fn capture_end(list,first:u32,counters:&[Span],scratch:HostSpan) |e| e.capture(false,first,count(counters.len())?,counters.as_ptr(),scratch));
 record!(fn draw_byte_count(list,counter:Span,offset:u32,stride:u32,instances:u32,first_instance:u32) |e| e.draw_byte_count(counter,offset,stride,instances,first_instance));
 record!(fn set_rasterization_stream(list,stream:u32) |e| e.extended_raster_value(DYNAMIC_RASTERIZATION_STREAM_STATE,stream));
+
+record!(fn build_accelerations(list, work:&[AccelerationBuild], scratch:HostSpan) |e| e.build_accelerations(work,scratch));
+record!(fn copy_acceleration(list, dst:AccelerationHandle, src:AccelerationHandle, mode:u32) |e| e.copy_acceleration(dst.get(),src.get(),mode));
+record!(fn serialize_acceleration(list, dst:DeviceRange, src:AccelerationHandle) |e| e.serialize_acceleration(src.get(),dst,true));
+record!(fn deserialize_acceleration(list, dst:AccelerationHandle, src:DeviceRange) |e| e.serialize_acceleration(dst.get(),src,false));
+record!(fn acceleration_properties(list, objects:&[AccelerationHandle], pool:QueryPoolHandle, first:u32, scratch:HostSpan) |e|
+    e.acceleration_properties(std::slice::from_raw_parts(objects.as_ptr().cast(),objects.len()),pool.get(),first,scratch));

@@ -40,7 +40,7 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
         REQUIRE(physical[i].format != 0 && physical[i].aspects != 0);
         REQUIRE((physical[i].optimal_features & ~UINT64_C(16383)) == 0);
         REQUIRE((physical[i].linear_features & ~UINT64_C(16383)) == 0);
-        REQUIRE((physical[i].buffer_features & ~UINT64_C(15)) == 0);
+        REQUIRE((physical[i].buffer_features & ~UINT64_C(31)) == 0);
         for (uint32_t j = 0; j < i; ++j) REQUIRE(physical[i].format != physical[j].format);
     }
     ogpu_next_shading_rate_limits rate_limits = {0}, device_rate_limits = {0};

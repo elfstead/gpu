@@ -680,6 +680,11 @@ command features retain explicit native-test debt.
 
 ### M9 — Ray tracing
 
+Active [implementation brief](m9-ray-tracing.md). AS requirements/backing, build/update,
+clone/compact, properties, serialization and inline queries are implemented in C
+and native Rust; the [explicit emulation diagnostic](results/m9-acceleration-query-2026-11-07.json)
+passes. Ray pipelines/tables are next; native hardware acceptance remains open.
+
 **Deliver:** the non-derivable hardware boundary for acceleration structures and
 ray execution, reusing ordinary memory, arguments, commands and dependencies.
 This includes acceleration-structure requirements, caller-controlled backing and
