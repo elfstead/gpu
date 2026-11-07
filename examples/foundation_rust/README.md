@@ -170,3 +170,12 @@ The `native` binary demonstrates the unsafe Vulkan interoperability boundary:
 semaphores with OGPU, including borrowed device/instance and independently owned
 backing. It uses the same selected Vulkan loader and performs no CPU payload handoff.
 The `ray` binary runs optional M9 profiles; see `../foundation_ray/README.md`.
+
+`cargo run --offline --bin external` exercises Linux opaque-FD allocation and
+timeline sharing across two logical devices on one physical GPU. It uses native
+external capability queries and the existing unsafe OGPU imports. Core validation
+passes. SyncVal 1.4.357 cannot follow the imported timeline's external signal;
+`OGPU_EXTERNAL_SYNC_CONTROL=1` explicitly adds a fixture-local dependency control
+for that validation run. See `../../docs/m10-memory-interop.md` for the evidence
+boundary; the default does not add this control. The installed SDK checker enables
+this optional workload with `--external` and records the environment.

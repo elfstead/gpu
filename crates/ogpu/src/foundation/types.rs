@@ -727,6 +727,7 @@ pub const STATE_GENERAL: u32 = 1;
 pub const STATE_COPY_SRC: u32 = 2;
 pub const STATE_COPY_DST: u32 = 3;
 pub const DOMAIN_IGNORED: u32 = u32::MAX;
+pub const DOMAIN_EXTERNAL: u32 = u32::MAX - 1;
 pub const EXECUTABLE_COMPUTE: u32 = 1;
 pub const SHADER_SPIRV: u32 = 0;
 pub const INFO: u32 = 1;

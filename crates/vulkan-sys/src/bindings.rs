@@ -6961,6 +6961,52 @@ pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_FLAG_BITS_MAX_ENUM: VkMemo
 pub type VkMemoryAllocateFlagBits = ::std::os::raw::c_uint;
 pub type VkMemoryAllocateFlags = VkFlags;
 pub type VkCommandPoolTrimFlags = VkFlags;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT: VkExternalMemoryHandleTypeFlagBits = 1;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT: VkExternalMemoryHandleTypeFlagBits = 2;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT: VkExternalMemoryHandleTypeFlagBits = 4;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT: VkExternalMemoryHandleTypeFlagBits = 8;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT_BIT: VkExternalMemoryHandleTypeFlagBits = 16;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP_BIT: VkExternalMemoryHandleTypeFlagBits = 32;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE_BIT: VkExternalMemoryHandleTypeFlagBits = 64;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT: VkExternalMemoryHandleTypeFlagBits = 512;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID: VkExternalMemoryHandleTypeFlagBits = 1024;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT: VkExternalMemoryHandleTypeFlagBits = 128;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY_BIT_EXT: VkExternalMemoryHandleTypeFlagBits = 256;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_ZIRCON_VMO_BIT_FUCHSIA: VkExternalMemoryHandleTypeFlagBits = 2048;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_RDMA_ADDRESS_BIT_NV: VkExternalMemoryHandleTypeFlagBits = 4096;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OH_NATIVE_BUFFER_BIT_OHOS: VkExternalMemoryHandleTypeFlagBits = 32768;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_SCREEN_BUFFER_BIT_QNX: VkExternalMemoryHandleTypeFlagBits = 16384;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_MTLBUFFER_BIT_EXT: VkExternalMemoryHandleTypeFlagBits = 65536;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_MTLTEXTURE_BIT_EXT: VkExternalMemoryHandleTypeFlagBits = 131072;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_MTLHEAP_BIT_EXT: VkExternalMemoryHandleTypeFlagBits = 262144;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 1;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 2;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 4;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 8;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 16;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 32;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE_BIT_KHR: VkExternalMemoryHandleTypeFlagBits = 64;
+pub const VkExternalMemoryHandleTypeFlagBits_VK_EXTERNAL_MEMORY_HANDLE_TYPE_FLAG_BITS_MAX_ENUM: VkExternalMemoryHandleTypeFlagBits = 2147483647;
+pub type VkExternalMemoryHandleTypeFlagBits = ::std::os::raw::c_uint;
+pub type VkExternalMemoryHandleTypeFlags = VkFlags;
+pub type VkExternalMemoryFeatureFlags = VkFlags;
+pub type VkSemaphoreImportFlags = VkFlags;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT: VkExternalSemaphoreHandleTypeFlagBits = 1;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT: VkExternalSemaphoreHandleTypeFlagBits = 2;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT: VkExternalSemaphoreHandleTypeFlagBits = 4;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT: VkExternalSemaphoreHandleTypeFlagBits = 8;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT: VkExternalSemaphoreHandleTypeFlagBits = 16;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_ZIRCON_EVENT_BIT_FUCHSIA: VkExternalSemaphoreHandleTypeFlagBits = 128;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D11_FENCE_BIT: VkExternalSemaphoreHandleTypeFlagBits = 8;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR: VkExternalSemaphoreHandleTypeFlagBits = 1;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR: VkExternalSemaphoreHandleTypeFlagBits = 2;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR: VkExternalSemaphoreHandleTypeFlagBits = 4;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT_KHR: VkExternalSemaphoreHandleTypeFlagBits = 8;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR: VkExternalSemaphoreHandleTypeFlagBits = 16;
+pub const VkExternalSemaphoreHandleTypeFlagBits_VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_FLAG_BITS_MAX_ENUM: VkExternalSemaphoreHandleTypeFlagBits = 2147483647;
+pub type VkExternalSemaphoreHandleTypeFlagBits = ::std::os::raw::c_uint;
+pub type VkExternalSemaphoreHandleTypeFlags = VkFlags;
+pub type VkExternalSemaphoreFeatureFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkMemoryDedicatedRequirements {
@@ -7274,6 +7320,344 @@ const _: () = {
     ][::std::mem::offset_of!(VkImageViewUsageCreateInfo, usage) - 16usize];
 };
 impl Default for VkImageViewUsageCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkExternalMemoryProperties {
+    pub externalMemoryFeatures: VkExternalMemoryFeatureFlags,
+    pub exportFromImportedHandleTypes: VkExternalMemoryHandleTypeFlags,
+    pub compatibleHandleTypes: VkExternalMemoryHandleTypeFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkExternalMemoryProperties",
+    ][::std::mem::size_of::<VkExternalMemoryProperties>() - 12usize];
+    [
+        "Alignment of VkExternalMemoryProperties",
+    ][::std::mem::align_of::<VkExternalMemoryProperties>() - 4usize];
+    [
+        "Offset of field: VkExternalMemoryProperties::externalMemoryFeatures",
+    ][::std::mem::offset_of!(VkExternalMemoryProperties, externalMemoryFeatures)
+        - 0usize];
+    [
+        "Offset of field: VkExternalMemoryProperties::exportFromImportedHandleTypes",
+    ][::std::mem::offset_of!(VkExternalMemoryProperties, exportFromImportedHandleTypes)
+        - 4usize];
+    [
+        "Offset of field: VkExternalMemoryProperties::compatibleHandleTypes",
+    ][::std::mem::offset_of!(VkExternalMemoryProperties, compatibleHandleTypes)
+        - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceExternalBufferInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkBufferCreateFlags,
+    pub usage: VkBufferUsageFlags,
+    pub handleType: VkExternalMemoryHandleTypeFlagBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceExternalBufferInfo",
+    ][::std::mem::size_of::<VkPhysicalDeviceExternalBufferInfo>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceExternalBufferInfo",
+    ][::std::mem::align_of::<VkPhysicalDeviceExternalBufferInfo>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalBufferInfo::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalBufferInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalBufferInfo::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalBufferInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalBufferInfo::flags",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalBufferInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalBufferInfo::usage",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalBufferInfo, usage) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalBufferInfo::handleType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalBufferInfo, handleType) - 24usize];
+};
+impl Default for VkPhysicalDeviceExternalBufferInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkExternalBufferProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub externalMemoryProperties: VkExternalMemoryProperties,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkExternalBufferProperties",
+    ][::std::mem::size_of::<VkExternalBufferProperties>() - 32usize];
+    [
+        "Alignment of VkExternalBufferProperties",
+    ][::std::mem::align_of::<VkExternalBufferProperties>() - 8usize];
+    [
+        "Offset of field: VkExternalBufferProperties::sType",
+    ][::std::mem::offset_of!(VkExternalBufferProperties, sType) - 0usize];
+    [
+        "Offset of field: VkExternalBufferProperties::pNext",
+    ][::std::mem::offset_of!(VkExternalBufferProperties, pNext) - 8usize];
+    [
+        "Offset of field: VkExternalBufferProperties::externalMemoryProperties",
+    ][::std::mem::offset_of!(VkExternalBufferProperties, externalMemoryProperties)
+        - 16usize];
+};
+impl Default for VkExternalBufferProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceIDProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub deviceUUID: [u8; 16usize],
+    pub driverUUID: [u8; 16usize],
+    pub deviceLUID: [u8; 8usize],
+    pub deviceNodeMask: u32,
+    pub deviceLUIDValid: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceIDProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceIDProperties>() - 64usize];
+    [
+        "Alignment of VkPhysicalDeviceIDProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceIDProperties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::deviceUUID",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, deviceUUID) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::driverUUID",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, driverUUID) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::deviceLUID",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, deviceLUID) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::deviceNodeMask",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, deviceNodeMask) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceIDProperties::deviceLUIDValid",
+    ][::std::mem::offset_of!(VkPhysicalDeviceIDProperties, deviceLUIDValid) - 60usize];
+};
+impl Default for VkPhysicalDeviceIDProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkExternalMemoryBufferCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub handleTypes: VkExternalMemoryHandleTypeFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkExternalMemoryBufferCreateInfo",
+    ][::std::mem::size_of::<VkExternalMemoryBufferCreateInfo>() - 24usize];
+    [
+        "Alignment of VkExternalMemoryBufferCreateInfo",
+    ][::std::mem::align_of::<VkExternalMemoryBufferCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkExternalMemoryBufferCreateInfo::sType",
+    ][::std::mem::offset_of!(VkExternalMemoryBufferCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkExternalMemoryBufferCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkExternalMemoryBufferCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkExternalMemoryBufferCreateInfo::handleTypes",
+    ][::std::mem::offset_of!(VkExternalMemoryBufferCreateInfo, handleTypes) - 16usize];
+};
+impl Default for VkExternalMemoryBufferCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkExportMemoryAllocateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub handleTypes: VkExternalMemoryHandleTypeFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkExportMemoryAllocateInfo",
+    ][::std::mem::size_of::<VkExportMemoryAllocateInfo>() - 24usize];
+    [
+        "Alignment of VkExportMemoryAllocateInfo",
+    ][::std::mem::align_of::<VkExportMemoryAllocateInfo>() - 8usize];
+    [
+        "Offset of field: VkExportMemoryAllocateInfo::sType",
+    ][::std::mem::offset_of!(VkExportMemoryAllocateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkExportMemoryAllocateInfo::pNext",
+    ][::std::mem::offset_of!(VkExportMemoryAllocateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkExportMemoryAllocateInfo::handleTypes",
+    ][::std::mem::offset_of!(VkExportMemoryAllocateInfo, handleTypes) - 16usize];
+};
+impl Default for VkExportMemoryAllocateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkExportSemaphoreCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub handleTypes: VkExternalSemaphoreHandleTypeFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkExportSemaphoreCreateInfo",
+    ][::std::mem::size_of::<VkExportSemaphoreCreateInfo>() - 24usize];
+    [
+        "Alignment of VkExportSemaphoreCreateInfo",
+    ][::std::mem::align_of::<VkExportSemaphoreCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkExportSemaphoreCreateInfo::sType",
+    ][::std::mem::offset_of!(VkExportSemaphoreCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkExportSemaphoreCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkExportSemaphoreCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkExportSemaphoreCreateInfo::handleTypes",
+    ][::std::mem::offset_of!(VkExportSemaphoreCreateInfo, handleTypes) - 16usize];
+};
+impl Default for VkExportSemaphoreCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceExternalSemaphoreInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub handleType: VkExternalSemaphoreHandleTypeFlagBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceExternalSemaphoreInfo",
+    ][::std::mem::size_of::<VkPhysicalDeviceExternalSemaphoreInfo>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceExternalSemaphoreInfo",
+    ][::std::mem::align_of::<VkPhysicalDeviceExternalSemaphoreInfo>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalSemaphoreInfo::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalSemaphoreInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalSemaphoreInfo::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalSemaphoreInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExternalSemaphoreInfo::handleType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExternalSemaphoreInfo, handleType)
+        - 16usize];
+};
+impl Default for VkPhysicalDeviceExternalSemaphoreInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkExternalSemaphoreProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub exportFromImportedHandleTypes: VkExternalSemaphoreHandleTypeFlags,
+    pub compatibleHandleTypes: VkExternalSemaphoreHandleTypeFlags,
+    pub externalSemaphoreFeatures: VkExternalSemaphoreFeatureFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkExternalSemaphoreProperties",
+    ][::std::mem::size_of::<VkExternalSemaphoreProperties>() - 32usize];
+    [
+        "Alignment of VkExternalSemaphoreProperties",
+    ][::std::mem::align_of::<VkExternalSemaphoreProperties>() - 8usize];
+    [
+        "Offset of field: VkExternalSemaphoreProperties::sType",
+    ][::std::mem::offset_of!(VkExternalSemaphoreProperties, sType) - 0usize];
+    [
+        "Offset of field: VkExternalSemaphoreProperties::pNext",
+    ][::std::mem::offset_of!(VkExternalSemaphoreProperties, pNext) - 8usize];
+    [
+        "Offset of field: VkExternalSemaphoreProperties::exportFromImportedHandleTypes",
+    ][::std::mem::offset_of!(
+        VkExternalSemaphoreProperties, exportFromImportedHandleTypes
+    ) - 16usize];
+    [
+        "Offset of field: VkExternalSemaphoreProperties::compatibleHandleTypes",
+    ][::std::mem::offset_of!(VkExternalSemaphoreProperties, compatibleHandleTypes)
+        - 20usize];
+    [
+        "Offset of field: VkExternalSemaphoreProperties::externalSemaphoreFeatures",
+    ][::std::mem::offset_of!(VkExternalSemaphoreProperties, externalSemaphoreFeatures)
+        - 24usize];
+};
+impl Default for VkExternalSemaphoreProperties {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -7624,6 +8008,20 @@ pub type PFN_vkTrimCommandPool = ::std::option::Option<
         device: VkDevice,
         commandPool: VkCommandPool,
         flags: VkCommandPoolTrimFlags,
+    ),
+>;
+pub type PFN_vkGetPhysicalDeviceExternalBufferProperties = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pExternalBufferInfo: *const VkPhysicalDeviceExternalBufferInfo,
+        pExternalBufferProperties: *mut VkExternalBufferProperties,
+    ),
+>;
+pub type PFN_vkGetPhysicalDeviceExternalSemaphoreProperties = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pExternalSemaphoreInfo: *const VkPhysicalDeviceExternalSemaphoreInfo,
+        pExternalSemaphoreProperties: *mut VkExternalSemaphoreProperties,
     ),
 >;
 pub const VkDriverId_VK_DRIVER_ID_AMD_PROPRIETARY: VkDriverId = 1;
@@ -9503,6 +9901,88 @@ impl Default for VkPhysicalDeviceSynchronization2Features {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkBufferCopy2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcOffset: VkDeviceSize,
+    pub dstOffset: VkDeviceSize,
+    pub size: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkBufferCopy2"][::std::mem::size_of::<VkBufferCopy2>() - 40usize];
+    ["Alignment of VkBufferCopy2"][::std::mem::align_of::<VkBufferCopy2>() - 8usize];
+    [
+        "Offset of field: VkBufferCopy2::sType",
+    ][::std::mem::offset_of!(VkBufferCopy2, sType) - 0usize];
+    [
+        "Offset of field: VkBufferCopy2::pNext",
+    ][::std::mem::offset_of!(VkBufferCopy2, pNext) - 8usize];
+    [
+        "Offset of field: VkBufferCopy2::srcOffset",
+    ][::std::mem::offset_of!(VkBufferCopy2, srcOffset) - 16usize];
+    [
+        "Offset of field: VkBufferCopy2::dstOffset",
+    ][::std::mem::offset_of!(VkBufferCopy2, dstOffset) - 24usize];
+    [
+        "Offset of field: VkBufferCopy2::size",
+    ][::std::mem::offset_of!(VkBufferCopy2, size) - 32usize];
+};
+impl Default for VkBufferCopy2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCopyBufferInfo2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcBuffer: VkBuffer,
+    pub dstBuffer: VkBuffer,
+    pub regionCount: u32,
+    pub pRegions: *const VkBufferCopy2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkCopyBufferInfo2"][::std::mem::size_of::<VkCopyBufferInfo2>() - 48usize];
+    [
+        "Alignment of VkCopyBufferInfo2",
+    ][::std::mem::align_of::<VkCopyBufferInfo2>() - 8usize];
+    [
+        "Offset of field: VkCopyBufferInfo2::sType",
+    ][::std::mem::offset_of!(VkCopyBufferInfo2, sType) - 0usize];
+    [
+        "Offset of field: VkCopyBufferInfo2::pNext",
+    ][::std::mem::offset_of!(VkCopyBufferInfo2, pNext) - 8usize];
+    [
+        "Offset of field: VkCopyBufferInfo2::srcBuffer",
+    ][::std::mem::offset_of!(VkCopyBufferInfo2, srcBuffer) - 16usize];
+    [
+        "Offset of field: VkCopyBufferInfo2::dstBuffer",
+    ][::std::mem::offset_of!(VkCopyBufferInfo2, dstBuffer) - 24usize];
+    [
+        "Offset of field: VkCopyBufferInfo2::regionCount",
+    ][::std::mem::offset_of!(VkCopyBufferInfo2, regionCount) - 32usize];
+    [
+        "Offset of field: VkCopyBufferInfo2::pRegions",
+    ][::std::mem::offset_of!(VkCopyBufferInfo2, pRegions) - 40usize];
+};
+impl Default for VkCopyBufferInfo2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkImageCopy2 {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -10550,6 +11030,12 @@ pub type PFN_vkQueueSubmit2 = ::std::option::Option<
         pSubmits: *const VkSubmitInfo2,
         fence: VkFence,
     ) -> VkResult,
+>;
+pub type PFN_vkCmdCopyBuffer2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pCopyBufferInfo: *const VkCopyBufferInfo2,
+    ),
 >;
 pub type PFN_vkCmdCopyImage2 = ::std::option::Option<
     unsafe extern "C" fn(
@@ -11716,6 +12202,186 @@ pub type PFN_vkQueuePresentKHR = ::std::option::Option<
     unsafe extern "C" fn(
         queue: VkQueue,
         pPresentInfo: *const VkPresentInfoKHR,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImportMemoryFdInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub handleType: VkExternalMemoryHandleTypeFlagBits,
+    pub fd: ::std::os::raw::c_int,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImportMemoryFdInfoKHR",
+    ][::std::mem::size_of::<VkImportMemoryFdInfoKHR>() - 24usize];
+    [
+        "Alignment of VkImportMemoryFdInfoKHR",
+    ][::std::mem::align_of::<VkImportMemoryFdInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkImportMemoryFdInfoKHR::sType",
+    ][::std::mem::offset_of!(VkImportMemoryFdInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkImportMemoryFdInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkImportMemoryFdInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkImportMemoryFdInfoKHR::handleType",
+    ][::std::mem::offset_of!(VkImportMemoryFdInfoKHR, handleType) - 16usize];
+    [
+        "Offset of field: VkImportMemoryFdInfoKHR::fd",
+    ][::std::mem::offset_of!(VkImportMemoryFdInfoKHR, fd) - 20usize];
+};
+impl Default for VkImportMemoryFdInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMemoryGetFdInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub memory: VkDeviceMemory,
+    pub handleType: VkExternalMemoryHandleTypeFlagBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryGetFdInfoKHR",
+    ][::std::mem::size_of::<VkMemoryGetFdInfoKHR>() - 32usize];
+    [
+        "Alignment of VkMemoryGetFdInfoKHR",
+    ][::std::mem::align_of::<VkMemoryGetFdInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkMemoryGetFdInfoKHR::sType",
+    ][::std::mem::offset_of!(VkMemoryGetFdInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryGetFdInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkMemoryGetFdInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryGetFdInfoKHR::memory",
+    ][::std::mem::offset_of!(VkMemoryGetFdInfoKHR, memory) - 16usize];
+    [
+        "Offset of field: VkMemoryGetFdInfoKHR::handleType",
+    ][::std::mem::offset_of!(VkMemoryGetFdInfoKHR, handleType) - 24usize];
+};
+impl Default for VkMemoryGetFdInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkGetMemoryFdKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pGetFdInfo: *const VkMemoryGetFdInfoKHR,
+        pFd: *mut ::std::os::raw::c_int,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImportSemaphoreFdInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub semaphore: VkSemaphore,
+    pub flags: VkSemaphoreImportFlags,
+    pub handleType: VkExternalSemaphoreHandleTypeFlagBits,
+    pub fd: ::std::os::raw::c_int,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImportSemaphoreFdInfoKHR",
+    ][::std::mem::size_of::<VkImportSemaphoreFdInfoKHR>() - 40usize];
+    [
+        "Alignment of VkImportSemaphoreFdInfoKHR",
+    ][::std::mem::align_of::<VkImportSemaphoreFdInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkImportSemaphoreFdInfoKHR::sType",
+    ][::std::mem::offset_of!(VkImportSemaphoreFdInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkImportSemaphoreFdInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkImportSemaphoreFdInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkImportSemaphoreFdInfoKHR::semaphore",
+    ][::std::mem::offset_of!(VkImportSemaphoreFdInfoKHR, semaphore) - 16usize];
+    [
+        "Offset of field: VkImportSemaphoreFdInfoKHR::flags",
+    ][::std::mem::offset_of!(VkImportSemaphoreFdInfoKHR, flags) - 24usize];
+    [
+        "Offset of field: VkImportSemaphoreFdInfoKHR::handleType",
+    ][::std::mem::offset_of!(VkImportSemaphoreFdInfoKHR, handleType) - 28usize];
+    [
+        "Offset of field: VkImportSemaphoreFdInfoKHR::fd",
+    ][::std::mem::offset_of!(VkImportSemaphoreFdInfoKHR, fd) - 32usize];
+};
+impl Default for VkImportSemaphoreFdInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSemaphoreGetFdInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub semaphore: VkSemaphore,
+    pub handleType: VkExternalSemaphoreHandleTypeFlagBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSemaphoreGetFdInfoKHR",
+    ][::std::mem::size_of::<VkSemaphoreGetFdInfoKHR>() - 32usize];
+    [
+        "Alignment of VkSemaphoreGetFdInfoKHR",
+    ][::std::mem::align_of::<VkSemaphoreGetFdInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkSemaphoreGetFdInfoKHR::sType",
+    ][::std::mem::offset_of!(VkSemaphoreGetFdInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSemaphoreGetFdInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkSemaphoreGetFdInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSemaphoreGetFdInfoKHR::semaphore",
+    ][::std::mem::offset_of!(VkSemaphoreGetFdInfoKHR, semaphore) - 16usize];
+    [
+        "Offset of field: VkSemaphoreGetFdInfoKHR::handleType",
+    ][::std::mem::offset_of!(VkSemaphoreGetFdInfoKHR, handleType) - 24usize];
+};
+impl Default for VkSemaphoreGetFdInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkImportSemaphoreFdKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pImportSemaphoreFdInfo: *const VkImportSemaphoreFdInfoKHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetSemaphoreFdKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pGetFdInfo: *const VkSemaphoreGetFdInfoKHR,
+        pFd: *mut ::std::os::raw::c_int,
     ) -> VkResult,
 >;
 #[repr(C)]

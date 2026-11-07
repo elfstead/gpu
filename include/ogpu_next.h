@@ -3092,6 +3092,11 @@ ogpu_next_status ogpu_next_submit_scratch_requirements(const ogpu_next_device *,
 ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, uint32_t count, const ogpu_next_submit_desc *, ogpu_next_submit_outcome *, ogpu_next_host_span scratch);
 
 #define OGPU_NEXT_DOMAIN_IGNORED UINT32_MAX
+/* Native external ownership endpoint (Vulkan QUEUE_FAMILY_EXTERNAL). One endpoint
+ * must be the recording domain; external-to-external is INVALID. This does not
+ * import/export memory, signal a semaphore or infer cross-API visibility. Caller
+ * proves native sharing compatibility and matches release/acquire dependencies. */
+#define OGPU_NEXT_DOMAIN_EXTERNAL (UINT32_MAX - UINT32_C(1))
 enum { OGPU_NEXT_QUERY_DEPENDENCY_LIMITS = 19,
     OGPU_NEXT_DEPENDENCY_SPLIT = 1, OGPU_NEXT_DEPENDENCY_OWNERSHIP = 2, OGPU_NEXT_DEPENDENCY_BINARY = 4,
     OGPU_NEXT_MEMORY_SCOPE_NONE = 0, OGPU_NEXT_MEMORY_SCOPE_OBJECT = 1, OGPU_NEXT_MEMORY_SCOPE_BYTES = 2 };

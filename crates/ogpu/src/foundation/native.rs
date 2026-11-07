@@ -1342,6 +1342,35 @@ impl Device {
             .store(ptr::from_ref(self).cast_mut(), Ordering::Relaxed);
         Some(queue)
     }
+    fn ownership_domains(
+        &self,
+        domain: u32,
+        src: u32,
+        dst: u32,
+        concurrent: bool,
+    ) -> Result<(), Status> {
+        if src == DOMAIN_IGNORED && dst == DOMAIN_IGNORED {
+            return Ok(());
+        }
+        let valid = |value| {
+            value == DOMAIN_EXTERNAL
+                || self
+                    .snapshot
+                    .queues
+                    .iter()
+                    .any(|q| q.domain == value && q.count != 0)
+        };
+        if src == DOMAIN_IGNORED
+            || dst == DOMAIN_IGNORED
+            || concurrent
+            || !valid(src)
+            || !valid(dst)
+            || (domain != src && domain != dst)
+        {
+            return Err(INVALID);
+        }
+        Ok(())
+    }
     fn ready(&self) -> Result<(), Status> {
         if self.lost.load(Ordering::Relaxed) {
             Err(DEVICE_LOST)

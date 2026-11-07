@@ -711,24 +711,7 @@ impl Image {
         }
         let d = unsafe { &*self.device };
         let (src, dst) = (b.source_domain, b.destination_domain);
-        if (src != u32::MAX || dst != u32::MAX)
-            && (src == u32::MAX
-                || dst == u32::MAX
-                || !self.prepared.domains.is_empty()
-                || !d
-                    .snapshot
-                    .queues
-                    .iter()
-                    .any(|q| q.domain == src && q.count > 0)
-                || !d
-                    .snapshot
-                    .queues
-                    .iter()
-                    .any(|q| q.domain == dst && q.count > 0)
-                || (domain != src && domain != dst))
-        {
-            return Err(INVALID);
-        }
+        d.ownership_domains(domain, src, dst, !self.prepared.domains.is_empty())?;
         Ok(vk::VkImageMemoryBarrier2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
             oldLayout: self.layout(if b.discard != 0 { 0 } else { b.old_state })?,

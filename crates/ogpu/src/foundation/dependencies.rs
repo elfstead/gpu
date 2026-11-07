@@ -194,24 +194,7 @@ pub(super) unsafe fn buffer_barrier(
         return Err(INVALID);
     }
     let (buffer, offset, _) = memory.command_range(d, domain, range.offset, range.size, 0)?;
-    if (src != u32::MAX || dst != u32::MAX)
-        && (src == u32::MAX
-            || dst == u32::MAX
-            || memory.concurrent()
-            || !d
-                .snapshot
-                .queues
-                .iter()
-                .any(|q| q.domain == src && q.count != 0)
-            || !d
-                .snapshot
-                .queues
-                .iter()
-                .any(|q| q.domain == dst && q.count != 0)
-            || (domain != src && domain != dst))
-    {
-        return Err(INVALID);
-    }
+    d.ownership_domains(domain, src, dst, memory.concurrent())?;
     Ok(vk::VkBufferMemoryBarrier2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
         srcQueueFamilyIndex: src,

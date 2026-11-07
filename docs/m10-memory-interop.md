@@ -120,3 +120,60 @@ export/import OS handles natively, then wrap the resulting objects once. The nex
 consumer must demonstrate the zero-copy synchronization/ownership path before this
 is accepted as the M10 external-handle disposition. This is a proposed composition,
 not evidence that FD, Win32, modifiers or cross-process profiles already pass.
+
+## External Linux handles — implemented composition
+
+The initial transport profile is Linux `OPAQUE_FD` device memory plus persistent
+timeline semaphores, on one physical GPU/driver. Two independently created native
+logical devices share one allocation and one semaphore payload. The native producer
+fills the allocation, releases ownership and signals; OGPU acquires, copies the
+original contents, overwrites the same bytes, releases and signals; the native
+producer reacquires and copies the result. All 128 result words and guards pass.
+Only the final assertion reads bytes on the CPU. Each native device is explicitly
+retired before teardown. Both devices are adopted through the existing native
+boundary; no second OGPU device-creation/extension-selection path is introduced.
+
+The composition exposed a missing core primitive: `DOMAIN_EXTERNAL` is now an
+endpoint in the existing memory/image ownership barriers. The recording domain
+must still be one endpoint; external-to-external is rejected before native recording.
+No separate external-barrier operation, implicit layout transition or ownership
+tracker is required. Resource and semaphore transport remain native calls in the
+consumer, followed by one cold OGPU wrapper import. A generic allocator/handle
+broker can build on this without extra GPU work or mandatory CPU payload copies.
+This is the selected disposition for platform-specific transport; it does not
+claim that native escape hatches replace portable shader/execution primitives.
+
+Exact buffer usage and timeline handle capabilities are queried before use, and
+native device/driver UUIDs are recorded. Opaque imports preserve the exported
+allocation size, memory type, device-address flags and dedicated-buffer association.
+OS FD ownership uses `OwnedFd`: an unsuccessful native import retains the FD for
+normal cleanup, and only success relinquishes it to Vulkan. The allocation's native
+reference survives closing a duplicate FD. Core wrapper metadata rejection likewise
+never transfers native destruction authority.
+[Memory FD contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkImportMemoryFdInfoKHR.html),
+[semaphore FD contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkImportSemaphoreFdInfoKHR.html).
+
+### Validation boundary
+
+The original external path passes core validation and produces the correct data.
+Synchronization validation 1.4.357 reports one READ_AFTER_WRITE on the final native
+read, referring to the original native write. Inspection of the matching
+[validation source](https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/e4786f7ce8f1319215eff0d938f4be4651cbb85d/layers/sync/sync_submit.cpp#L710)
+shows that an unresolved external timeline wait is assumed satisfied without
+resolving/importing the other device's signal dependency. This supports attributing
+the diagnostic to missing external dependency tracking; it is not a claim that
+validation proves the whole external-memory graph.
+
+`OGPU_EXTERNAL_SYNC_CONTROL=1` explicitly adds a local native write-to-read
+barrier to the fixture's return path. That control passes synchronization validation
+with zero diagnostics. It is never selected automatically, is printed in results,
+and adds no OGPU runtime policy. The original path remains available and separately
+passes core validation. The SDK's optional `--external` check records this environment
+and fails on any validation messages; it does not filter the known message.
+[Receipt](results/m10-external-fd-2026-11-07.json).
+
+This accepts the bounded opaque-FD composition, not cross-process transport,
+DMA-BUF/modifier images, foreign-driver domains, Win32 handles or multi-GPU peer
+execution. Those handle/format/OS profiles need their own capability and native
+acceptance lanes. Plane/modifier requirements intersect M11's media image work.
+Sparse/virtual resource mapping is the next M10 implementation tranche.

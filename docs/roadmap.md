@@ -714,7 +714,9 @@ as hardware acceptance. Pull M10 backing/interop prerequisites forward if needed
 explicit allocation origin are implemented; local Rust consumer and synchronization
 validation pass. Typed native interoperability now passes a native producer/OGPU
 consumer with borrowed device/instance, resource adoption and explicit timeline/binary
-handoff. External OS-handle composition and sparse/virtual coverage follow.
+handoff. Linux opaque-FD memory/timeline composition now passes a two-logical-device
+roundtrip; the brief separates core validation from the explicit SyncVal control.
+Sparse/virtual coverage follows. Other OS/handle profiles remain separate acceptance lanes.
 
 **Deliver:** mixed buffer/image backing where native placement allows it; typed
 owned/borrowed device/resource handles; external memory and synchronization

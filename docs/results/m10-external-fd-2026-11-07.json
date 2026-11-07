@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-07",
+  "profile": "Linux opaque-FD allocation and persistent timeline sharing",
+  "foundation_revision": 13,
+  "logical_devices": 2,
+  "physical_devices": 1,
+  "checked_words": 128,
+  "external_ownership_operations": 4,
+  "native_ownership_rejection_retry": true,
+  "cpu_payload_handoff": false,
+  "core_validation_errors": 0,
+  "raw_sync_validation": {
+    "errors": 1,
+    "message": "SYNC-HAZARD-READ-AFTER-WRITE",
+    "attribution": "Matching validation source skips resolving unknown external timeline signals; raw path is not claimed SyncVal-clean"
+  },
+  "explicit_sync_control": {
+    "environment": {
+      "OGPU_EXTERNAL_SYNC_CONTROL": "1"
+    },
+    "validation_errors": 0,
+    "adds_fixture_local_barrier": true,
+    "runtime_workaround": false
+  },
+  "source_review": {
+    "repository": "KhronosGroup/Vulkan-ValidationLayers",
+    "tag": "v1.4.357",
+    "commit": "e4786f7ce8f1319215eff0d938f4be4651cbb85d",
+    "path": "layers/sync/sync_submit.cpp",
+    "line": 715
+  },
+  "logs": [
+    "/tmp/ogpu-m10-external-core-validation.log",
+    "/tmp/ogpu-m10-external-raw-validation.log",
+    "/tmp/ogpu-m10-external-control-validation.log"
+  ],
+  "unaccepted": [
+    "cross-process transport",
+    "DMA-BUF/modifier images",
+    "foreign-driver domains",
+    "Win32 handles",
+    "multi-GPU peer execution"
+  ]
+}
