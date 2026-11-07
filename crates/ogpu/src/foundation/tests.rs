@@ -48,6 +48,7 @@ fn fixture() -> Snapshot {
         raster_control_limits: RasterControlLimits::default(),
         raster_mechanism_limits: RasterMechanismLimits::default(),
         sample_location_limits: SampleLocationLimits::default(),
+        dynamic_raster_limits: DynamicRasterLimits::default(),
         shading_rate_limits: ShadingRateLimits::default(),
         shading_rates: Vec::new(),
         formats: vec![],

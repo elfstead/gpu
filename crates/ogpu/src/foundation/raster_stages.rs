@@ -254,6 +254,7 @@ mod tests {
                 snapshot,
             };
             for bit in [
+                0,
                 DYNAMIC_VERTEX_INPUT,
                 DYNAMIC_VERTEX_INPUT | VERTEX_DIVISOR,
                 DYNAMIC_VERTEX_INPUT | VERTEX_ZERO_DIVISOR,
@@ -295,6 +296,47 @@ mod tests {
                 }
                 let d = result.unwrap();
                 assert_eq!(d.snapshot.features.enabled, required);
+                if bit == 0 {
+                    let ad = ArenaDesc {
+                        header: Record::new::<ArenaDesc>(ARENA_DESC),
+                        domain: request[0].domain,
+                        list_capacity: 1,
+                        level: 0,
+                        reserved: 0,
+                    };
+                    let mut arena = Arena::create(&d, &ad).unwrap();
+                    let rd = RecordingDesc {
+                        header: Record::new::<RecordingDesc>(RECORDING_DESC),
+                        replay_mode: 1,
+                        level: 0,
+                        inheritance: ptr::null(),
+                    };
+                    let list = unsafe { &*arena.begin(&rd).unwrap() };
+                    assert_eq!(list.line_width(1.0), Ok(()));
+                    assert_eq!(list.line_width(2.0), Err(UNSUPPORTED));
+                    assert_eq!(list.depth_bias(-1.0, 0.0, 2.0), Ok(()));
+                    assert_eq!(list.depth_bias(0.0, 1.0, 0.0), Err(UNSUPPORTED));
+                    assert_eq!(list.depth_bounds(0.2, 0.8), Ok(()));
+                    assert_eq!(
+                        list.dynamic_raster_value(DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE, 0),
+                        Ok(())
+                    );
+                    assert_eq!(
+                        list.dynamic_raster_value(DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE, 1),
+                        Err(UNSUPPORTED)
+                    );
+                    assert_eq!(list.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, 4), Ok(()));
+                    assert_eq!(
+                        list.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, PATCHES),
+                        Err(UNSUPPORTED)
+                    );
+                    assert_eq!(
+                        list.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, 6),
+                        Err(UNSUPPORTED)
+                    );
+                    list.end().unwrap();
+                }
+
                 assert_eq!(
                     d.vertex_input_command.is_some(),
                     required & DYNAMIC_VERTEX_INPUT != 0

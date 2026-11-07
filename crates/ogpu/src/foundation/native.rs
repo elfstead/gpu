@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "core_raster.rs"]
+mod core_raster;
+
 #[path = "vertex_input.rs"]
 mod vertex_input;
 pub(super) use vertex_input::requirements as vertex_input_scratch;
@@ -263,6 +266,15 @@ functions! {
     vkCmdSetStencilOp: PFN_vkCmdSetStencilOp,
     vkCmdSetCullMode: PFN_vkCmdSetCullMode,
     vkCmdSetFrontFace: PFN_vkCmdSetFrontFace,
+    vkCmdSetPrimitiveTopology: PFN_vkCmdSetPrimitiveTopology,
+    vkCmdSetPrimitiveRestartEnable: PFN_vkCmdSetPrimitiveRestartEnable,
+    vkCmdSetRasterizerDiscardEnable: PFN_vkCmdSetRasterizerDiscardEnable,
+    vkCmdSetLineWidth: PFN_vkCmdSetLineWidth,
+    vkCmdSetDepthBias: PFN_vkCmdSetDepthBias,
+    vkCmdSetDepthBiasEnable: PFN_vkCmdSetDepthBiasEnable,
+    vkCmdSetDepthBounds: PFN_vkCmdSetDepthBounds,
+    vkCmdSetDepthBoundsTestEnable: PFN_vkCmdSetDepthBoundsTestEnable,
+
     vkCmdSetStencilReference: PFN_vkCmdSetStencilReference,
     vkCmdSetStencilCompareMask: PFN_vkCmdSetStencilCompareMask,
     vkCmdSetStencilWriteMask: PFN_vkCmdSetStencilWriteMask,
@@ -323,6 +335,7 @@ pub(super) fn snapshot(
     let mut raster_control_limits = RasterControlLimits::default();
     let mut raster_mechanism_limits = RasterMechanismLimits::default();
     let mut sample_location_limits = SampleLocationLimits::default();
+    let mut dynamic_raster_limits = DynamicRasterLimits::default();
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -472,6 +485,7 @@ pub(super) fn snapshot(
         let (samples, sample_limits) = sample_locations::snapshot(instance, physical, &f)?;
         features.available |= samples;
         sample_location_limits = sample_limits;
+        dynamic_raster_limits = core_raster::snapshot(instance, physical, &f)?;
 
         for (value, bit) in [
             (root.features.largePoints, LARGE_POINTS),
@@ -612,7 +626,7 @@ pub(super) fn snapshot(
             max_vertex_attributes: p.maxVertexInputAttributes,
             max_vertex_attribute_offset: p.maxVertexInputAttributeOffset,
             max_vertex_stride: p.maxVertexInputBindingStride,
-            dynamic_states: 8191,
+            dynamic_states: 8191 | core_raster::MASK,
             line_width_range: p.lineWidthRange,
             line_width_granularity: p.lineWidthGranularity,
             max_dual_source_attachments: p.maxFragmentDualSrcAttachments,
@@ -816,6 +830,7 @@ pub(super) fn snapshot(
         raster_control_limits,
         raster_mechanism_limits,
         sample_location_limits,
+        dynamic_raster_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance

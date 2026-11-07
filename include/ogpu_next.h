@@ -1808,6 +1808,42 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_DYNAMIC_LINE_STIPPLE_ENABLE (UINT64_C(1) << 20)
 #define OGPU_NEXT_DYNAMIC_LINE_STIPPLE (UINT64_C(1) << 21)
 
+/* Core dynamic raster state. No new optional enable: existing DEPTH_BOUNDS,
+ * WIDE_LINES, DEPTH_BIAS_CLAMP, list/patch restart and stage capabilities apply
+ * to the values/draws that use them. Selected static values are ignored, except
+ * topology remains a class selector when unrestricted_topology is zero.
+ * No current-pipeline tracking: caller establishes each dynamic value before
+ * draws and proves topology/stage/restart compatibility, including generated work.
+ */
+#define OGPU_NEXT_QUERY_DYNAMIC_RASTER_LIMITS UINT32_C(27)
+typedef struct ogpu_next_dynamic_raster_limits {
+    uint32_t unrestricted_topology;
+} ogpu_next_dynamic_raster_limits;
+#define OGPU_NEXT_DYNAMIC_TOPOLOGY (UINT64_C(1) << 25)
+#define OGPU_NEXT_DYNAMIC_PRIMITIVE_RESTART (UINT64_C(1) << 26)
+#define OGPU_NEXT_DYNAMIC_RASTERIZER_DISCARD (UINT64_C(1) << 27)
+#define OGPU_NEXT_DYNAMIC_LINE_WIDTH (UINT64_C(1) << 28)
+#define OGPU_NEXT_DYNAMIC_DEPTH_BIAS (UINT64_C(1) << 29)
+#define OGPU_NEXT_DYNAMIC_DEPTH_BIAS_ENABLE (UINT64_C(1) << 30)
+#define OGPU_NEXT_DYNAMIC_DEPTH_BOUNDS (UINT64_C(1) << 31)
+#define OGPU_NEXT_DYNAMIC_DEPTH_BOUNDS_ENABLE (UINT64_C(1) << 32)
+void ogpu_next_set_topology(ogpu_next_encoder *, uint32_t topology);
+void ogpu_next_set_primitive_restart(ogpu_next_encoder *, uint32_t enable);
+void ogpu_next_set_rasterizer_discard(ogpu_next_encoder *, uint32_t enable);
+void ogpu_next_set_line_width(ogpu_next_encoder *, float width);
+void ogpu_next_set_depth_bias(ogpu_next_encoder *, float constant, float clamp, float slope);
+void ogpu_next_set_depth_bias_enable(ogpu_next_encoder *, uint32_t enable);
+void ogpu_next_set_depth_bounds(ogpu_next_encoder *, float min, float max);
+void ogpu_next_set_depth_bounds_enable(ogpu_next_encoder *, uint32_t enable);
+
+/* Bias constants/slope/clamp are finite; nonzero clamp needs DEPTH_BIAS_CLAMP.
+ * Bounds are ordered, finite and in [0,1]; enabling their test needs DEPTH_BOUNDS.
+ * Width is finite/positive; widths other than one need WIDE_LINES. Values pass
+ * through unchanged; native supported-width selection/rounding applies, including
+ * values outside the queried range. Dynamic discard can toggle on a pipeline with fragment/output state;
+ * attachments/clears still execute. Restart enabling does not infer a topology.
+ */
+
 #define OGPU_NEXT_FEATURE_DYNAMIC_VERTEX_INPUT UINT32_C(98)
 #define OGPU_NEXT_DYNAMIC_VERTEX_INPUT (UINT64_C(1) << 24)
 #define OGPU_NEXT_FEATURE_SAMPLE_LOCATIONS UINT32_C(96)

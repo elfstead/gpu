@@ -141,6 +141,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_raster_controls.h"
 #include "foundation_raster_mechanisms.h"
 #include "foundation_sample_locations.h"
+#include "foundation_core_raster.h"
 #include "foundation_multiview.h"
 #include "foundation_blend.h"
 #include "foundation_float_atomics.h"
@@ -1096,7 +1097,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 69);
+    REQUIRE(argc == 71);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1124,6 +1125,7 @@ int main(int argc, char **argv) {
     REQUIRE(raster_controls_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[59]) == EXIT_SUCCESS);
     REQUIRE(raster_mechanisms_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[65]) == EXIT_SUCCESS);
     REQUIRE(sample_locations_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[67]) == EXIT_SUCCESS);
+    REQUIRE(core_raster_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[69]) == EXIT_SUCCESS);
     REQUIRE(multiview_execution(device,memory_desc,graphics_domain,argv[48]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);

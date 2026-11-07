@@ -65,7 +65,9 @@ Revision 12 now implements [sample positions](sample-locations.md), compatible
 depth images and ordinary/split transition metadata, with coverage/LOAD acceptance.
 [Complete dynamic input/divisors](dynamic-vertex-input.md) now reuse existing fetch
 records with caller scratch and one native setter, including generated-buffer-token
-composition. Remaining raster controls and other M8 mechanisms remain planned.
+composition. [Core dynamic raster controls](core-dynamic-raster.md) now cover
+topology/restart, discard, line width and depth bias/bounds with native topology-class
+discovery. Extended raster controls and other M8 mechanisms remain planned.
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

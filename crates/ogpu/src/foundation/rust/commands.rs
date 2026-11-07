@@ -127,3 +127,19 @@ pub fn vertex_input_scratch_requirements(
     native::vertex_input_scratch(bindings, attributes)
 }
 record!(fn set_vertex_input(list, input: &VertexInput, scratch: HostSpan) |e| e.vertex_input(input, scratch));
+
+record!(fn set_topology(list, topology: u32) |e| e.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, topology));
+
+record!(fn set_primitive_restart(list, enable: u32) |e| e.dynamic_raster_value(DYNAMIC_PRIMITIVE_RESTART_STATE, enable));
+
+record!(fn set_rasterizer_discard(list, enable: u32) |e| e.dynamic_raster_value(DYNAMIC_RASTERIZER_DISCARD_STATE, enable));
+
+record!(fn set_line_width(list, width: f32) |e| e.line_width(width));
+
+record!(fn set_depth_bias(list, constant: f32, clamp: f32, slope: f32) |e| e.depth_bias(constant, clamp, slope));
+
+record!(fn set_depth_bias_enable(list, enable: u32) |e| e.dynamic_raster_value(DYNAMIC_DEPTH_BIAS_ENABLE_STATE, enable));
+
+record!(fn set_depth_bounds(list, min: f32, max: f32) |e| e.depth_bounds(min, max));
+
+record!(fn set_depth_bounds_enable(list, enable: u32) |e| e.dynamic_raster_value(DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE, enable));

@@ -361,7 +361,10 @@ now include independent dynamic controls and local execution evidence. [Sample p
 transition metadata, including split dependencies, in revision 12.
 [Complete dynamic vertex input/divisors](dynamic-vertex-input.md) now use the existing
 description and caller scratch, including generated-command composition. Next
-implement remaining raster controls and the extension-format inventory. Geometry capture,
+implement the [remaining extended raster groups](m8-coverage.md#remaining-raster-control-groups)
+and extension-format inventory. [Core dynamic controls](core-dynamic-raster.md) now
+cover topology/restart, discard, line width and depth bias/bounds without pipeline
+replacement, including a query for the native topology-class restriction. Geometry capture,
 dynamic patch and contract/composition consolidation follow before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows

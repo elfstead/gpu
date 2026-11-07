@@ -160,3 +160,12 @@ vkCmdSetSampleLocationsEXT
 vkCmdSetSampleLocationsEnableEXT
 
 vkCmdSetVertexInputEXT
+
+vkCmdSetPrimitiveTopology
+vkCmdSetPrimitiveRestartEnable
+vkCmdSetRasterizerDiscardEnable
+vkCmdSetLineWidth
+vkCmdSetDepthBias
+vkCmdSetDepthBiasEnable
+vkCmdSetDepthBounds
+vkCmdSetDepthBoundsTestEnable

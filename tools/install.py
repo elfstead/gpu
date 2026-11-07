@@ -158,7 +158,7 @@ def install(prefix, *, legacy=False):
     for name in ("release-policy.md", "support.md", "foundation-quickstart.md", "legacy-sdk.md",
                  "minimal-core-arguments.md", "minimal-core-descriptors.md",
                  "minimal-core-dependencies.md", "minimal-core-presentation.md",
-                 "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md"):
+                 "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md"):
         copy(ROOT / "docs" / name, f"share/ogpu/{name}")
     if legacy:
         # Keep the measured consumer's relative source graph intact. Only the public

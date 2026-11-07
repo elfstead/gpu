@@ -1118,3 +1118,90 @@ pub unsafe extern "C" fn ogpu_next_set_vertex_input(
         });
     }
 }
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_topology(encoder: *mut List, topology: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, topology)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_primitive_restart(encoder: *mut List, enable: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.dynamic_raster_value(DYNAMIC_PRIMITIVE_RESTART_STATE, enable)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_rasterizer_discard(encoder: *mut List, enable: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.dynamic_raster_value(DYNAMIC_RASTERIZER_DISCARD_STATE, enable)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_line_width(encoder: *mut List, width: f32) {
+    unsafe {
+        encode(encoder, |e| e.line_width(width));
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_bias(
+    encoder: *mut List,
+    constant: f32,
+    clamp: f32,
+    slope: f32,
+) {
+    unsafe {
+        encode(encoder, |e| e.depth_bias(constant, clamp, slope));
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_bias_enable(encoder: *mut List, enable: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.dynamic_raster_value(DYNAMIC_DEPTH_BIAS_ENABLE_STATE, enable)
+        });
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_bounds(encoder: *mut List, min: f32, max: f32) {
+    unsafe {
+        encode(encoder, |e| e.depth_bounds(min, max));
+    }
+}
+
+/// # Safety
+/// Live exclusive recording slot; native state and consuming draw compatibility are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_bounds_enable(encoder: *mut List, enable: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.dynamic_raster_value(DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE, enable)
+        });
+    }
+}

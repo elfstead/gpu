@@ -47,9 +47,10 @@ remains execution debt:
    revision 12, with [local coverage/depth/LOAD and clean SDK evidence](results/m8-sample-locations-2026-11-07.md).
    [Complete dynamic vertex input/divisors](dynamic-vertex-input.md) now reuse the
    existing description with caller scratch, including generated-buffer-token
-   composition. **Next:** remaining native dynamic raster controls;
-   inventory the pinned
-   registry's extension-specific raster formats. These remain in this batch, not
+   composition. [Core dynamic raster controls](core-dynamic-raster.md) now add
+   topology/class discovery, restart, discard, line width and independent bias/bounds
+   values and enables. **Next:** the extended control groups listed below, then
+   the pinned registry's extension-specific raster-format inventory. These remain in this batch, not
    silently deferred to M9. No draw-time synthesis or shader substitute for a
    distinct native mechanism.
 3. **Resolve geometry capture and dynamic patch state.** Transform feedback,
@@ -70,6 +71,32 @@ will be executable on the available GPU. Unsupported hardware and external
 backend validation remain explicit evidence debt. A newly discovered native
 mechanism that cannot be expressed without lost execution/scheduling capability
 belongs in the audit; this list is not a claim to cover every vendor extension.
+
+## Remaining raster control groups
+
+The next implementation batch covers extended dynamic state for mechanisms already
+represented statically: depth-clamp enable and polygon mode; rasterization sample
+count, sample mask, alpha-to-coverage and alpha-to-one; logic operation/enable and
+per-attachment blend enable/equations/write masks. Preserve independent native
+capabilities and ignored-static-field behavior. Dynamic sample count must also
+remove any compatibility check that assumes the prepared executable's sample
+count is always the draw-time count. No hidden executable permutation cache.
+
+Before leaving this M8 batch, add or explicitly resolve these ordinary raster gaps:
+
+| Group | Required disposition |
+|---|---|
+| Multiple viewports/scissors | Counted/ranged native state, physical limits and shader viewport-index capability. The current single-viewport operation is not the universal hardware limit; do not multiply draws to emulate arrays. |
+| Extended depth behavior | Explicit unrestricted depth-range, depth-clamp range/control and depth-bias representation/exactness profiles where native capabilities support them. Preserve numerical units and clamping behavior; do not substitute shader depth writes. |
+| Color write control | Audit the independent native color-write enable against write masks, retaining one public mechanism when it can express both without losing a native execution path or cost advantage. |
+| Tessellation controls | Dynamic patch count and domain origin belong with step 3; they are concrete work before M9, not a later unspecified extension. |
+| Geometry capture/streams | Step 3 includes native transform-feedback counters, stream selection and associated queries; ordinary storage writes are not presumed equivalent. |
+
+This is a concrete completion list for the current raster scope, not a declaration
+that every vendor-only extension is required. The format inventory and final M8
+disposition must name any remaining exclusions and the native capabilities they
+would expose. Existing unsupported-device and cross-backend evidence debt remains
+separate from unimplemented representation.
 
 ## Assumptions and proof obligations
 

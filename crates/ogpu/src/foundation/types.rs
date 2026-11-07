@@ -2073,3 +2073,18 @@ pub struct SampleLocationState {
     pub reserved: u32,
     pub locations: *const SampleLocations,
 }
+
+pub const DYNAMIC_RASTER_LIMITS: u32 = 27;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DynamicRasterLimits {
+    pub unrestricted_topology: u32,
+}
+pub const DYNAMIC_TOPOLOGY_STATE: u64 = 1 << 25;
+pub const DYNAMIC_PRIMITIVE_RESTART_STATE: u64 = 1 << 26;
+pub const DYNAMIC_RASTERIZER_DISCARD_STATE: u64 = 1 << 27;
+pub const DYNAMIC_LINE_WIDTH_STATE: u64 = 1 << 28;
+pub const DYNAMIC_DEPTH_BIAS_STATE: u64 = 1 << 29;
+pub const DYNAMIC_DEPTH_BIAS_ENABLE_STATE: u64 = 1 << 30;
+pub const DYNAMIC_DEPTH_BOUNDS_STATE: u64 = 1 << 31;
+pub const DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE: u64 = 1 << 32;

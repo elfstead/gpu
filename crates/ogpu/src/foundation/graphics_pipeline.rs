@@ -30,12 +30,7 @@ impl Default for RasterOptions {
         }
     }
 }
-fn raster_options(
-    o: &RasterOptions,
-    features: FeatureBits,
-    p: &GraphicsLimits,
-    topology: u32,
-) -> Result<(), Status> {
+fn raster_options(o: &RasterOptions, features: FeatureBits, topology: u32) -> Result<(), Status> {
     if [
         o.primitive_restart,
         o.depth_clamp,
@@ -49,30 +44,25 @@ fn raster_options(
     .iter()
     .any(|&v| v > 1)
         || o.polygon_mode > 2
-        || !o.line_width.is_finite()
-        || o.line_width <= 0.0
-        || ![
-            o.depth_bias_constant,
-            o.depth_bias_clamp,
-            o.depth_bias_slope,
-        ]
-        .iter()
-        .all(|v| v.is_finite())
-        || ![o.min_depth_bounds, o.max_depth_bounds, o.min_sample_shading]
-            .iter()
-            .all(|v| v.is_finite() && (0.0..=1.0).contains(v))
-        || o.min_depth_bounds > o.max_depth_bounds
+        || !o.min_sample_shading.is_finite()
+        || !(0.0..=1.0).contains(&o.min_sample_shading)
     {
         return Err(INVALID);
     }
+    core_raster::line_width(o.line_width, features)?;
+    core_raster::depth_bias(
+        o.depth_bias_constant,
+        o.depth_bias_clamp,
+        o.depth_bias_slope,
+        features,
+    )?;
+    core_raster::depth_bounds(o.min_depth_bounds, o.max_depth_bounds)?;
     if o.primitive_restart != 0 {
         raster_controls::restart(topology, features)?;
     }
     for (needed, bit) in [
         (o.depth_clamp != 0, DEPTH_CLAMP),
-        (o.depth_bias_clamp != 0.0, DEPTH_BIAS_CLAMP),
         (o.polygon_mode != 0, NON_SOLID_FILL),
-        (o.line_width != 1.0, WIDE_LINES),
         (o.depth_bounds != 0, DEPTH_BOUNDS),
         (o.sample_shading != 0, SAMPLE_SHADING),
         (o.alpha_to_one != 0, ALPHA_TO_ONE),
@@ -80,11 +70,6 @@ fn raster_options(
         if needed && features & bit == 0 {
             return Err(UNSUPPORTED);
         }
-    }
-    if o.line_width != 1.0
-        && !(p.line_width_range[0]..=p.line_width_range[1]).contains(&o.line_width)
-    {
-        return Err(UNSUPPORTED);
     }
     Ok(())
 }
@@ -240,6 +225,12 @@ pub(super) unsafe fn prepare(
         }
         None
     };
+    core_raster::topology_static(
+        &mut state.topology,
+        desc.dynamic_state,
+        d.snapshot.dynamic_raster_limits.unrestricted_topology != 0,
+        stage_mask,
+    );
     let tessellation = raster_stages::tessellation(
         stage_mask,
         state.topology,
@@ -261,15 +252,16 @@ pub(super) unsafe fn prepare(
         )?
     };
     let p = &d.snapshot.graphics_limits;
-    let options = if state.raster_options.is_null() {
+    let mut options = if state.raster_options.is_null() {
         RasterOptions::default()
     } else {
         unsafe { *local_read::parent::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
     };
+    core_raster::sanitize(&mut options, desc.dynamic_state);
     if mesh_pipeline && options.primitive_restart != 0 {
         return Err(INVALID);
     }
-    raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
+    raster_options(&options, d.snapshot.features.enabled, state.topology)?;
     let mut mechanisms = unsafe {
         raster_mechanisms::prepare(
             options.header.next,
@@ -741,7 +733,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 26];
+    let mut dynamic_states = [0; 34];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
@@ -775,7 +767,10 @@ pub(super) unsafe fn prepare(
             dynamic_count += 1;
         }
     }
-    for &(mask, state) in raster_mechanisms::DYNAMIC_STATES {
+    for &(mask, state) in raster_mechanisms::DYNAMIC_STATES
+        .iter()
+        .chain(core_raster::STATES)
+    {
         if desc.dynamic_state & mask != 0 {
             dynamic_states[dynamic_count] = state;
             dynamic_count += 1;
@@ -919,13 +914,9 @@ mod tests {
     }
     #[test]
     fn raster_options_validate_without_normalizing_or_enabling_features() {
-        let p = GraphicsLimits {
-            line_width_range: [1.0, 8.0],
-            ..Default::default()
-        };
         let base = RasterOptions::default();
         assert_eq!(base.sample_mask, u64::MAX);
-        assert_eq!(raster_options(&base, 0, &p, 3), Ok(()));
+        assert_eq!(raster_options(&base, 0, 3), Ok(()));
         for (bit, options) in [
             (
                 DEPTH_CLAMP,
@@ -980,9 +971,9 @@ mod tests {
                 },
             ),
         ] {
-            assert_eq!(raster_options(&options, 0, &p, 3), Err(UNSUPPORTED));
-            assert_eq!(raster_options(&options, !bit, &p, 3), Err(UNSUPPORTED));
-            assert_eq!(raster_options(&options, bit, &p, 3), Ok(()));
+            assert_eq!(raster_options(&options, 0, 3), Err(UNSUPPORTED));
+            assert_eq!(raster_options(&options, !bit, 3), Err(UNSUPPORTED));
+            assert_eq!(raster_options(&options, bit, 3), Ok(()));
         }
         for options in [
             RasterOptions { discard: 1, ..base },
@@ -1005,7 +996,7 @@ mod tests {
                 ..base
             },
         ] {
-            assert_eq!(raster_options(&options, 0, &p, 3), Ok(()));
+            assert_eq!(raster_options(&options, 0, 3), Ok(()));
         }
         let restart = RasterOptions {
             primitive_restart: 1,
@@ -1013,7 +1004,7 @@ mod tests {
         };
         for topology in 0..=4 {
             assert_eq!(
-                raster_options(&restart, 0, &p, topology),
+                raster_options(&restart, 0, topology),
                 if matches!(topology, 2 | 4) {
                     Ok(())
                 } else {
@@ -1093,10 +1084,7 @@ mod tests {
                 ..base
             },
         ] {
-            assert_eq!(
-                raster_options(&options, FeatureBits::MAX, &p, 3),
-                Err(INVALID)
-            );
+            assert_eq!(raster_options(&options, FeatureBits::MAX, 3), Err(INVALID));
         }
         assert_eq!(
             raster_options(
@@ -1105,10 +1093,9 @@ mod tests {
                     ..base
                 },
                 WIDE_LINES,
-                &p,
                 3
             ),
-            Err(UNSUPPORTED)
+            Ok(())
         );
     }
     #[test]

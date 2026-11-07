@@ -1131,7 +1131,7 @@ impl List {
     }
     pub(in crate::foundation) fn dynamic_raster_value(
         &self,
-        field: u32,
+        field: u64,
         value: u32,
     ) -> Result<(), Status> {
         let d = self.recording()?;
@@ -1143,12 +1143,57 @@ impl List {
             256 => (1, d.f.vkCmdSetStencilTestEnable),
             1024 => (3, d.f.vkCmdSetCullMode),
             2048 => (1, d.f.vkCmdSetFrontFace),
+            DYNAMIC_TOPOLOGY_STATE => {
+                core_raster::topology(value, d.snapshot.features.enabled)?;
+                (PATCHES, d.f.vkCmdSetPrimitiveTopology)
+            }
+            DYNAMIC_PRIMITIVE_RESTART_STATE => (1, d.f.vkCmdSetPrimitiveRestartEnable),
+            DYNAMIC_RASTERIZER_DISCARD_STATE => (1, d.f.vkCmdSetRasterizerDiscardEnable),
+            DYNAMIC_DEPTH_BIAS_ENABLE_STATE => (1, d.f.vkCmdSetDepthBiasEnable),
+            DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE => {
+                if value == 1 && d.snapshot.features.enabled & DEPTH_BOUNDS == 0 {
+                    return Err(UNSUPPORTED);
+                }
+                (1, d.f.vkCmdSetDepthBoundsTestEnable)
+            }
             _ => return Err(INVALID),
         };
         if value > max {
             return Err(INVALID);
         }
         unsafe { command.unwrap()(self.command, value) };
+        Ok(())
+    }
+    pub(in crate::foundation) fn line_width(&self, value: f32) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        core_raster::line_width(value, d.snapshot.features.enabled)?;
+        unsafe {
+            (d.f.vkCmdSetLineWidth.unwrap())(self.command, value);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn depth_bias(
+        &self,
+        constant: f32,
+        clamp: f32,
+        slope: f32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        core_raster::depth_bias(constant, clamp, slope, d.snapshot.features.enabled)?;
+        unsafe {
+            (d.f.vkCmdSetDepthBias.unwrap())(self.command, constant, clamp, slope);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn depth_bounds(&self, min: f32, max: f32) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        core_raster::depth_bounds(min, max)?;
+        unsafe {
+            (d.f.vkCmdSetDepthBounds.unwrap())(self.command, min, max);
+        }
         Ok(())
     }
     pub(in crate::foundation) fn stencil_ops(

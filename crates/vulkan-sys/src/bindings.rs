@@ -6866,8 +6866,26 @@ pub type PFN_vkCmdSetScissor = ::std::option::Option<
         pScissors: *const VkRect2D,
     ),
 >;
+pub type PFN_vkCmdSetLineWidth = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, lineWidth: f32),
+>;
+pub type PFN_vkCmdSetDepthBias = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        depthBiasConstantFactor: f32,
+        depthBiasClamp: f32,
+        depthBiasSlopeFactor: f32,
+    ),
+>;
 pub type PFN_vkCmdSetBlendConstants = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, blendConstants: *const f32),
+>;
+pub type PFN_vkCmdSetDepthBounds = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        minDepthBounds: f32,
+        maxDepthBounds: f32,
+    ),
 >;
 pub type PFN_vkCmdSetStencilCompareMask = ::std::option::Option<
     unsafe extern "C" fn(
@@ -10596,6 +10614,12 @@ pub type PFN_vkCmdSetCullMode = ::std::option::Option<
 pub type PFN_vkCmdSetFrontFace = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, frontFace: VkFrontFace),
 >;
+pub type PFN_vkCmdSetPrimitiveTopology = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        primitiveTopology: VkPrimitiveTopology,
+    ),
+>;
 pub type PFN_vkCmdSetDepthTestEnable = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthTestEnable: VkBool32),
 >;
@@ -10604,6 +10628,9 @@ pub type PFN_vkCmdSetDepthWriteEnable = ::std::option::Option<
 >;
 pub type PFN_vkCmdSetDepthCompareOp = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthCompareOp: VkCompareOp),
+>;
+pub type PFN_vkCmdSetDepthBoundsTestEnable = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthBoundsTestEnable: VkBool32),
 >;
 pub type PFN_vkCmdSetStencilTestEnable = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, stencilTestEnable: VkBool32),
@@ -10616,6 +10643,21 @@ pub type PFN_vkCmdSetStencilOp = ::std::option::Option<
         passOp: VkStencilOp,
         depthFailOp: VkStencilOp,
         compareOp: VkCompareOp,
+    ),
+>;
+pub type PFN_vkCmdSetRasterizerDiscardEnable = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        rasterizerDiscardEnable: VkBool32,
+    ),
+>;
+pub type PFN_vkCmdSetDepthBiasEnable = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthBiasEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetPrimitiveRestartEnable = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        primitiveRestartEnable: VkBool32,
     ),
 >;
 pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT: VkPipelineRobustnessBufferBehavior = 0;
@@ -15950,6 +15992,47 @@ const _: () = {
     ) - 136usize];
 };
 impl Default for VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceExtendedDynamicState3PropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub dynamicPrimitiveTopologyUnrestricted: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceExtendedDynamicState3PropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceExtendedDynamicState3PropertiesEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceExtendedDynamicState3PropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceExtendedDynamicState3PropertiesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3PropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExtendedDynamicState3PropertiesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3PropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExtendedDynamicState3PropertiesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState3PropertiesEXT::dynamicPrimitiveTopologyUnrestricted",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState3PropertiesEXT,
+        dynamicPrimitiveTopologyUnrestricted
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceExtendedDynamicState3PropertiesEXT {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
