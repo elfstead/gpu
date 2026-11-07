@@ -11732,6 +11732,7 @@ pub const VK_PIPELINE_CREATE_2_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR:
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR: VkPipelineCreateFlagBits2 = 524288;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_ALLOW_MOTION_BIT_NV: VkPipelineCreateFlagBits2 = 1048576;
 pub const VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkPipelineCreateFlagBits2 = 2097152;
+pub const VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR: VkPipelineCreateFlagBits2 = 2147483648;
 pub const VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT: VkPipelineCreateFlagBits2 = 274877906944;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_OPACITY_MICROMAP_BIT_KHR: VkPipelineCreateFlagBits2 = 16777216;
 #[repr(C)]
@@ -14556,6 +14557,509 @@ impl Default for VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryKHR_T {
+    _unused: [u8; 0],
+}
+pub type VkPipelineBinaryKHR = *mut VkPipelineBinaryKHR_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDevicePipelineBinaryFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipelineBinaries: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDevicePipelineBinaryFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDevicePipelineBinaryFeaturesKHR>() - 24usize];
+    [
+        "Alignment of VkPhysicalDevicePipelineBinaryFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDevicePipelineBinaryFeaturesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDevicePipelineBinaryFeaturesKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDevicePipelineBinaryFeaturesKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryFeaturesKHR::pipelineBinaries",
+    ][::std::mem::offset_of!(VkPhysicalDevicePipelineBinaryFeaturesKHR, pipelineBinaries)
+        - 16usize];
+};
+impl Default for VkPhysicalDevicePipelineBinaryFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDevicePipelineBinaryPropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipelineBinaryInternalCache: VkBool32,
+    pub pipelineBinaryInternalCacheControl: VkBool32,
+    pub pipelineBinaryPrefersInternalCache: VkBool32,
+    pub pipelineBinaryPrecompiledInternalCache: VkBool32,
+    pub pipelineBinaryCompressedData: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDevicePipelineBinaryPropertiesKHR",
+    ][::std::mem::size_of::<VkPhysicalDevicePipelineBinaryPropertiesKHR>() - 40usize];
+    [
+        "Alignment of VkPhysicalDevicePipelineBinaryPropertiesKHR",
+    ][::std::mem::align_of::<VkPhysicalDevicePipelineBinaryPropertiesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDevicePipelineBinaryPropertiesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDevicePipelineBinaryPropertiesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::pipelineBinaryInternalCache",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineBinaryPropertiesKHR, pipelineBinaryInternalCache
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::pipelineBinaryInternalCacheControl",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineBinaryPropertiesKHR, pipelineBinaryInternalCacheControl
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::pipelineBinaryPrefersInternalCache",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineBinaryPropertiesKHR, pipelineBinaryPrefersInternalCache
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::pipelineBinaryPrecompiledInternalCache",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineBinaryPropertiesKHR,
+        pipelineBinaryPrecompiledInternalCache
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineBinaryPropertiesKHR::pipelineBinaryCompressedData",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineBinaryPropertiesKHR, pipelineBinaryCompressedData
+    ) - 32usize];
+};
+impl Default for VkPhysicalDevicePipelineBinaryPropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDevicePipelineBinaryInternalCacheControlKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub disableInternalCache: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDevicePipelineBinaryInternalCacheControlKHR",
+    ][::std::mem::size_of::<VkDevicePipelineBinaryInternalCacheControlKHR>() - 24usize];
+    [
+        "Alignment of VkDevicePipelineBinaryInternalCacheControlKHR",
+    ][::std::mem::align_of::<VkDevicePipelineBinaryInternalCacheControlKHR>() - 8usize];
+    [
+        "Offset of field: VkDevicePipelineBinaryInternalCacheControlKHR::sType",
+    ][::std::mem::offset_of!(VkDevicePipelineBinaryInternalCacheControlKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkDevicePipelineBinaryInternalCacheControlKHR::pNext",
+    ][::std::mem::offset_of!(VkDevicePipelineBinaryInternalCacheControlKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkDevicePipelineBinaryInternalCacheControlKHR::disableInternalCache",
+    ][::std::mem::offset_of!(
+        VkDevicePipelineBinaryInternalCacheControlKHR, disableInternalCache
+    ) - 16usize];
+};
+impl Default for VkDevicePipelineBinaryInternalCacheControlKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryKeyKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub keySize: u32,
+    pub key: [u8; 32usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryKeyKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryKeyKHR>() - 56usize];
+    [
+        "Alignment of VkPipelineBinaryKeyKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryKeyKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryKeyKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeyKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryKeyKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeyKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryKeyKHR::keySize",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeyKHR, keySize) - 16usize];
+    [
+        "Offset of field: VkPipelineBinaryKeyKHR::key",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeyKHR, key) - 20usize];
+};
+impl Default for VkPipelineBinaryKeyKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryDataKHR {
+    pub dataSize: usize,
+    pub pData: *mut ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryDataKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryDataKHR>() - 16usize];
+    [
+        "Alignment of VkPipelineBinaryDataKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryDataKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryDataKHR::dataSize",
+    ][::std::mem::offset_of!(VkPipelineBinaryDataKHR, dataSize) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryDataKHR::pData",
+    ][::std::mem::offset_of!(VkPipelineBinaryDataKHR, pData) - 8usize];
+};
+impl Default for VkPipelineBinaryDataKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryKeysAndDataKHR {
+    pub binaryCount: u32,
+    pub pPipelineBinaryKeys: *const VkPipelineBinaryKeyKHR,
+    pub pPipelineBinaryData: *const VkPipelineBinaryDataKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryKeysAndDataKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryKeysAndDataKHR>() - 24usize];
+    [
+        "Alignment of VkPipelineBinaryKeysAndDataKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryKeysAndDataKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryKeysAndDataKHR::binaryCount",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeysAndDataKHR, binaryCount) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryKeysAndDataKHR::pPipelineBinaryKeys",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeysAndDataKHR, pPipelineBinaryKeys)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryKeysAndDataKHR::pPipelineBinaryData",
+    ][::std::mem::offset_of!(VkPipelineBinaryKeysAndDataKHR, pPipelineBinaryData)
+        - 16usize];
+};
+impl Default for VkPipelineBinaryKeysAndDataKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineCreateInfoKHR",
+    ][::std::mem::size_of::<VkPipelineCreateInfoKHR>() - 16usize];
+    [
+        "Alignment of VkPipelineCreateInfoKHR",
+    ][::std::mem::align_of::<VkPipelineCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineCreateInfoKHR, pNext) - 8usize];
+};
+impl Default for VkPipelineCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pKeysAndDataInfo: *const VkPipelineBinaryKeysAndDataKHR,
+    pub pipeline: VkPipeline,
+    pub pPipelineCreateInfo: *const VkPipelineCreateInfoKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryCreateInfoKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryCreateInfoKHR>() - 40usize];
+    [
+        "Alignment of VkPipelineBinaryCreateInfoKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineBinaryCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineBinaryCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryCreateInfoKHR::pKeysAndDataInfo",
+    ][::std::mem::offset_of!(VkPipelineBinaryCreateInfoKHR, pKeysAndDataInfo) - 16usize];
+    [
+        "Offset of field: VkPipelineBinaryCreateInfoKHR::pipeline",
+    ][::std::mem::offset_of!(VkPipelineBinaryCreateInfoKHR, pipeline) - 24usize];
+    [
+        "Offset of field: VkPipelineBinaryCreateInfoKHR::pPipelineCreateInfo",
+    ][::std::mem::offset_of!(VkPipelineBinaryCreateInfoKHR, pPipelineCreateInfo)
+        - 32usize];
+};
+impl Default for VkPipelineBinaryCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub binaryCount: u32,
+    pub pPipelineBinaries: *const VkPipelineBinaryKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryInfoKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryInfoKHR>() - 32usize];
+    [
+        "Alignment of VkPipelineBinaryInfoKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineBinaryInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineBinaryInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryInfoKHR::binaryCount",
+    ][::std::mem::offset_of!(VkPipelineBinaryInfoKHR, binaryCount) - 16usize];
+    [
+        "Offset of field: VkPipelineBinaryInfoKHR::pPipelineBinaries",
+    ][::std::mem::offset_of!(VkPipelineBinaryInfoKHR, pPipelineBinaries) - 24usize];
+};
+impl Default for VkPipelineBinaryInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkReleaseCapturedPipelineDataInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipeline: VkPipeline,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkReleaseCapturedPipelineDataInfoKHR",
+    ][::std::mem::size_of::<VkReleaseCapturedPipelineDataInfoKHR>() - 24usize];
+    [
+        "Alignment of VkReleaseCapturedPipelineDataInfoKHR",
+    ][::std::mem::align_of::<VkReleaseCapturedPipelineDataInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkReleaseCapturedPipelineDataInfoKHR::sType",
+    ][::std::mem::offset_of!(VkReleaseCapturedPipelineDataInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkReleaseCapturedPipelineDataInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkReleaseCapturedPipelineDataInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkReleaseCapturedPipelineDataInfoKHR::pipeline",
+    ][::std::mem::offset_of!(VkReleaseCapturedPipelineDataInfoKHR, pipeline) - 16usize];
+};
+impl Default for VkReleaseCapturedPipelineDataInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryDataInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipelineBinary: VkPipelineBinaryKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryDataInfoKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryDataInfoKHR>() - 24usize];
+    [
+        "Alignment of VkPipelineBinaryDataInfoKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryDataInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryDataInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineBinaryDataInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryDataInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineBinaryDataInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryDataInfoKHR::pipelineBinary",
+    ][::std::mem::offset_of!(VkPipelineBinaryDataInfoKHR, pipelineBinary) - 16usize];
+};
+impl Default for VkPipelineBinaryDataInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineBinaryHandlesInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pipelineBinaryCount: u32,
+    pub pPipelineBinaries: *mut VkPipelineBinaryKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineBinaryHandlesInfoKHR",
+    ][::std::mem::size_of::<VkPipelineBinaryHandlesInfoKHR>() - 32usize];
+    [
+        "Alignment of VkPipelineBinaryHandlesInfoKHR",
+    ][::std::mem::align_of::<VkPipelineBinaryHandlesInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryHandlesInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPipelineBinaryHandlesInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineBinaryHandlesInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPipelineBinaryHandlesInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineBinaryHandlesInfoKHR::pipelineBinaryCount",
+    ][::std::mem::offset_of!(VkPipelineBinaryHandlesInfoKHR, pipelineBinaryCount)
+        - 16usize];
+    [
+        "Offset of field: VkPipelineBinaryHandlesInfoKHR::pPipelineBinaries",
+    ][::std::mem::offset_of!(VkPipelineBinaryHandlesInfoKHR, pPipelineBinaries)
+        - 24usize];
+};
+impl Default for VkPipelineBinaryHandlesInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCreatePipelineBinariesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkPipelineBinaryCreateInfoKHR,
+        pAllocator: *const VkAllocationCallbacks,
+        pBinaries: *mut VkPipelineBinaryHandlesInfoKHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyPipelineBinaryKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipelineBinary: VkPipelineBinaryKHR,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkGetPipelineKeyKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pPipelineCreateInfo: *const VkPipelineCreateInfoKHR,
+        pPipelineKey: *mut VkPipelineBinaryKeyKHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetPipelineBinaryDataKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkPipelineBinaryDataInfoKHR,
+        pPipelineBinaryKey: *mut VkPipelineBinaryKeyKHR,
+        pPipelineBinaryDataSize: *mut usize,
+        pPipelineBinaryData: *mut ::std::os::raw::c_void,
+    ) -> VkResult,
+>;
+pub type PFN_vkReleaseCapturedPipelineDataKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkReleaseCapturedPipelineDataInfoKHR,
+        pAllocator: *const VkAllocationCallbacks,
+    ) -> VkResult,
+>;
 pub type VkPresentScalingFlagsKHR = VkFlags;
 pub type VkPresentGravityFlagsKHR = VkFlags;
 #[repr(C)]

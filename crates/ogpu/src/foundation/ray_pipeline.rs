@@ -6,8 +6,10 @@ struct Module<'a> {
 }
 impl Drop for Module<'_> {
     fn drop(&mut self) {
-        unsafe {
-            (self.d.f.vkDestroyShaderModule.unwrap())(self.d.handle, self.handle, ptr::null());
+        if !self.handle.is_null() {
+            unsafe {
+                (self.d.f.vkDestroyShaderModule.unwrap())(self.d.handle, self.handle, ptr::null());
+            }
         }
     }
 }
@@ -76,6 +78,8 @@ pub(super) unsafe fn prepare(
     desc: &ExecutableDesc,
     pipeline_flags: u64,
     layout: &ArgumentLayout,
+    binaries: &pipeline_binaries::Input,
+    mut action: pipeline_binaries::Action<'_>,
 ) -> Result<Box<Executable>, Status> {
     if d.snapshot.features.enabled & RAY_PIPELINE == 0 {
         return Err(UNSUPPORTED);
@@ -139,20 +143,11 @@ pub(super) unsafe fn prepare(
         if shader.format != 0 || !shader.subgroup.is_null() {
             return Err(UNSUPPORTED);
         }
-        if shader.code.data.is_null()
-            || shader.code.data as usize % 4 != 0
-            || shader.code.size < 20
-            || shader.code.size % 4 != 0
-            || shader.code.size > isize::MAX as usize
-            || shader.entry.is_null()
-        {
-            return Err(INVALID);
+        unsafe {
+            pipeline_binaries::shader_code(shader, binaries.used())?;
         }
         let name = unsafe { CStr::from_ptr(shader.entry) };
-        if name.to_bytes().is_empty()
-            || name.to_str().is_err()
-            || unsafe { shader.code.data.cast::<u32>().read() } != 0x07230203
-        {
+        if name.to_bytes().is_empty() || name.to_str().is_err() {
             return Err(INVALID);
         }
         let mut e = Vec::new();
@@ -199,13 +194,15 @@ pub(super) unsafe fn prepare(
             ..Default::default()
         };
         let mut handle = ptr::null_mut();
-        unsafe {
-            d.result((d.f.vkCreateShaderModule.unwrap())(
-                d.handle,
-                &info,
-                ptr::null(),
-                &mut handle,
-            ))?;
+        if !binaries.used() {
+            unsafe {
+                d.result((d.f.vkCreateShaderModule.unwrap())(
+                    d.handle,
+                    &info,
+                    ptr::null(),
+                    &mut handle,
+                ))?;
+            }
         }
         modules.push(Module { d, handle });
     }
@@ -246,9 +243,10 @@ pub(super) unsafe fn prepare(
         pDynamicStates: &stack_state,
         ..Default::default()
     };
+    let binary_info = binaries.native(ptr::from_ref(&flags).cast());
     let info = vk::VkRayTracingPipelineCreateInfoKHR {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
-        pNext: ptr::from_ref(&flags).cast(),
+        pNext: binaries.link(&binary_info, ptr::from_ref(&flags).cast()),
         stageCount: desc.shader_count,
         pStages: stages.as_ptr(),
         groupCount: state.group_count,
@@ -270,10 +268,14 @@ pub(super) unsafe fn prepare(
         view_mask: 0,
         indirect_bindable: desc.compile_flags & 2 != 0,
         dispatch_origin: false,
+        capture_data: pipeline_binaries::capture_state(desc.compile_flags),
         dynamic_state: desc.dynamic_state,
         vertex_bindings: Box::new([]),
         ray_groups: members,
     });
+    if unsafe { action.resolve(d, ptr::from_ref(&info).cast())? } {
+        return Ok(result);
+    }
     unsafe {
         d.result((d.ray_commands.create.ok_or(UNSUPPORTED)?)(
             d.handle,

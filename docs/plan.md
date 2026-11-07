@@ -398,7 +398,9 @@ checks. The launch/matrix mapping audit is recorded; native workgroup origins no
 pass without shader-ID rewriting. Extended matrix profiles and fixed/flexible discovery
 are implemented with local unsupported rejection. The bounded two-layer matrix ML
 consumer and validated artifacts are implemented, with native execution unavailable.
-Pipeline artifacts and native execution-graph profiles precede media. See the
+Native pipeline binaries now pass compute round-trip and graphics recreation;
+ray libraries/capture-replay and native execution-graph profiles precede media.
+See the [artifact contract and acceptance gaps](m11-pipeline-artifacts.md). See the
 [concrete mapping packages](m11-launch-mapping.md).
 
 M9's [implemented boundary and clean SDK handoff](m9-consolidation.md) are complete

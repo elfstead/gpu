@@ -28,6 +28,8 @@ pub mod image_formats {
 pub const VERSION: u32 = 13;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const PIPELINE_BINARIES: u32 = 193;
+    pub const DISABLE_BINARY_INTERNAL_CACHE: u32 = 194;
     pub const MATRIX_WORKGROUP: u32 = 180;
     pub const MATRIX_FLEXIBLE: u32 = 181;
     pub const MATRIX_REDUCTIONS: u32 = 182;
@@ -275,6 +277,7 @@ pub const NOT_READY: Status = 1;
 pub const TIMEOUT: Status = 2;
 pub const COMPILE_REQUIRED: Status = 3;
 pub const SUBOPTIMAL: Status = 4;
+pub const BINARY_MISSING: Status = 5;
 pub const INVALID: Status = -1;
 pub const UNSUPPORTED: Status = -2;
 pub const OUT_OF_MEMORY: Status = -3;
@@ -862,6 +865,7 @@ pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(),
     }
     for (dynamic, base) in [
         (VARIABLE_POINTERS, VARIABLE_POINTERS_STORAGE),
+        (DISABLE_BINARY_INTERNAL_CACHE, PIPELINE_BINARIES),
         (INHERITED_CONDITIONAL_RENDERING, CONDITIONAL_RENDERING),
         (
             PRIMITIVES_GENERATED_DISCARD | PRIMITIVES_GENERATED_STREAMS,
@@ -2841,4 +2845,31 @@ pub struct DispatchOrigin {
     pub header: Record,
     pub base: [u32; 3],
     pub reserved: u32,
+}
+
+pub const EXECUTABLE_BINARIES: u32 = 152;
+pub const PIPELINE_BINARY_LIMITS: u32 = 37;
+pub const COMPILE_CAPTURE_BINARY: u32 = 16;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct ArtifactKey {
+    pub size: u32,
+    pub data: [u8; 32],
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct PipelineBinaryLimits {
+    pub internal_cache: u32,
+    pub internal_cache_control: u32,
+    pub prefers_internal_cache: u32,
+    pub precompiled_internal_cache: u32,
+    pub compressed_data: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct ExecutableBinaries {
+    pub header: Record,
+    pub count: u32,
+    pub reserved: u32,
+    pub binaries: *const *mut super::PipelineBinary,
 }

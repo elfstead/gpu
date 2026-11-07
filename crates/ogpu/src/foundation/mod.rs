@@ -35,6 +35,8 @@ use crate::vulkan::Instance;
 pub use native::Acceleration;
 pub use native::DescriptorHeap;
 pub use native::ExecutableCache;
+pub use native::PipelineBinary;
+mod pipeline_binaries_api;
 pub use native::Memory;
 use native::NativeDescriptorProperties;
 pub use native::QueryPool;
@@ -46,6 +48,7 @@ pub use native::{Device, Queue, Timeline};
 pub use native::{GeneratedLayout, GeneratedSet};
 pub use native::{Image, View};
 use ogpu_vulkan_sys as vk;
+pub use pipeline_binaries_api::*;
 use std::{
     panic::{catch_unwind, AssertUnwindSafe},
     ptr,
@@ -73,6 +76,7 @@ struct Snapshot {
     float_controls: FloatControls,
     matrix_tuples: Vec<MatrixTuple>,
     matrix_profile_limits: MatrixProfileLimits,
+    pipeline_binary_limits: PipelineBinaryLimits,
     matrix_flexible_tuples: Vec<MatrixFlexibleTuple>,
     integer_dot: IntegerDotInfo,
     mesh_limits: MeshLimits,
@@ -163,6 +167,9 @@ impl Snapshot {
                 SUBGROUP_LIMITS => copy_out(query, std::slice::from_ref(&self.subgroup_limits)),
                 FLOAT_CONTROLS => copy_out(query, std::slice::from_ref(&self.float_controls)),
                 MATRIX_TUPLES => copy_out(query, &self.matrix_tuples),
+                PIPELINE_BINARY_LIMITS => {
+                    copy_out(query, std::slice::from_ref(&self.pipeline_binary_limits))
+                }
                 MATRIX_PROFILE_LIMITS => {
                     copy_out(query, std::slice::from_ref(&self.matrix_profile_limits))
                 }

@@ -89,8 +89,10 @@ fn stencil(s: &StencilState) -> Result<vk::VkStencilOpState, Status> {
 }
 impl Drop for Module<'_> {
     fn drop(&mut self) {
-        unsafe {
-            (self.d.f.vkDestroyShaderModule.unwrap())(self.d.handle, self.handle, ptr::null());
+        if !self.handle.is_null() {
+            unsafe {
+                (self.d.f.vkDestroyShaderModule.unwrap())(self.d.handle, self.handle, ptr::null());
+            }
         }
     }
 }
@@ -133,6 +135,8 @@ pub(super) unsafe fn prepare(
     desc: &ExecutableDesc,
     pipeline_flags: u64,
     layout: &ArgumentLayout,
+    binaries: &pipeline_binaries::Input,
+    mut action: pipeline_binaries::Action<'_>,
 ) -> Result<Box<Executable>, Status> {
     if d.snapshot.features.enabled & RASTER == 0
         || desc.dynamic_state & 1 == 0
@@ -539,17 +543,8 @@ pub(super) unsafe fn prepare(
             _ => [0; 3],
         });
         subgroup_states.push(unsafe { subgroups::prepare(d, shader, local)? });
-        if shader.code.data.is_null()
-            || shader.code.data as usize % 4 != 0
-            || shader.code.size < 20
-            || shader.code.size % 4 != 0
-            || shader.code.size > isize::MAX as usize
-            || shader.entry.is_null()
-        {
-            return Err(INVALID);
-        }
-        if unsafe { shader.code.data.cast::<u32>().read() } != 0x07230203 {
-            return Err(INVALID);
+        unsafe {
+            pipeline_binaries::shader_code(shader, binaries.used())?;
         }
         let entry = unsafe { CStr::from_ptr(shader.entry) };
         if entry.to_bytes().is_empty() || entry.to_str().is_err() {
@@ -597,13 +592,15 @@ pub(super) unsafe fn prepare(
             ..Default::default()
         };
         let mut handle = ptr::null_mut();
-        unsafe {
-            d.result((d.f.vkCreateShaderModule.unwrap())(
-                d.handle,
-                &info,
-                ptr::null(),
-                &mut handle,
-            ))?;
+        if !binaries.used() {
+            unsafe {
+                d.result((d.f.vkCreateShaderModule.unwrap())(
+                    d.handle,
+                    &info,
+                    ptr::null(),
+                    &mut handle,
+                ))?;
+            }
         }
         modules.push(Module { d, handle });
     }
@@ -897,6 +894,8 @@ pub(super) unsafe fn prepare(
         patchControlPoints: tessellation.map_or(0, |s| s.patch_control_points),
         ..Default::default()
     };
+    let chain = local_mapping.link(ptr::from_ref(&rendering).cast());
+    let binary_info = binaries.native(chain);
     let info = vk::VkGraphicsPipelineCreateInfo {
         pTessellationState: if tessellation.is_some() {
             &tess
@@ -904,7 +903,7 @@ pub(super) unsafe fn prepare(
             ptr::null()
         },
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        pNext: local_mapping.link(ptr::from_ref(&rendering).cast()),
+        pNext: binaries.link(&binary_info, chain),
         stageCount: shader_count,
         pStages: stages.as_ptr(),
         pVertexInputState: if mesh_pipeline { ptr::null() } else { &vertex },
@@ -930,10 +929,14 @@ pub(super) unsafe fn prepare(
         view_mask: state.view_mask,
         indirect_bindable: desc.compile_flags & 2 != 0,
         dispatch_origin: false,
+        capture_data: pipeline_binaries::capture_state(desc.compile_flags),
         dynamic_state: desc.dynamic_state,
         vertex_bindings: vertex_bindings.iter().map(|b| b.binding).collect(),
         ray_groups: Box::new([]),
     });
+    if unsafe { action.resolve(d, ptr::from_ref(&info).cast())? } {
+        return Ok(result);
+    }
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(
             d.handle,

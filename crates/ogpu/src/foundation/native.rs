@@ -36,6 +36,9 @@ mod execution_controls;
 mod extended_raster;
 #[path = "matrix_profiles.rs"]
 mod matrix_profiles;
+#[path = "pipeline_binaries.rs"]
+pub(super) mod pipeline_binaries;
+pub use pipeline_binaries::PipelineBinary;
 #[path = "raster_profiles.rs"]
 mod raster_profiles;
 #[path = "shader_profiles.rs"]
@@ -380,6 +383,9 @@ pub(super) fn snapshot(
     let (matrix_features, matrix_profile_limits, matrix_flexible_tuples) =
         matrix_profiles::snapshot(instance, physical, &f)?;
     features.available |= matrix_features;
+    let (binary_features, pipeline_binary_limits) =
+        pipeline_binaries::snapshot(instance, physical, &f)?;
+    features.available |= binary_features;
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -931,6 +937,7 @@ pub(super) fn snapshot(
         capture_limits,
         shader_profile_limits,
         matrix_profile_limits,
+        pipeline_binary_limits,
         matrix_flexible_tuples,
         ray_limits,
         shading_rate_limits,
@@ -955,6 +962,7 @@ pub struct Device {
     execution_controls: execution_controls::Commands,
     acceleration_commands: acceleration::Commands,
     ray_commands: ray::Commands,
+    binary_commands: pipeline_binaries::Commands,
     sample_commands: sample_locations::Commands,
     vertex_input_command: vk::PFN_vkCmdSetVertexInputEXT,
     mesh_functions: Option<mesh::MeshFunctions>,
@@ -1025,6 +1033,7 @@ impl Device {
             execution_controls: execution_controls::Commands::load(&adapter.instance, enabled)?,
             acceleration_commands: acceleration::Commands::load(&adapter.instance, enabled)?,
             ray_commands: ray::Commands::load(&adapter.instance, enabled)?,
+            binary_commands: pipeline_binaries::Commands::load(&adapter.instance, enabled)?,
             profile_commands: raster_profiles::Commands::load(&adapter.instance, enabled)?,
             sample_commands: sample_locations::Commands::load(&adapter.instance, enabled)?,
             vertex_input_command: vertex_input::load(&adapter.instance, enabled)?,
@@ -1275,6 +1284,9 @@ impl Device {
             extensions.push(c"VK_EXT_shader_atomic_float2".as_ptr());
         }
         matrix_profiles::extensions(enabled, &mut extensions);
+        if enabled & PIPELINE_BINARIES != 0 {
+            extensions.push(c"VK_KHR_pipeline_binary".as_ptr());
+        }
         let presentation = vk::VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
             pNext: ptr::from_ref(&draw_parameters).cast_mut().cast(),
@@ -1338,6 +1350,15 @@ impl Device {
         };
         let mut ray = ray::Native::new(enabled);
         let previous = ray.link(previous.cast_mut(), enabled).cast_const();
+        let mut binary_features = pipeline_binaries::feature(enabled);
+        let mut binary_policy = pipeline_binaries::policy(enabled);
+        let previous = if enabled & PIPELINE_BINARIES != 0 {
+            binary_policy.pNext = previous;
+            binary_features.pNext = ptr::from_mut(&mut binary_policy).cast();
+            ptr::from_ref(&binary_features).cast()
+        } else {
+            previous
+        };
         let mut shaders = shader_profiles::Native::new(enabled);
         let previous = shaders.link(previous.cast_mut(), enabled).cast_const();
         let mut controls = execution_controls::Native::new(enabled);

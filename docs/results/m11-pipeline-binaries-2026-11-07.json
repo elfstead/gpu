@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-07",
+  "base_commit": "ae0fdd8",
+  "local_device": "RX 5700 XT / RADV 26.2.5",
+  "feature_ids": [
+    193,
+    194
+  ],
+  "new_operations": 8,
+  "checks": {
+    "host_unit": 140,
+    "surface_host": 2,
+    "ml_reference_host": 2,
+    "strict_clippy": "pass",
+    "c_workload": "pass",
+    "surface": {
+      "operations": 241,
+      "records": 204,
+      "constants": 504,
+      "values": 2052
+    },
+    "abi_values": 2616,
+    "bindings": "reproduce exactly",
+    "tool_tests": 22,
+    "standalone_bins": "all build"
+  },
+  "acceptance": {
+    "policies": [
+      "normal internal cache",
+      "disabled internal cache"
+    ],
+    "compute": "capture/export/import/source-free recreate; both seeds and guards exact after binary destruction",
+    "graphics": "two-binary capture/export/import/source-free recreation; no imported raster output claim",
+    "identity_mismatch": "rejected before import",
+    "capture_release": "explicit; repeated release/capture rejected",
+    "export_capacity": "required size; output bytes preserved",
+    "native_cache_lookup": "hits observed (1 compute, 2 graphics)",
+    "validation_errors_normal": 0,
+    "fault_injection": [
+      "cache miss no retry",
+      "partial OOM cleanup",
+      "partial INCOMPLETE cleanup",
+      "invalid output count cleanup",
+      "successful ownership transfer"
+    ]
+  },
+  "separate_diagnostic": {
+    "environment": "OGPU_BINARY_CAPACITY_DIAGNOSTIC=1",
+    "validation_errors": 4,
+    "category": "UNASSIGNED-Threading-Info",
+    "trigger": "undersized native two-binary graphics capture; destroy returned VK_INCOMPLETE partial handle",
+    "matching_vvl_commit": "e4786f7ce8f1319215eff0d938f4be4651cbb85d",
+    "evidence": "thread_safety_validation.cpp:948 registers only VK_SUCCESS; object_lifetime_validation.cpp:1951 accepts nonnegative results",
+    "backend_workaround": false
+  },
+  "gaps": [
+    "Native undersized-capture validation acceptance",
+    "Imported graphics output",
+    "Native ray binaries",
+    "Other drivers/concurrent use",
+    "Native cache miss (injected status covered)"
+  ]
+}

@@ -80,7 +80,9 @@ conditional execution is unavailable on this device. The selected shader profile
 four bounded artifact consumers pass). The [launch/matrix audit](m11-launch-mapping.md) is recorded and native dispatch
 origins now pass. Extended matrix profiles and exact fixed/flexible discovery
 are implemented. The bounded accelerated ML consumer is implemented with compiled
-artifacts and explicit local exclusion; pipeline binaries are next; native execution graphs remain an explicit subsequent package. No
+artifacts and explicit local exclusion. [Pipeline binaries](m11-pipeline-artifacts.md)
+now pass local compute round-trip and graphics recreation; ray libraries/capture-replay
+and execution graphs are next; native execution graphs remain an explicit subsequent package. No
 hardware-matrix acceptance is claimed.
 The remaining rows are scheduled work, not implemented claims or vague examples.
 
@@ -259,3 +261,13 @@ on a future suitable host. This is a bounded acceleration witness, not replaceme
 acceptance for the complete M5 transformer or quantized consumer.
 
 [ML consumer receipt](results/m11-matrix-ml-2026-11-07.json).
+
+## Pipeline binaries (2026-11-07)
+
+The [artifact contract and evidence](m11-pipeline-artifacts.md) records individually
+owned native binaries, identity/key queries, cache-only lookup, explicit capture
+and release, byte export/import, source-free compute/graphics/ray creation, and
+optional disabling of the native internal cache. Compute output equivalence and
+graphics recreation pass locally. The undersized-capture threading-tracker
+diagnostic is retained separately; ray execution and imported raster output remain
+unaccepted. Ray libraries/capture-replay and execution graphs still precede media.

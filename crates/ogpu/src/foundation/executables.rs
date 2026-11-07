@@ -17,6 +17,7 @@ pub struct Executable {
     pub(super) view_mask: u32,
     pub(super) indirect_bindable: bool,
     pub(super) dispatch_origin: bool,
+    pub(super) capture_data: std::cell::Cell<bool>,
     pub(super) dynamic_state: u64,
     pub(super) vertex_bindings: Box<[u32]>,
     pub(super) ray_groups: Box<[u8]>,
@@ -74,7 +75,8 @@ unsafe fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Statu
     Ok(())
 }
 fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64, Status> {
-    if flags & !15 != 0
+    if flags & !31 != 0
+        || (flags & COMPILE_CAPTURE_BINARY != 0 && enabled & PIPELINE_BINARIES == 0)
         || reserved != 0
         || (flags & 1 != 0 && enabled & CACHE_CONTROL == 0)
         || (flags & 2 != 0 && enabled & GENERATED_COMMANDS == 0)
@@ -83,6 +85,11 @@ fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64,
         return Err(UNSUPPORTED);
     }
     Ok(vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+        | if flags & COMPILE_CAPTURE_BINARY != 0 {
+            vk::VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR
+        } else {
+            0
+        }
         | if flags & COMPILE_DISPATCH_ORIGIN != 0 {
             vk::VK_PIPELINE_CREATE_2_DISPATCH_BASE_BIT
         } else {
@@ -117,8 +124,24 @@ impl Executable {
         desc: &ExecutableDesc,
         layout: &ArgumentLayout,
     ) -> Result<Box<Self>, Status> {
+        unsafe { Self::prepare(d, desc, layout, pipeline_binaries::Action::Create) }
+    }
+    pub(in crate::foundation) unsafe fn prepare(
+        d: &Device,
+        desc: &ExecutableDesc,
+        layout: &ArgumentLayout,
+        mut action: pipeline_binaries::Action<'_>,
+    ) -> Result<Box<Self>, Status> {
         d.ready()?;
-        desc.header.validate::<ExecutableDesc>(EXECUTABLE_DESC)?;
+        let binaries = unsafe { pipeline_binaries::Input::new(d, desc)? };
+        if action.source_only() {
+            if d.snapshot.features.enabled & PIPELINE_BINARIES == 0 {
+                return Err(UNSUPPORTED);
+            }
+            if binaries.used() {
+                return Err(INVALID);
+            }
+        }
         if !ptr::eq(layout.device, d)
             || !matches!(
                 (desc.kind, layout.execution_class),
@@ -136,10 +159,14 @@ impl Executable {
             return Err(INVALID);
         }
         if desc.kind == 3 {
-            return unsafe { ray_pipeline::prepare(d, desc, pipeline_flags, layout) };
+            return unsafe {
+                ray_pipeline::prepare(d, desc, pipeline_flags, layout, &binaries, action)
+            };
         }
         if desc.kind == 2 {
-            return unsafe { graphics_pipeline::prepare(d, desc, pipeline_flags, layout) };
+            return unsafe {
+                graphics_pipeline::prepare(d, desc, pipeline_flags, layout, &binaries, action)
+            };
         }
         if desc.kind != 1
             || desc.shader_count != 1
@@ -161,20 +188,11 @@ impl Executable {
         {
             return Err(UNSUPPORTED);
         }
-        if shader.code.data.is_null()
-            || shader.code.data as usize % 4 != 0
-            || shader.code.size < 20
-            || shader.code.size % 4 != 0
-            || shader.code.size > isize::MAX as usize
-            || shader.entry.is_null()
-        {
-            return Err(INVALID);
+        unsafe {
+            pipeline_binaries::shader_code(shader, binaries.used())?;
         }
         let entry = unsafe { CStr::from_ptr(shader.entry) };
         if entry.to_bytes().is_empty() || entry.to_str().is_err() {
-            return Err(INVALID);
-        }
-        if unsafe { shader.code.data.cast::<u32>().read() } != 0x07230203 {
             return Err(INVALID);
         }
         let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
@@ -223,6 +241,7 @@ impl Executable {
             view_mask: 0,
             indirect_bindable: desc.compile_flags & 2 != 0,
             dispatch_origin: desc.compile_flags & COMPILE_DISPATCH_ORIGIN != 0,
+            capture_data: pipeline_binaries::capture_state(desc.compile_flags),
             dynamic_state: 0,
             vertex_bindings: Box::new([]),
             ray_groups: Box::new([]),
@@ -242,22 +261,25 @@ impl Executable {
             ..Default::default()
         };
         let mut module = ptr::null_mut();
-        unsafe {
-            d.result((d.f.vkCreateShaderModule.unwrap())(
-                d.handle,
-                &info,
-                ptr::null(),
-                &mut module,
-            ))?;
+        if !binaries.used() {
+            unsafe {
+                d.result((d.f.vkCreateShaderModule.unwrap())(
+                    d.handle,
+                    &info,
+                    ptr::null(),
+                    &mut module,
+                ))?;
+            }
         }
         let flags = vk::VkPipelineCreateFlags2CreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
             flags: pipeline_flags,
             ..Default::default()
         };
+        let binary_info = binaries.native(ptr::from_ref(&flags).cast());
         let info = vk::VkComputePipelineCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-            pNext: ptr::from_ref(&flags).cast(),
+            pNext: binaries.link(&binary_info, ptr::from_ref(&flags).cast()),
             stage: vk::VkPipelineShaderStageCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                 flags: subgroup_flags,
@@ -270,20 +292,29 @@ impl Executable {
             basePipelineIndex: -1,
             ..Default::default()
         };
-        unsafe {
-            // Pipeline creation guarantees each output is a valid pipeline or NULL,
-            // including failure. Adopt for cleanup; unlike unspecified module output.
-            let status = (d.f.vkCreateComputePipelines.unwrap())(
-                d.handle,
-                cache,
-                1,
-                &info,
-                ptr::null(),
-                &mut result.pipeline,
-            );
-            (d.f.vkDestroyShaderModule.unwrap())(d.handle, module, ptr::null());
-            d.result(status)?;
+        let operation =
+            unsafe { action.resolve(d, ptr::from_ref(&info).cast()) }.and_then(|handled| {
+                if handled {
+                    Ok(())
+                } else {
+                    unsafe {
+                        d.result((d.f.vkCreateComputePipelines.unwrap())(
+                            d.handle,
+                            cache,
+                            1,
+                            &info,
+                            ptr::null(),
+                            &mut result.pipeline,
+                        ))
+                    }
+                }
+            });
+        if !module.is_null() {
+            unsafe {
+                (d.f.vkDestroyShaderModule.unwrap())(d.handle, module, ptr::null());
+            }
         }
+        operation?;
         Ok(result)
     }
 }

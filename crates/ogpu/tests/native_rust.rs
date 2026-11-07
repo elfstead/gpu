@@ -22,6 +22,14 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        pipeline_binary_identity,
+        pipeline_binary_import,
+        pipeline_binary_export,
+        pipeline_binary_destroy,
+        executable_binary_capture,
+        executable_capture_release,
+        executable_key,
+        executable_binary_lookup,
         conditional_begin,
         conditional_end,
         image_sparse_requirements,

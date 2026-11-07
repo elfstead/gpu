@@ -31,14 +31,14 @@ def install(root, staging, copy, revision, dirty):
         put(path.relative_to(root), path.relative_to(root))
     for path in sorted((root / "examples/shaders").glob("foundation-matrix-ml*")):
         put(path.relative_to(root), path.relative_to(root))
-    for name in ("foundation-compute.comp.spv", "foundation-compute.slang", "foundation-graphics.vert.spv", "foundation-graphics.slang"):
+    for name in ("foundation-compute.comp.spv", "foundation-compute.slang", "foundation-graphics.vert.spv", "foundation-graphics.frag.spv", "foundation-graphics.slang"):
         put(f"examples/shaders/{name}", f"examples/shaders/{name}")
     for name in ("textured_scene.generated.h", "textured.vert.slang", "textured.frag.slang"):
         put(f"examples/graphics_scene/{name}", f"examples/graphics_scene/{name}")
     put("LICENSE", "LICENSE")
     put("include/ogpu_next.h", "include/ogpu_next.h")
     for name in ("presentation-contract.md", "presentation-acceptance.md",
-                 "m11-launch-mapping.md", "m11-compute-media.md", "m10-memory-interop.md", "m9-ray-tracing.md", "extended-depth-color.md", "format-inventory.md", "dynamic-tessellation.md", "geometry-capture.md", "m8-consolidation.md", "viewport-arrays.md", "extended-dynamic-raster.md", "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md",
+                 "m11-pipeline-artifacts.md", "m11-launch-mapping.md", "m11-compute-media.md", "m10-memory-interop.md", "m9-ray-tracing.md", "extended-depth-color.md", "format-inventory.md", "dynamic-tessellation.md", "geometry-capture.md", "m8-consolidation.md", "viewport-arrays.md", "extended-dynamic-raster.md", "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md",
                  "results/p1-swapchain-lifecycle-2026-10-15.md",
                  "results/p1-interactive-scene-2026-10-16.md"):
         put(f"docs/{name}", f"docs/{name}")

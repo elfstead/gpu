@@ -297,6 +297,8 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS UINT32_C(43)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD UINT32_C(44)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX UINT32_C(45)
+#define OGPU_NEXT_FEATURE_PIPELINE_BINARIES UINT32_C(193)
+#define OGPU_NEXT_FEATURE_DISABLE_BINARY_INTERNAL_CACHE UINT32_C(194)
 #define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT32_C(46)
 #define OGPU_NEXT_FEATURE_MATRIX_WORKGROUP UINT32_C(180)
 #define OGPU_NEXT_FEATURE_MATRIX_FLEXIBLE UINT32_C(181)
@@ -4047,6 +4049,52 @@ typedef struct ogpu_next_dispatch_origin {
  * The flag is invalid for graphics/ray executables. A zero origin is permitted
  * without the flag. Ordinary launches keep their existing direct native command.
  */
+
+
+/* Native pipeline binary objects are individually owned and can be deduplicated
+ * by the caller. Keys/data are opaque, driver-specific; not portable shader code.
+ * No persistence, compilation fallback, cache eviction or reference retention. */
+typedef struct ogpu_next_pipeline_binary ogpu_next_pipeline_binary;
+enum { OGPU_NEXT_EXECUTABLE_BINARIES = 152, OGPU_NEXT_QUERY_PIPELINE_BINARY_LIMITS = 37, OGPU_NEXT_COMPILE_CAPTURE_BINARY = 16, OGPU_NEXT_BINARY_MISSING = 5 };
+typedef struct ogpu_next_artifact_key { uint32_t size; uint8_t data[32]; } ogpu_next_artifact_key;
+typedef struct ogpu_next_pipeline_binary_limits { uint32_t internal_cache, internal_cache_control, prefers_internal_cache, precompiled_internal_cache, compressed_data, reserved; } ogpu_next_pipeline_binary_limits;
+typedef struct ogpu_next_executable_binaries { ogpu_next_record header; uint32_t count, reserved; ogpu_next_pipeline_binary *const *binaries; } ogpu_next_executable_binaries;
+ogpu_next_status ogpu_next_pipeline_binary_identity(ogpu_next_device *device, ogpu_next_artifact_key *out);
+ogpu_next_status ogpu_next_pipeline_binary_import(ogpu_next_device *device, const ogpu_next_artifact_key *identity, const ogpu_next_artifact_key *key, ogpu_next_bytes data, ogpu_next_pipeline_binary **out);
+ogpu_next_status ogpu_next_pipeline_binary_export(const ogpu_next_pipeline_binary *binary, ogpu_next_artifact_key *key, size_t *size, void *data);
+void ogpu_next_pipeline_binary_destroy(ogpu_next_pipeline_binary *binary);
+ogpu_next_status ogpu_next_executable_binary_capture(const ogpu_next_executable *executable, uint32_t capacity, ogpu_next_pipeline_binary **out, uint32_t *count);
+ogpu_next_status ogpu_next_executable_capture_release(const ogpu_next_executable *executable);
+ogpu_next_status ogpu_next_executable_key(ogpu_next_device *device, const ogpu_next_executable_desc *desc, ogpu_next_argument_layout *layout, ogpu_next_artifact_key *out);
+ogpu_next_status ogpu_next_executable_binary_lookup(ogpu_next_device *device, const ogpu_next_executable_desc *desc, ogpu_next_argument_layout *layout, uint32_t capacity, ogpu_next_pipeline_binary **out, uint32_t *count);
+/* PIPELINE_BINARIES is explicitly enabled. DISABLE_BINARY_INTERNAL_CACHE requires
+ * it and disables the native internal cache at device creation when controllable.
+ * Limits are physical native properties, not enabled state or performance promises.
+ * identity returns the global device/driver key. import rejects a different global
+ * identity before native creation; matching keys do not validate corrupt data.
+ * Caller guarantees key/data integrity and original native provenance.
+ * export: data=NULL queries size; otherwise *size is capacity and is updated by the
+ * native export. CAPACITY reports required size and leaves data unchanged; key is written only on success.
+ * Capture requires COMPILE_CAPTURE_BINARY and unreleased captured data. NULL out
+ * with capacity=0 queries count; otherwise all capacity outputs start NULL. On
+ * error no binary ownership escapes; successful outputs [0,count) are caller-owned.
+ * Capture does not release native capture storage; release is explicit, one-time,
+ * and does not invalidate already captured binaries or the executable itself.
+ * lookup only queries the native internal cache, returning BINARY_MISSING without
+ * compiling on a miss. key/lookup require source shaders and no input binaries.
+ * Both use the same descriptor translation as executable creation.
+ * Optional ExecutableDesc.header.next = EXECUTABLE_BINARIES, count>0, reserved=0,
+ * no next record. The ordered list must match the original complete native binary
+ * list for the identical executable description/layout and global identity. Caller
+ * retains that association; OGPU does not infer it from opaque per-binary keys.
+ * Input binaries are borrowed only during creation. Shader code may be empty on
+ * this path; declared stages/entry/specialization, requirements and all static and
+ * dynamic state still describe the matching executable. No shader rewrite/reflection.
+ * Capture and binary inputs forbid an executable cache. Inputs also forbid
+ * COMPILE_FAIL_IF_REQUIRED. Ordinary creation is unchanged when neither is used.
+ * Objects borrow their device. Synchronize capture/release against each other and
+ * destruction; synchronize binary destruction against import use/export. Destruction
+ * never waits, and binaries can be destroyed once pipeline creation returns. */
 
 #ifdef __cplusplus
 }

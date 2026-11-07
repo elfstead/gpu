@@ -87,3 +87,14 @@ an error bound for arbitrary ML data. It returns exit 77 if native requirements
 are unavailable; there is no scalar fallback. The installed checker `--matrix-ml`
 requires actual execution and must not be used as a local success claim without
 matrix hardware. The binary and shaders are included even on unsupported hosts.
+
+
+`artifacts` checks native pipeline binary identity, capture/export/import, explicit
+release and source-free recreation with normal/disabled driver-cache policies.
+Compute outputs and guards are compared for original/recreated executables after
+the imported binaries are destroyed. Graphics recreation is preparation-only.
+`test-rust-install.py --pipeline-artifacts` requires actual native execution.
+The separate `OGPU_BINARY_CAPACITY_DIAGNOSTIC=1` case exercises undersized capture;
+VVL 1.4.357 omits threading-object registration on VK_INCOMPLETE and emits known
+raw diagnostics. This case is not part of clean validation acceptance; see the
+M11 artifact contract for evidence and unresolved scope.

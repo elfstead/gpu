@@ -253,7 +253,11 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::MATRIX_ROBUST;
+const MAX_ID: u32 = feature_ids::DISABLE_BINARY_INTERNAL_CACHE;
+pub(super) const PIPELINE_BINARIES: FeatureBits =
+    FeatureBits::bit(feature_ids::PIPELINE_BINARIES - 1);
+pub(super) const DISABLE_BINARY_INTERNAL_CACHE: FeatureBits =
+    FeatureBits::bit(feature_ids::DISABLE_BINARY_INTERNAL_CACHE - 1);
 pub(super) const MATRIX_WORKGROUP: FeatureBits =
     FeatureBits::bit(feature_ids::MATRIX_WORKGROUP - 1);
 pub(super) const MATRIX_FLEXIBLE: FeatureBits = FeatureBits::bit(feature_ids::MATRIX_FLEXIBLE - 1);
