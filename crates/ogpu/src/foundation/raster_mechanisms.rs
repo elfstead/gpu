@@ -114,6 +114,7 @@ impl Native {
                 ..Default::default()
             },
             dynamic: vk::VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+                extendedDynamicState3RasterizationStream:u32::from(enabled & DYNAMIC_RASTERIZATION_STREAM !=0),
                 extendedDynamicState3TessellationDomainOrigin:u32::from(enabled & DYNAMIC_TESSELLATION_ORIGIN !=0),
                 extendedDynamicState3DepthClampEnable: u32::from(enabled & DYNAMIC_DEPTH_CLAMP != 0),
                 extendedDynamicState3PolygonMode: u32::from(enabled & DYNAMIC_POLYGON_MODE != 0),
@@ -232,6 +233,9 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut props);
     }
     let mut available = selected & CONSERVATIVE_RASTER;
+    if native.dynamic.extendedDynamicState3RasterizationStream != 0 {
+        available |= DYNAMIC_RASTERIZATION_STREAM;
+    }
     if native.dynamic2.extendedDynamicState2PatchControlPoints != 0 {
         available |= DYNAMIC_PATCH_CONTROL_POINTS;
     }

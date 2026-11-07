@@ -622,6 +622,44 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
     Ok(())
 }
 
+// Native Xfb fixture only; the normal programming/toolchain contract stays Slang.
+fn capture_shaders(root: &Path, check: bool) -> Result {
+    let compiler = env::var_os("GLSLANG_VALIDATOR").unwrap_or_else(|| "glslangValidator".into());
+    let version = run(Command::new(&compiler).arg("--version"))?;
+    if !String::from_utf8_lossy(&version.stdout).contains("Glslang Version: 11:16.6.0") {
+        return Err("Capture fixture reproduction requires glslang 16.6.0".into());
+    }
+    fs::create_dir_all(root.join("target/capture-shaders"))?;
+    for (stage, suffix) in [("vert", "vert"), ("geom", "geom"), ("vert", "source.vert")] {
+        let binary = root.join(format!(
+            "target/capture-shaders/foundation-capture.{suffix}.spv"
+        ));
+        run(Command::new(&compiler)
+            .args(["-V", "--target-env", "vulkan1.4"])
+            .args(if suffix == "source.vert" {
+                vec!["-DNO_CAPTURE=1"]
+            } else {
+                vec![]
+            })
+            .arg(root.join(format!("examples/shaders/foundation-capture.{stage}")))
+            .arg("-o")
+            .arg(&binary))?;
+        run(Command::new("spirv-val")
+            .args(["--target-env", "vulkan1.4"])
+            .arg(&binary))?;
+        let target = root.join(format!("examples/shaders/foundation-capture.{suffix}.spv"));
+        if check {
+            if fs::read(&binary)? != fs::read(&target)? {
+                return Err("Stale capture artifact".into());
+            }
+        } else {
+            fs::copy(binary, target)?;
+        }
+    }
+    println!("Capture shaders reproduce with glslang 16.6.0 and validate.");
+    Ok(())
+}
+
 fn heap_shaders(root: &Path, check: bool) -> Result {
     let compiler = env::var_os("SLANGC").unwrap_or_else(|| "slangc".into());
     let version = run(Command::new(&compiler).arg("-version"))?;
@@ -854,7 +892,9 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag", "foundation-layer.vert", "foundation-float-atomics.buffer-add.comp", "foundation-float-atomics.shared-add.comp", "foundation-float-atomics.buffer-minmax.comp", "foundation-float-atomics.shared-minmax.comp", "foundation-float-atomics.buffer-exchange.comp", "foundation-float-atomics.shared-exchange.comp", "foundation-float64-atomics.buffer-add.comp", "foundation-float64-atomics.shared-add.comp", "foundation-float64-atomics.buffer-minmax.comp", "foundation-float64-atomics.shared-minmax.comp", "foundation-float64-atomics.buffer-exchange.comp", "foundation-float64-atomics.shared-exchange.comp", "foundation-matrix.comp", "foundation-integer-dot.comp", "foundation-float16-atomics.buffer-add.comp", "foundation-float16-atomics.shared-add.comp", "foundation-float16-atomics.buffer-minmax.comp", "foundation-float16-atomics.shared-minmax.comp", "foundation-float16-atomics.buffer-exchange.comp", "foundation-float16-atomics.shared-exchange.comp", "foundation-cube.comp", "foundation-compressed.comp", "foundation-mesh.mesh", "foundation-mesh.task", "foundation-mesh.payload.mesh", "foundation-mesh.frag", "foundation-generated.produce.comp", "foundation-generated.consume.comp", "foundation-generated-graphics.produce.comp", "foundation-generated-graphics.vert", "foundation-generated-graphics.frag", "foundation-generated-graphics.fetch.vert", "foundation-multiview.vert", "foundation-local-read.vert", "foundation-local-read.produce.frag", "foundation-local-read.consume.frag", "foundation-raster-stages.vert", "foundation-raster-stages.adj.vert", "foundation-raster-stages.tesc", "foundation-raster-stages.tese", "foundation-raster-stages.geom", "foundation-raster-stages.adj.geom", "foundation-raster-stages.frag", "foundation-raster-controls.vert", "foundation-raster-controls.point.vert", "foundation-raster-controls.fetch.vert", "foundation-raster-controls.tesc", "foundation-raster-controls.tese", "foundation-raster-controls.frag", "foundation-raster-mechanisms.vert", "foundation-raster-mechanisms.frag", "foundation-sample-locations.vert", "foundation-sample-locations.frag", "foundation-core-raster.vert", "foundation-core-raster.frag", "foundation-viewports.vert", "foundation-viewports.frag"]),
+Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag", "foundation-layer.vert", "foundation-float-atomics.buffer-add.comp", "foundation-float-atomics.shared-add.comp", "foundation-float-atomics.buffer-minmax.comp", "foundation-float-atomics.shared-minmax.comp", "foundation-float-atomics.buffer-exchange.comp", "foundation-float-atomics.shared-exchange.comp", "foundation-float64-atomics.buffer-add.comp", "foundation-float64-atomics.shared-add.comp", "foundation-float64-atomics.buffer-minmax.comp", "foundation-float64-atomics.shared-minmax.comp", "foundation-float64-atomics.buffer-exchange.comp", "foundation-float64-atomics.shared-exchange.comp", "foundation-matrix.comp", "foundation-integer-dot.comp", "foundation-float16-atomics.buffer-add.comp", "foundation-float16-atomics.shared-add.comp", "foundation-float16-atomics.buffer-minmax.comp", "foundation-float16-atomics.shared-minmax.comp", "foundation-float16-atomics.buffer-exchange.comp", "foundation-float16-atomics.shared-exchange.comp", "foundation-cube.comp", "foundation-compressed.comp", "foundation-mesh.mesh", "foundation-mesh.task", "foundation-mesh.payload.mesh", "foundation-mesh.frag", "foundation-generated.produce.comp", "foundation-generated.consume.comp", "foundation-generated-graphics.produce.comp", "foundation-generated-graphics.vert", "foundation-generated-graphics.frag", "foundation-generated-graphics.fetch.vert", "foundation-multiview.vert", "foundation-local-read.vert", "foundation-local-read.produce.frag", "foundation-local-read.consume.frag", "foundation-raster-stages.vert", "foundation-raster-stages.adj.vert", "foundation-raster-stages.tesc", "foundation-raster-stages.tese", "foundation-raster-stages.geom", "foundation-raster-stages.adj.geom", "foundation-raster-stages.frag", "foundation-raster-controls.vert", "foundation-raster-controls.point.vert", "foundation-raster-controls.fetch.vert", "foundation-raster-controls.tesc", "foundation-raster-controls.tese", "foundation-raster-controls.frag", "foundation-raster-mechanisms.vert", "foundation-raster-mechanisms.frag", "foundation-sample-locations.vert", "foundation-sample-locations.frag", "foundation-core-raster.vert", "foundation-core-raster.frag", "foundation-viewports.vert", "foundation-viewports.frag", "foundation-capture.vert", "foundation-capture.geom", "foundation-capture.source.vert"]),
+        Some("capture-shaders") if args.len() == 1 => capture_shaders(&root, false),
+        Some("capture-shaders") if args.len() == 2 && args[1] == "--check" => capture_shaders(&root, true),
         Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
         Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),
@@ -919,7 +959,7 @@ Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["fou
         },
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | foundation-shaders [--check] | foundation-graphics-compiler [--check] | foundation-compiler [--check] | compiler-workflow [--check] | foundation-learned-image [--check] | foundation-learned-timing [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | capture-shaders [--check] | foundation-shaders [--check] | foundation-graphics-compiler [--check] | foundation-compiler [--check] | compiler-workflow [--check] | foundation-learned-image [--check] | foundation-learned-timing [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

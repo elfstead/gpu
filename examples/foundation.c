@@ -138,6 +138,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_depth.h"
 #include "foundation_local_read.h"
 #include "foundation_raster_stages.h"
+#include "foundation_capture.h"
 #include "foundation_raster_controls.h"
 #include "foundation_raster_mechanisms.h"
 #include "foundation_sample_locations.h"
@@ -240,7 +241,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     if (statistics) {
         ogpu_next_queries_reset(encoder, statistics, 0, 2);
-        ogpu_next_query_begin(encoder, statistics, 0, 0);
+        ogpu_next_query_begin(encoder, statistics, 0,0, 0);
     }
     ogpu_next_bind_executable(encoder, executable);
     ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){base + 1024});
@@ -267,9 +268,9 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     ogpu_next_dispatch_indirect(encoder, (ogpu_next_span){memory, 1536, 12}, 0);
     if (statistics) {
-        ogpu_next_query_end(encoder, statistics, 0);
-        ogpu_next_query_begin(encoder, statistics, 1, 0);
-        ogpu_next_query_end(encoder, statistics, 1);
+        ogpu_next_query_end(encoder, statistics, 0,0);
+        ogpu_next_query_begin(encoder, statistics, 1,0, 0);
+        ogpu_next_query_end(encoder, statistics, 1,0);
         ogpu_next_queries_resolve(encoder, statistics, 0, 2, (ogpu_next_span){memory,2560,40}, 24,
             OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
     }
@@ -1021,7 +1022,7 @@ int main(int argc, char **argv) {
         REQUIRE(desc.required_features.count <= 128);
         memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
         for (uint32_t f=0; f<features.available.count; ++f)
-            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_TESSELLATION_ORIGIN)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
+            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_RASTERIZATION_STREAM)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
         desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
@@ -1100,7 +1101,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 73);
+    REQUIRE(argc == 76);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1125,6 +1126,7 @@ int main(int argc, char **argv) {
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 2) == EXIT_SUCCESS);
     REQUIRE(local_read_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[49]) == EXIT_SUCCESS);
     REQUIRE(raster_stages_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[52]) == EXIT_SUCCESS);
+    REQUIRE(capture_execution(device,graphics_domain,(const char *const *)&argv[73]) == EXIT_SUCCESS);
     REQUIRE(raster_controls_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[59]) == EXIT_SUCCESS);
     REQUIRE(raster_mechanisms_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[65]) == EXIT_SUCCESS);
     REQUIRE(sample_locations_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[67]) == EXIT_SUCCESS);

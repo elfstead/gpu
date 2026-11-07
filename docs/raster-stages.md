@@ -98,7 +98,8 @@ combinations, per-stage storage writes and advanced subgroup
 execution. Discovery/enabling and representation are not acceptance of all those
 combinations. [Large points and the raster/fetch controls](raster-controls.md) are
 now implemented, as are [dynamic patch count and domain origin](dynamic-tessellation.md).
-Transform feedback/geometry streams remain in the M8 coverage audit. Metal/DX12 mappings remain unaccepted.
+[Transform feedback/geometry streams](geometry-capture.md) are also implemented;
+their separate native fixture and compiler limits are documented. Metal/DX12 mappings remain unaccepted.
 
 The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
 composes these stages with generated indexed geometry, texture heaps and mip

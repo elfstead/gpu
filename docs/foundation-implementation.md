@@ -10,6 +10,12 @@ SDK profile. Foundation packaging is default; `--legacy` adds ABI20 files explic
 This is a migration boundary, not
 two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
+Current preview revision 13 adds [ordered geometry capture](geometry-capture.md),
+independent streams, counters and native byte-count draws. Existing query begin/end
+operations now take an explicit stream argument (zero for occlusion/statistics);
+rebuild matching C/Rust consumers. Capture uses address commands and caller scratch,
+without implicit conversion, scheduling or resource retention.
+
 Minimal-core consolidation, 2026-11-06: foundation schema 7 installed the
 [presentation lifecycle](minimal-core-presentation.md) through C and native Rust,
 following the argument, descriptor, generated-layout, dependency and submission

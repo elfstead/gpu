@@ -22,6 +22,7 @@ pub(super) struct Extensions {
     pub tessellation: Option<TessellationState>,
     pub viewports: Option<ViewportCounts>,
     pub color_write: Option<ColorWriteState>,
+    pub stream: Option<RasterizationStream>,
 }
 /// At most one of each known extension, in either order. Parent validation
 /// preserves size/version/flags rules while parsing each next pointer here.
@@ -30,11 +31,19 @@ pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Stat
     let mut count = 0;
     while !p.is_null() {
         count += 1;
-        if count > 4 {
+        if count > 5 {
             return Err(INVALID);
         }
         let header = unsafe { &*p };
         match header.kind {
+            RASTERIZATION_STREAM_STATE => {
+                if result.stream.is_some() {
+                    return Err(INVALID);
+                }
+                result.stream = Some(unsafe {
+                    *local_read::parent::<RasterizationStream>(p, RASTERIZATION_STREAM_STATE)?
+                });
+            }
             RENDER_MAPPING => {
                 if result.mapping.is_some() {
                     return Err(INVALID);
@@ -324,6 +333,9 @@ mod tests {
                 DEPTH_BIAS_CONTROL | DEPTH_BIAS_FLOAT,
                 DEPTH_BIAS_CONTROL | DEPTH_BIAS_UNORM,
                 DEPTH_BIAS_CONTROL | DEPTH_BIAS_EXACT,
+                TRANSFORM_FEEDBACK,
+                GEOMETRY | GEOMETRY_STREAMS,
+                DYNAMIC_RASTERIZATION_STREAM,
                 COLOR_WRITE_ENABLE,
                 DYNAMIC_PATCH_CONTROL_POINTS,
                 DYNAMIC_TESSELLATION_ORIGIN,
@@ -392,6 +404,8 @@ mod tests {
                             | DEPTH_CLAMP_CONTROL
                             | raster_profiles::BIAS_FEATURES
                             | COLOR_WRITE_ENABLE
+                            | TRANSFORM_FEEDBACK
+                            | DYNAMIC_RASTERIZATION_STREAM
                             | DYNAMIC_PATCH_CONTROL_POINTS
                             | DYNAMIC_TESSELLATION_ORIGIN)
                         != 0
@@ -433,7 +447,30 @@ mod tests {
                         list.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, 6),
                         Err(UNSUPPORTED)
                     );
+                    assert_eq!(
+                        unsafe {
+                            list.bind_capture(
+                                0,
+                                0,
+                                ptr::null(),
+                                HostSpan {
+                                    data: ptr::null_mut(),
+                                    size: 0,
+                                },
+                            )
+                        },
+                        if required & TRANSFORM_FEEDBACK != 0 {
+                            Ok(())
+                        } else {
+                            Err(UNSUPPORTED)
+                        }
+                    );
                     for (state, feature, value) in [
+                        (
+                            DYNAMIC_RASTERIZATION_STREAM_STATE,
+                            DYNAMIC_RASTERIZATION_STREAM,
+                            0,
+                        ),
                         (
                             DYNAMIC_PATCH_CONTROL_POINTS_STATE,
                             DYNAMIC_PATCH_CONTROL_POINTS,

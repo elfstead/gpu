@@ -492,14 +492,14 @@ mod tests {
                 let p = parent.begin(&rd).unwrap();
                 let primary = unsafe { &*p };
                 primary.queries_reset(pool, 0, 1).unwrap();
-                primary.query(pool, 0, true, 0).unwrap();
+                primary.query(pool, 0, true, 0, 0).unwrap();
                 if features & INHERITED_QUERIES != 0 {
                     assert_eq!(unsafe { primary.execute(1, &a, storage) }, Err(INVALID));
                     unsafe { primary.execute(1, &b, storage) }.unwrap();
                 } else {
                     assert_eq!(unsafe { primary.execute(1, &b, storage) }, Err(UNSUPPORTED));
                 }
-                primary.query(pool, 0, false, 0).unwrap();
+                primary.query(pool, 0, false, 0, 0).unwrap();
                 primary.end().unwrap();
                 println!(
                     "Secondary inherited queries enabled: {}",

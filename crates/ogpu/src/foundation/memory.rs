@@ -27,7 +27,7 @@ pub struct Memory {
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
-    if usage & !511 != 0 {
+    if usage & !2047 != 0 {
         return Err(UNSUPPORTED);
     }
     let bits = [
@@ -40,6 +40,8 @@ fn buffer_usage(usage: u64) -> Result<u32, Status> {
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT,
         vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT as u32,
+        vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT,
+        vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -91,6 +93,11 @@ impl Device {
     unsafe fn prepare_memory(&self, desc: &MemoryDesc) -> Result<Prepared, Status> {
         self.ready()?;
         desc.header.validate::<MemoryDesc>(MEMORY_DESC)?;
+        if desc.usage & (CAPTURE_USAGE | CAPTURE_COUNTER_USAGE) != 0
+            && self.snapshot.features.enabled & TRANSFORM_FEEDBACK == 0
+        {
+            return Err(UNSUPPORTED);
+        }
         if desc.usage & PREPROCESS_USAGE != 0
             && self.snapshot.features.enabled & GENERATED_COMMANDS == 0
         {
@@ -499,6 +506,14 @@ impl Memory {
     pub(super) fn concurrent(&self) -> bool {
         !self.domains.is_empty()
     }
+    pub(super) fn capture_address_flags(&self) -> u32 {
+        self.address_flags()
+            | if self.usage & CAPTURE_USAGE != 0 {
+                vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_TRANSFORM_FEEDBACK_BUFFER_USAGE_BIT_KHR
+            } else {
+                0
+            }
+    }
     pub(super) fn address_flags(&self) -> u32 {
         vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR
             | if self.usage & 64 != 0 {
@@ -873,7 +888,7 @@ mod tests {
     }
     #[test]
     fn buffer_usage_never_silently_drops_bits() {
-        assert_eq!(buffer_usage(512), Err(UNSUPPORTED));
+        assert_eq!(buffer_usage(2048), Err(UNSUPPORTED));
         assert_ne!(
             buffer_usage(PREPROCESS_USAGE).unwrap()
                 & vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT as u32,

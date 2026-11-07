@@ -71,6 +71,7 @@ struct Snapshot {
     sample_location_limits: SampleLocationLimits,
     dynamic_raster_limits: DynamicRasterLimits,
     viewport_limits: ViewportLimits,
+    capture_limits: CaptureLimits,
     shading_rate_limits: ShadingRateLimits,
     shading_rates: Vec<ShadingRate>,
     formats: Vec<FormatInfo>,
@@ -150,6 +151,7 @@ impl Snapshot {
                 DEPENDENCY_LIMITS if self.features.device_scope != 0 => {
                     copy_out(query, &self.dependency_limits)
                 }
+                CAPTURE_LIMITS => copy_out(query, std::slice::from_ref(&self.capture_limits)),
                 VIEWPORT_LIMITS => copy_out(query, std::slice::from_ref(&self.viewport_limits)),
                 DYNAMIC_RASTER_LIMITS => {
                     copy_out(query, std::slice::from_ref(&self.dynamic_raster_limits))

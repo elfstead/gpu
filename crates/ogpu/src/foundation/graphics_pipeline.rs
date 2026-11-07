@@ -675,7 +675,32 @@ pub(super) unsafe fn prepare(
         primitiveRestartEnable: options.primitive_restart,
         ..Default::default()
     };
-    let raster_chain = mechanisms.raster_chain();
+    let mut raster_chain = mechanisms.raster_chain();
+    let mut stream = extensions.stream;
+    if desc.dynamic_state & DYNAMIC_RASTERIZATION_STREAM_STATE != 0 {
+        if d.snapshot.features.enabled & DYNAMIC_RASTERIZATION_STREAM == 0 {
+            return Err(UNSUPPORTED);
+        }
+        if let Some(s) = &mut stream {
+            s.stream = 0;
+        }
+    }
+    if let Some(s) = stream {
+        if s.reserved != 0 {
+            return Err(INVALID);
+        }
+        capture::stream(
+            s.stream,
+            d.snapshot.features.enabled,
+            &d.snapshot.capture_limits,
+            true,
+        )?;
+    }
+    let native_stream=vk::VkPipelineRasterizationStateStreamCreateInfoEXT {sType:vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,pNext:raster_chain,rasterizationStream:stream.map_or(0,|s|s.stream),..Default::default()};
+    // Stream zero is the default; avoid an extension structure without its enable.
+    if stream.is_some_and(|s| s.stream != 0) {
+        raster_chain = ptr::from_ref(&native_stream).cast();
+    }
     let viewport_counts = viewports::counts(
         extensions.viewports,
         desc.dynamic_state,
@@ -785,7 +810,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 49];
+    let mut dynamic_states = [0; 50];
     dynamic_states[0] = if desc.dynamic_state & DYNAMIC_VIEWPORT_COUNT_STATE != 0 {
         vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT
     } else {

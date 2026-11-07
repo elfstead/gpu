@@ -104,12 +104,12 @@ static int raster_stages_execution(ogpu_next_device *device,ogpu_next_memory_des
         ogpu_next_render_begin(e,&render);ogpu_next_bind_executable(e,pipeline);ogpu_next_set_graphics_state(e,&vp.header);ogpu_next_set_arguments(e,arguments,0,8,&address);
         if(dynamic_patch) {ogpu_next_set_patch_control_points(e,1);ogpu_next_set_patch_control_points(e,patch_points);}
         if(dynamic_origin) {ogpu_next_set_tessellation_origin(e,1-origin);ogpu_next_set_tessellation_origin(e,origin);}
-        if(statistics)ogpu_next_query_begin(e,statistics,0,0);
+        if(statistics)ogpu_next_query_begin(e,statistics,0,0,0);
         ogpu_next_draw_desc draw={adjacent?6u:patch_points,1,0,0,0};
         if(mode%3==0)ogpu_next_draw(e,&draw);
         else if(mode%3==1){ogpu_next_bind_indices(e,(ogpu_next_span){memory,320,24},OGPU_NEXT_INDEX_U32);ogpu_next_draw_indexed(e,&draw);}
         else {ogpu_next_indirect indirect={{memory,256,16},16,1,{NULL,0,0}};ogpu_next_draw_indirect(e,&indirect);}
-        if(statistics)ogpu_next_query_end(e,statistics,0);
+        if(statistics)ogpu_next_query_end(e,statistics,0,0);
         ogpu_next_render_end(e);
         ib=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image,range,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};ogpu_next_barrier(e,&dep,bs);
         ogpu_next_image_copy copy={{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};ogpu_next_copy_from_image(e,(ogpu_next_span){memory,1024,256},image,&copy);

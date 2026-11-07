@@ -24,6 +24,8 @@ use std::{
     },
 };
 
+#[path = "capture.rs"]
+mod capture;
 #[path = "core_raster.rs"]
 mod core_raster;
 #[path = "extended_raster.rs"]
@@ -62,8 +64,8 @@ pub use memory::Memory;
 mod commands;
 pub(super) use commands::slice as command_slice;
 pub(super) use commands::{
-    barrier_scratch, execute_scratch, inheritance_scratch, split_scratch, submit_scratch,
-    vertex_scratch,
+    barrier_scratch, capture_scratch, execute_scratch, inheritance_scratch, split_scratch,
+    submit_scratch, vertex_scratch,
 };
 pub use commands::{Arena, List, Split};
 #[path = "images.rs"]
@@ -345,6 +347,8 @@ pub(super) fn snapshot(
     let mut sample_location_limits = SampleLocationLimits::default();
     let mut dynamic_raster_limits = DynamicRasterLimits::default();
     let mut viewport_limits = ViewportLimits::default();
+    let (capture_features, capture_limits) = capture::snapshot(instance, physical, &f)?;
+    features.available |= capture_features;
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -853,6 +857,7 @@ pub(super) fn snapshot(
         sample_location_limits,
         dynamic_raster_limits,
         viewport_limits,
+        capture_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -870,6 +875,7 @@ pub struct Device {
     raster_commands: raster_mechanisms::Commands,
     extended_commands: extended_raster::Commands,
     profile_commands: raster_profiles::Commands,
+    capture_commands: capture::Commands,
     sample_commands: sample_locations::Commands,
     vertex_input_command: vk::PFN_vkCmdSetVertexInputEXT,
     mesh_functions: Option<mesh::MeshFunctions>,
@@ -935,6 +941,7 @@ impl Device {
             f: Functions::load(&adapter.instance)?,
             raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
             extended_commands: extended_raster::Commands::load(&adapter.instance, enabled)?,
+            capture_commands: capture::Commands::load(&adapter.instance, enabled)?,
             profile_commands: raster_profiles::Commands::load(&adapter.instance, enabled)?,
             sample_commands: sample_locations::Commands::load(&adapter.instance, enabled)?,
             vertex_input_command: vertex_input::load(&adapter.instance, enabled)?,
@@ -1164,6 +1171,7 @@ impl Device {
         };
 
         for (bit, name) in [
+            (capture::FEATURES, c"VK_EXT_transform_feedback"),
             (UNRESTRICTED_DEPTH_RANGE, c"VK_EXT_depth_range_unrestricted"),
             (DEPTH_CLAMP_CONTROL, c"VK_EXT_depth_clamp_control"),
             (raster_profiles::BIAS_FEATURES, c"VK_EXT_depth_bias_control"),
@@ -1189,6 +1197,12 @@ impl Device {
         let vertex_input = vertex_input::features(enabled, previous.cast_mut());
         let previous = if enabled & DYNAMIC_VERTEX_INPUT != 0 {
             ptr::from_ref(&vertex_input).cast()
+        } else {
+            previous
+        };
+        let capture = capture::native(enabled, previous.cast_mut());
+        let previous = if enabled & capture::FEATURES != 0 {
+            ptr::from_ref(&capture).cast()
         } else {
             previous
         };

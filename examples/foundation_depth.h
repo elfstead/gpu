@@ -200,8 +200,8 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,probe);
         for (uint32_t i = 0; i < 2; ++i) {
             ogpu_next_set_stencil_reference(encoder,OGPU_NEXT_FACE_BOTH,1+i*2);
-            ogpu_next_query_begin(encoder,occlusion,i,fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PRECISE_OCCLUSION) ? OGPU_NEXT_QUERY_PRECISE : 0);
-            ogpu_next_draw(encoder,&draw); ogpu_next_query_end(encoder,occlusion,i);
+            ogpu_next_query_begin(encoder,occlusion,i,0,fixture_mask(features.enabled) & FIXTURE_BIT(OGPU_NEXT_FEATURE_PRECISE_OCCLUSION) ? OGPU_NEXT_QUERY_PRECISE : 0);
+            ogpu_next_draw(encoder,&draw); ogpu_next_query_end(encoder,occlusion,i,0);
         }
         ogpu_next_render_end(encoder);
         ogpu_next_queries_resolve(encoder,occlusion,0,2,(ogpu_next_span){memory,512,16},8,OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_WAIT);

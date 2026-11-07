@@ -360,18 +360,19 @@ line/stipple controls, provoking vertex and depth convention](raster-mechanisms.
 now include independent dynamic controls and local execution evidence. [Sample positions](sample-locations.md) now add explicit patterns and depth-content
 transition metadata, including split dependencies, in revision 12.
 [Complete dynamic vertex input/divisors](dynamic-vertex-input.md) now use the existing
-description and caller scratch, including generated-command composition. Next
-implement the [remaining extended raster groups](m8-coverage.md#remaining-raster-control-groups)
-and extension-format inventory. [Core dynamic controls](core-dynamic-raster.md) now
+description and caller scratch, including generated-command composition. The
+[extended raster groups](m8-coverage.md#remaining-raster-control-groups) and
+[pinned format inventory](format-inventory.md) are implemented. [Core dynamic controls](core-dynamic-raster.md) now
 cover topology/restart, discard, line width and depth bias/bounds without pipeline
 replacement, including a query for the native topology-class restriction.
 [Extended dynamic raster controls](extended-dynamic-raster.md) now cover clamp,
 polygon, sample count/mask, alpha coverage/one and blend/logic/write state with
 independent enabling and local static/dynamic output evidence. [Viewport arrays](viewport-arrays.md)
 now implement range/count updates and shader routing. [Extended depth/color-write profiles](extended-depth-color.md) now implement
-explicit range/unit and attachment-enable controls. The format inventory is next. Geometry capture,
-[dynamic patch/origin selection](dynamic-tessellation.md) is implemented; geometry capture
-and contract/composition consolidation follow before M9 ray tracing. M6 remains incomplete until native development is possible.
+explicit range/unit and attachment-enable controls. [Dynamic patch/origin selection](dynamic-tessellation.md)
+and [geometry capture/streams](geometry-capture.md) are implemented. Capture moves
+to revision 13 with an explicit stream argument on existing query begin/end operations.
+Contract/composition consolidation follows before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows
 

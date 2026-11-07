@@ -40,7 +40,7 @@ def main():
     require(bool(args.libplacebo_source) == bool(args.vulkan_registry),"--libplacebo-source and --vulkan-registry belong together")
     installed = args.prefix.resolve()
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
-    require(manifest["foundation"]["revision"] == 12,"not a foundation revision-12 preview")
+    require(manifest["foundation"]["revision"] == 13,"not a foundation revision-13 preview")
     if manifest.get('default_api')=='foundation':
         legacy=manifest['legacy_sdk']
         require(('abi' in manifest)==legacy,'incorrect manifest profile')

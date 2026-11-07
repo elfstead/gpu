@@ -110,7 +110,7 @@ static int multiview_execution(ogpu_next_device *device, ogpu_next_memory_desc m
             ogpu_next_bind_executable(encoder,pipelines[selected]); ogpu_next_set_graphics_state(encoder,&vp.header);
             ogpu_next_set_arguments(encoder,arguments,0,8,&address);
         }
-        ogpu_next_query_begin(encoder,occlusion,0,precise);
+        ogpu_next_query_begin(encoder,occlusion,0,0,precise);
         if (selected == 0) ogpu_next_draw(encoder,&draw);
         else if (selected == 1) {
             ogpu_next_bind_indices(encoder,(ogpu_next_span){memory,32,12},OGPU_NEXT_INDEX_U32);
@@ -119,7 +119,7 @@ static int multiview_execution(ogpu_next_device *device, ogpu_next_memory_desc m
             ogpu_next_indirect indirect = {{memory,64,16},16,1,{NULL,0,0}};
             ogpu_next_draw_indirect(encoder,&indirect);
         }
-        ogpu_next_query_end(encoder,occlusion,0);
+        ogpu_next_query_end(encoder,occlusion,0,0);
         ogpu_next_timestamp(encoder,timestamps,0,OGPU_NEXT_STAGE_VERTEX);
         if (secondary) { TRY(ogpu_next_commands_end(encoder,&child)); encoder = parent; ogpu_next_execute_lists(encoder,1,&child,(ogpu_next_host_span){es,er.size}); }
         ogpu_next_render_end(encoder);
@@ -159,12 +159,12 @@ static int multiview_execution(ogpu_next_device *device, ogpu_next_memory_desc m
     for (uint32_t bad = 0; bad < 7; ++bad) {
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         render.flags = 0; render.view_mask = 10; attachment.view = bad == 0 ? short_view : view;
-        if (bad == 5) ogpu_next_query_begin(encoder,occlusion,0,precise);
+        if (bad == 5) ogpu_next_query_begin(encoder,occlusion,0,0,precise);
         ogpu_next_render_begin(encoder,&render);
         ogpu_next_bind_executable(encoder,pipelines[bad == 1 ? 0 : 1]); ogpu_next_set_graphics_state(encoder,&vp.header);
         ogpu_next_set_arguments(encoder,arguments,0,8,&address);
         if (bad <= 1) ogpu_next_draw(encoder,&draw);
-        if (bad == 2) ogpu_next_query_begin(encoder,occlusion,1,precise); /* popcount two */
+        if (bad == 2) ogpu_next_query_begin(encoder,occlusion,1,0,precise); /* popcount two */
         if (bad == 3) {
             ogpu_next_draw_desc invalid = {3,2,0,limits.max_multiview_instance_index,0}; ogpu_next_draw(encoder,&invalid);
         }
@@ -173,9 +173,9 @@ static int multiview_execution(ogpu_next_device *device, ogpu_next_memory_desc m
             ogpu_next_execute_lists(encoder,1,&child,(ogpu_next_host_span){es,er.size});
         }
         if (bad == 6) ogpu_next_timestamp(encoder,timestamps,1,OGPU_NEXT_STAGE_VERTEX);
-        if (bad == 2) ogpu_next_query_end(encoder,occlusion,1);
+        if (bad == 2) ogpu_next_query_end(encoder,occlusion,1,0);
         ogpu_next_render_end(encoder);
-        if (bad == 5) ogpu_next_query_end(encoder,occlusion,0);
+        if (bad == 5) ogpu_next_query_end(encoder,occlusion,0,0);
         list = NULL; REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && !list);
     }
     puts("Multiview: 12 submissions; sparse/offset layers, direct/indexed/indirect, secondary inheritance, changed-root replay, query totals, timestamp slots and guards PASS.");

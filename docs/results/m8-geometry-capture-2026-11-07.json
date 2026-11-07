@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 13,
+  "host_tests": 121,
+  "native_correspondence_tests": 2,
+  "native_library_tests": 31,
+  "capture": {
+    "profiles": 6,
+    "submissions": 12,
+    "ordered_vertices": 96,
+    "rejected_recordings": 7
+  },
+  "validation_errors_final": 0,
+  "existing_warnings": 4,
+  "abi_layout_values": 2363,
+  "surface": {
+    "operations": 198,
+    "records": 162,
+    "constants": 314,
+    "values": 1567
+  },
+  "tool_tests": 22,
+  "clippy": "pass",
+  "shader_workflow": "Three bounded GLSL fixtures; pinned Slang GLSL xfb qualifiers probe rejected; general Slang capture workflow unestablished.",
+  "initial_validation_failures": "gpu2 retained: indirect counter usage and Xfb on a non-final vertex stage, both corrected before final acceptance.",
+  "evidence": {
+    "/tmp/ogpu-capture-gpu2.log": "996c43eb9fcb812cc8fb243c1c763fdf580bbad122b4f58d4b13f3d8c7c6000a",
+    "/tmp/ogpu-capture-gpu-final.log": "8cc144d9564ce3b7588dc0fc65b80eb685a1dde530d8a864749e864de1c75973",
+    "/tmp/ogpu-capture-host-final.log": "afb6ac460653a1d57749afaf7ae813da1159b144e33bb18ea6dd2ba9bbd526b7",
+    "/tmp/ogpu-capture-clippy-final.log": "10b31ec912ef524d1763f554c9e6dbeabe724174add5cf82c3695b769790b7fe",
+    "/tmp/ogpu-capture-abi.log": "308c31d362f2a3fbbbaeadd632fd6fa06b2f8e4a04a5addbbad5cd77ed8f24d3",
+    "/tmp/ogpu-capture-surface.log": "943990267804222e4f34e414801fd16ac1b22e31e6d8866ff112f08bfcebc3a6",
+    "/tmp/ogpu-capture-tools.log": "2885d0565cc09ef1f4d82ac3dd5faeae6e5874d7719acd3eaf04280db445b25b",
+    "/tmp/ogpu-capture-native-final.log": "d3756c8c1d602d7436b0605b41c4d0decd263add9911938d921b0a8cf21936f0",
+    "/tmp/ogpu-capture-bindings-check.log": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+    "/tmp/ogpu-capture-shaders-check.log": "cadec47dc37ddd570f9cc3cd2c862fe8f85f5a93fa52e4937a18291d8c6fca5e",
+    "/tmp/ogpu-capture-slang.log": "aa4d7199d38804ec35a72f5cf25dd9203379d7b463ea94d8a6a5dfaecc1e6c76"
+  }
+}

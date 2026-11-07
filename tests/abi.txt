@@ -389,3 +389,6 @@ next Scissor ogpu_next_scissor x y width height
 next DepthClampControl ogpu_next_depth_clamp_control header mode reserved min max
 next DepthBiasRepresentation ogpu_next_depth_bias_representation header representation exact
 next ColorWriteState ogpu_next_color_write_state header count reserved enables
+
+next CaptureLimits ogpu_next_capture_limits max_streams max_buffers max_buffer_size max_stream_data_size max_buffer_data_size max_stride queries streams_lines_triangles rasterization_stream_select draw_byte_count reserved
+next RasterizationStream ogpu_next_rasterization_stream header stream reserved

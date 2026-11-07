@@ -648,7 +648,9 @@ and shader routing, with local 1/4-sample output checks.
 ranges, bias units and independent attachment enables. The [format inventory](format-inventory.md)
 adds eighteen IDs through existing mechanisms and accounts for every pinned native
 definition. [Dynamic patch count/origin](dynamic-tessellation.md) now preserve native
-per-draw selection. Geometry capture and consolidation follow before M9.
+per-draw selection. [Geometry capture/streams](geometry-capture.md) now implement native
+ordered output, counters, queries and byte-count draws in revision 13. Contract and
+consumer composition consolidation remains before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 

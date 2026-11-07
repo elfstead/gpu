@@ -1,6 +1,7 @@
 //! Optional native extended dynamic raster state. No current-state cache.
 use super::*;
-pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_TESSELLATION_ORIGIN
+pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_RASTERIZATION_STREAM
+    | DYNAMIC_TESSELLATION_ORIGIN
     | DYNAMIC_DEPTH_CLAMP
     | DYNAMIC_POLYGON_MODE
     | DYNAMIC_RASTERIZATION_SAMPLES
@@ -12,6 +13,10 @@ pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_TESSELLATION_ORIGIN
     | DYNAMIC_COLOR_BLEND_EQUATION
     | DYNAMIC_COLOR_WRITE_MASK;
 pub(super) const STATES: &[(u64, vk::VkDynamicState)] = &[
+    (
+        DYNAMIC_RASTERIZATION_STREAM_STATE,
+        vk::VkDynamicState_VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT,
+    ),
     (
         DYNAMIC_PATCH_CONTROL_POINTS_STATE,
         vk::VkDynamicState_VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
@@ -67,6 +72,9 @@ pub(super) const STATES: &[(u64, vk::VkDynamicState)] = &[
 ];
 pub(super) fn dynamic_mask(enabled: FeatureBits) -> u64 {
     let mut mask = 0;
+    if enabled & DYNAMIC_RASTERIZATION_STREAM != 0 {
+        mask |= DYNAMIC_RASTERIZATION_STREAM_STATE;
+    }
     if enabled & DYNAMIC_PATCH_CONTROL_POINTS != 0 {
         mask |= DYNAMIC_PATCH_CONTROL_POINTS_STATE;
     }
@@ -109,6 +117,7 @@ pub(super) fn dynamic_mask(enabled: FeatureBits) -> u64 {
     mask
 }
 pub(super) struct Commands {
+    pub rasterization_stream: vk::PFN_vkCmdSetRasterizationStreamEXT,
     pub patch_control_points: vk::PFN_vkCmdSetPatchControlPointsEXT,
     pub tessellation_origin: vk::PFN_vkCmdSetTessellationDomainOriginEXT,
     pub depth_clamp: vk::PFN_vkCmdSetDepthClampEnableEXT,
@@ -141,6 +150,11 @@ impl Commands {
             };
         }
         Ok(Self {
+            rasterization_stream: load!(
+                DYNAMIC_RASTERIZATION_STREAM,
+                c"vkCmdSetRasterizationStreamEXT",
+                vk::PFN_vkCmdSetRasterizationStreamEXT
+            ),
             patch_control_points: load!(
                 DYNAMIC_PATCH_CONTROL_POINTS,
                 c"vkCmdSetPatchControlPointsEXT",
@@ -274,6 +288,7 @@ pub(super) fn scalar(field: u64, value: u32, enabled: FeatureBits) -> Result<(),
             u32::MAX
         }
         DYNAMIC_TESSELLATION_ORIGIN_STATE => 1,
+        DYNAMIC_RASTERIZATION_STREAM_STATE => u32::MAX,
         DYNAMIC_POLYGON_MODE_STATE => 2,
         DYNAMIC_LOGIC_OP_STATE => 15,
         DYNAMIC_RASTERIZATION_SAMPLES_STATE => {

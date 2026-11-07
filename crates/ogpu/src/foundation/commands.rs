@@ -1,6 +1,8 @@
 //! Explicit native command storage. No pending registry, resource retention,
 //! hot-path allocator, implicit signal, or host wait.
 use super::*;
+#[path = "capture_commands.rs"]
+mod capture_commands;
 #[path = "generated_commands.rs"]
 mod generated_commands;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
@@ -18,6 +20,10 @@ pub(in crate::foundation) use dependencies::{
 pub(in crate::foundation) use secondary::{execute_scratch, inheritance_scratch};
 pub use splits::Split;
 pub(in crate::foundation) use submissions::requirements as submit_scratch;
+
+pub(in crate::foundation) fn capture_scratch(count: u32) -> Result<HostRequirements, Status> {
+    capture::scratch(count)
+}
 
 pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
     if count == 0 {
@@ -72,7 +78,8 @@ pub struct List {
     view_mask: Cell<u32>,
     render_colors: Cell<u32>,
     index_count: Cell<Option<u64>>,
-    active_queries: [Cell<Option<ActiveQuery>>; 2],
+    capture_active: Cell<bool>,
+    active_queries: Vec<Cell<Option<ActiveQuery>>>,
 }
 
 impl Arena {
@@ -138,6 +145,17 @@ impl Arena {
             .map_err(|_| OUT_OF_MEMORY)?;
         commands.resize(extra, ptr::null_mut());
         for _ in 0..extra {
+            let mut active_queries = Vec::new();
+            let streams = if d.snapshot.features.enabled & TRANSFORM_FEEDBACK != 0 {
+                d.snapshot.capture_limits.max_streams as usize
+            } else {
+                0
+            };
+            let query_count = 2usize.checked_add(streams).ok_or(OUT_OF_MEMORY)?;
+            active_queries
+                .try_reserve_exact(query_count)
+                .map_err(|_| OUT_OF_MEMORY)?;
+            active_queries.resize_with(query_count, || Cell::new(None));
             slots.push(Box::new(List {
                 device: self.device,
                 command: ptr::null_mut(),
@@ -158,7 +176,8 @@ impl Arena {
                 view_mask: Cell::new(0),
                 render_colors: Cell::new(0),
                 index_count: Cell::new(None),
-                active_queries: [const { Cell::new(None) }; 2],
+                capture_active: Cell::new(false),
+                active_queries,
             }));
         }
         let info = vk::VkCommandBufferAllocateInfo {
@@ -291,6 +310,7 @@ impl Arena {
         unsafe {
             d.result((d.f.vkBeginCommandBuffer.unwrap())(slot.command, &info))?;
         }
+        slot.capture_active.set(false);
         slot.state.set(1);
         Ok(ptr::from_mut(&mut **slot))
     }
@@ -318,7 +338,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 27) - 1;
+const KNOWN_SCOPES: u64 = (1 << 28) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -335,7 +355,8 @@ const RASTER_SCOPES: u64 = 8
     | SHADING_RATE_STAGE
     | TESS_CONTROL_STAGE
     | TESS_EVALUATION_STAGE
-    | GEOMETRY_STAGE;
+    | GEOMETRY_STAGE
+    | CAPTURE_STAGE;
 
 fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u64, Status> {
     if mask & !KNOWN_SCOPES != 0 {
@@ -382,6 +403,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT,
         vk::VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT,
         vk::VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT,
+        vk::VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
@@ -389,6 +411,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
 }
 fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
     if mask & (TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE) != 0 && enabled & TESSELLATION == 0
+        || mask & CAPTURE_STAGE != 0 && enabled & TRANSFORM_FEEDBACK == 0
         || mask & GEOMETRY_STAGE != 0 && enabled & GEOMETRY == 0
         || mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
         || mask & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
@@ -416,7 +439,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 25) - 1) != 0 {
+    if mask & !((1 << 28) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -430,7 +453,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         | TASK_STAGE
         | TESS_CONTROL_STAGE
         | TESS_EVALUATION_STAGE
-        | GEOMETRY_STAGE;
+        | GEOMETRY_STAGE
+        | CAPTURE_STAGE;
     let transfer_read = 1 | 2 | COPY_SCOPE | RESOLVE_SCOPE | BLIT_SCOPE;
     let depth = 1 | 128 | EARLY_SCOPE | LATE_SCOPE | GRAPHICS_SCOPE;
     let allowed = [
@@ -459,6 +483,9 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         1 | PREPROCESS_STAGE,
         1 | GRAPHICS_SCOPE | SHADING_RATE_STAGE,
         1 | GRAPHICS_SCOPE | 16,
+        1 | GRAPHICS_SCOPE | CAPTURE_STAGE,
+        1 | GRAPHICS_SCOPE | CAPTURE_STAGE | 32,
+        1 | GRAPHICS_SCOPE | CAPTURE_STAGE,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -486,6 +513,9 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT,
         vk::VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR,
         vk::VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
+        vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT,
+        vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT,
+        vk::VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -500,6 +530,11 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
 }
 
 fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u64, Status> {
+    if mask & (CAPTURE_WRITE | CAPTURE_COUNTER_READ | CAPTURE_COUNTER_WRITE) != 0
+        && d.snapshot.features.enabled & TRANSFORM_FEEDBACK == 0
+    {
+        return Err(UNSUPPORTED);
+    }
     if mask & SHADING_RATE_READ != 0 && d.snapshot.features.enabled & ATTACHMENT_SHADING_RATE == 0 {
         return Err(UNSUPPORTED);
     }
@@ -582,6 +617,9 @@ impl List {
         executable: &Executable,
     ) -> Result<(), Status> {
         let d = self.recording()?;
+        if executable.stages != 4 && self.capture_active.get() {
+            return Err(INVALID);
+        }
         stages(d, self.domain, executable.stages, false)?;
         if !ptr::eq(executable.device, d) {
             return Err(INVALID);
@@ -737,7 +775,8 @@ impl List {
     }
     pub(in crate::foundation) fn end(&self) -> Result<(), Status> {
         let result = self.recording().and_then(|d| {
-            if self.rendering.get() != self.continuation
+            if self.capture_active.get()
+                || self.rendering.get() != self.continuation
                 || self.active_queries.iter().any(|q| q.get().is_some())
             {
                 return Err(INVALID);
@@ -883,6 +922,7 @@ impl List {
     pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
         let d = self.recording()?;
         if self.continuation
+            || self.capture_active.get()
             || !self.rendering.get()
             || self
                 .active_queries
@@ -1388,11 +1428,12 @@ impl List {
         index: u32,
         begin: bool,
         flags: u32,
+        stream: u32,
     ) -> Result<(), Status> {
         let d = self.recording()?;
         stages(d, self.domain, 32, false)?;
         pool.range(d, index, self.view_mask.get().count_ones().max(1))?;
-        if !matches!(pool.kind, 2 | 3) {
+        if !matches!(pool.kind, 2..=4) || pool.kind != 4 && stream != 0 {
             return Err(INVALID);
         }
         let queue_flags = d
@@ -1402,19 +1443,51 @@ impl List {
             .find(|q| q.domain == self.domain)
             .ok_or(INVALID)?
             .flags;
-        if (pool.kind == 2 || pool.statistics & !1024 != 0) && queue_flags & GRAPHICS == 0
+        if (matches!(pool.kind, 2 | 4) || pool.statistics & !1024 != 0)
+            && queue_flags & GRAPHICS == 0
             || pool.statistics & 1024 != 0 && queue_flags & COMPUTE == 0
         {
             return Err(UNSUPPORTED);
         }
         let native_flags = queries::controls(pool.kind, d.snapshot.features.enabled, flags)?;
-        let active = &self.active_queries[(pool.kind - 2) as usize];
+        let slot = if pool.kind == 4 {
+            if d.snapshot.features.enabled & TRANSFORM_FEEDBACK == 0
+                || d.snapshot.capture_limits.queries == 0
+            {
+                return Err(UNSUPPORTED);
+            }
+            capture::stream(
+                stream,
+                d.snapshot.features.enabled,
+                &d.snapshot.capture_limits,
+                false,
+            )?;
+            2usize.checked_add(stream as usize).ok_or(INVALID)?
+        } else {
+            (pool.kind - 2) as usize
+        };
+        let active = self.active_queries.get(slot).ok_or(INVALID)?;
         if begin {
-            if active.get().is_some() {
+            if active.get().is_some()
+                || self.active_queries.iter().any(|a| {
+                    a.get()
+                        .is_some_and(|a| ptr::eq(a.pool, pool) && a.index == index)
+                })
+            {
                 return Err(INVALID);
             }
             unsafe {
-                (d.f.vkCmdBeginQuery.unwrap())(self.command, pool.handle, index, native_flags);
+                if pool.kind == 4 {
+                    (d.capture_commands.query_begin.ok_or(UNSUPPORTED)?)(
+                        self.command,
+                        pool.handle,
+                        index,
+                        native_flags,
+                        stream,
+                    );
+                } else {
+                    (d.f.vkCmdBeginQuery.unwrap())(self.command, pool.handle, index, native_flags);
+                }
             }
             active.set(Some(ActiveQuery {
                 pool,
@@ -1431,7 +1504,16 @@ impl List {
                 return Err(INVALID);
             }
             unsafe {
-                (d.f.vkCmdEndQuery.unwrap())(self.command, pool.handle, index);
+                if pool.kind == 4 {
+                    (d.capture_commands.query_end.ok_or(UNSUPPORTED)?)(
+                        self.command,
+                        pool.handle,
+                        index,
+                        stream,
+                    );
+                } else {
+                    (d.f.vkCmdEndQuery.unwrap())(self.command, pool.handle, index);
+                }
             }
             active.set(None);
         }
@@ -1522,9 +1604,19 @@ impl List {
         Ok(unsafe { &*self.device })
     }
     fn mesh_drawing(&self) -> Result<(&Device, &MeshWorkgroupLimits), Status> {
+        if self.capture_active.get()
+            || self
+                .active_queries
+                .iter()
+                .skip(2)
+                .any(|q| q.get().is_some())
+        {
+            return Err(INVALID);
+        }
         let executable = self.executable(MESH_STAGE)?;
         if executable.view_mask != self.view_mask.get()
             || executable.stages & MESH_STAGE == 0
+            || self.capture_active.get()
             || !self.rendering.get()
             || self.secondary_contents.get()
         {
@@ -1825,12 +1917,21 @@ impl List {
         let d = self.recording()?;
         stages(d, self.domain, 24, false)?;
         extended_raster::scalar(field, value, d.snapshot.features.enabled)?;
+        if field == DYNAMIC_RASTERIZATION_STREAM_STATE {
+            capture::stream(
+                value,
+                d.snapshot.features.enabled,
+                &d.snapshot.capture_limits,
+                true,
+            )?;
+        }
         if field == DYNAMIC_PATCH_CONTROL_POINTS_STATE
             && value > d.snapshot.raster_stage_limits.max_patch_size
         {
             return Err(UNSUPPORTED);
         }
         let command = match field {
+            DYNAMIC_RASTERIZATION_STREAM_STATE => d.extended_commands.rasterization_stream,
             DYNAMIC_PATCH_CONTROL_POINTS_STATE => d.extended_commands.patch_control_points,
             DYNAMIC_TESSELLATION_ORIGIN_STATE => d.extended_commands.tessellation_origin,
             DYNAMIC_DEPTH_CLAMP_STATE => d.extended_commands.depth_clamp,
@@ -2320,7 +2421,7 @@ mod tests {
             stage_mask(TRANSFER, false, COPY_SCOPE | CLEAR_SCOPE, false),
             Ok(vk::VK_PIPELINE_STAGE_2_COPY_BIT | vk::VK_PIPELINE_STAGE_2_CLEAR_BIT)
         );
-        assert_eq!(stage_mask(GRAPHICS, true, 1 << 27, false), Err(UNSUPPORTED));
+        assert_eq!(stage_mask(GRAPHICS, true, 1 << 28, false), Err(UNSUPPORTED));
         assert_eq!(stage_mask(COMPUTE, false, 256, true), Err(INVALID));
         assert_eq!(access(512, 8), Err(INVALID));
         assert_eq!(access(1024, 8), Err(INVALID));
@@ -2366,7 +2467,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 25, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 28, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

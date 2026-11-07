@@ -249,8 +249,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_render_begin(encoder, &render);
     ogpu_next_encoder *primary_encoder = encoder;
     if (secondary == 3) {
-        ogpu_next_query_begin(encoder,occlusion,0,precise);
-        if (statistics) ogpu_next_query_begin(encoder,statistics,0,0);
+        ogpu_next_query_begin(encoder,occlusion,0,0,precise);
+        if (statistics) ogpu_next_query_begin(encoder,statistics,0,0,0);
     }
     if (secondary >= 2) {
         ogpu_next_format format = OGPU_NEXT_RGBA8_UNORM;
@@ -283,13 +283,13 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_set_graphics_state(encoder, &vp.header);
     ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     if (secondary != 3) {
-        ogpu_next_query_begin(encoder, occlusion, 0, precise);
-        if (statistics) ogpu_next_query_begin(encoder, statistics, 0, 0);
+        ogpu_next_query_begin(encoder, occlusion, 0,0, precise);
+        if (statistics) ogpu_next_query_begin(encoder, statistics, 0,0, 0);
     }
     ogpu_next_draw(encoder, &draw);
     if (secondary != 3) {
-        ogpu_next_query_end(encoder, occlusion, 0);
-        if (statistics) ogpu_next_query_end(encoder, statistics, 0);
+        ogpu_next_query_end(encoder, occlusion, 0,0);
+        if (statistics) ogpu_next_query_end(encoder, statistics, 0,0);
     }
     if (secondary >= 2) {
         ogpu_next_list *child = NULL;
@@ -299,8 +299,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         memset(execute_scratch,0xcc,(size_t)er.size);
     }
     if (secondary == 3) {
-        ogpu_next_query_end(encoder,occlusion,0);
-        if (statistics) ogpu_next_query_end(encoder,statistics,0);
+        ogpu_next_query_end(encoder,occlusion,0,0);
+        if (statistics) ogpu_next_query_end(encoder,statistics,0,0);
     }
     ogpu_next_render_end(encoder);
     render.flags = 0;
@@ -332,10 +332,10 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     draw.vertex_offset = 0;
     ogpu_next_bind_executable(encoder, pipelines[1]);
     graphics_stencil_values(encoder,dynamic_mask,1,0);
-    ogpu_next_query_begin(encoder, occlusion, 1, precise);
-    if (statistics) ogpu_next_query_begin(encoder, statistics, 1, 0);
-    ogpu_next_query_end(encoder, occlusion, 1); /* No samples. */
-    if (statistics) ogpu_next_query_end(encoder, statistics, 1);
+    ogpu_next_query_begin(encoder, occlusion, 1,0, precise);
+    if (statistics) ogpu_next_query_begin(encoder, statistics, 1,0, 0);
+    ogpu_next_query_end(encoder, occlusion, 1,0); /* No samples. */
+    if (statistics) ogpu_next_query_end(encoder, statistics, 1,0);
     ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address + 64});
     /* Four disjoint stripes prove all address-indirect variants, not just no-ops. */
     for (uint32_t variant = 0; variant < 4; ++variant) {
@@ -480,9 +480,9 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     render.color_count = 0; render.colors = NULL; render.depth = NULL; render.stencil = NULL; render.scratch = (ogpu_next_host_span){NULL,0};
     ogpu_next_queries_reset(encoder,occlusion,1,1);
-    ogpu_next_query_begin(encoder,occlusion,1,0); /* Query enclosing a whole rendering scope. */
+    ogpu_next_query_begin(encoder,occlusion,1,0,0); /* Query enclosing a whole rendering scope. */
     ogpu_next_render_begin(encoder,&render); ogpu_next_render_end(encoder);
-    ogpu_next_query_end(encoder,occlusion,1);
+    ogpu_next_query_end(encoder,occlusion,1,0);
     ogpu_next_queries_resolve(encoder,occlusion,1,1,(ogpu_next_span){host,480,8},0,
         OGPU_NEXT_QUERY_RESULT_WAIT | OGPU_NEXT_QUERY_RESULT_AVAILABILITY);
     /* Prior host wait proved this timestamp ready; no GPU wait is requested. */
@@ -542,8 +542,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         if (bad == 3) ogpu_next_queries_resolve(encoder,timestamps,0,2,(ogpu_next_span){host,400,40},4,OGPU_NEXT_QUERY_RESULT_64);
         if (bad >= 4) {
             if (bad == 6) ogpu_next_render_begin(encoder,&render);
-            ogpu_next_query_begin(encoder,occlusion,0,0);
-            if (bad == 4) ogpu_next_query_end(encoder,occlusion,1);
+            ogpu_next_query_begin(encoder,occlusion,0,0,0);
+            if (bad == 4) ogpu_next_query_end(encoder,occlusion,1,0);
             if (bad == 6) ogpu_next_render_end(encoder);
         }
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
@@ -552,12 +552,12 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         if (bad == 0) ogpu_next_queries_resolve(encoder,statistics,0,2,(ogpu_next_span){host,2304,95},56,
             OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY);
-        if (bad == 1) ogpu_next_query_begin(encoder,statistics,0,OGPU_NEXT_QUERY_PRECISE);
+        if (bad == 1) ogpu_next_query_begin(encoder,statistics,0,0,OGPU_NEXT_QUERY_PRECISE);
         if (bad >= 2) {
             if (bad == 6) ogpu_next_render_begin(encoder,&render);
-            ogpu_next_query_begin(encoder,statistics,0,0);
-            if (bad == 2) ogpu_next_query_begin(encoder,statistics,1,0);
-            if (bad == 3) ogpu_next_query_end(encoder,statistics,1);
+            ogpu_next_query_begin(encoder,statistics,0,0,0);
+            if (bad == 2) ogpu_next_query_begin(encoder,statistics,1,0,0);
+            if (bad == 3) ogpu_next_query_end(encoder,statistics,1,0);
             if (bad == 4) ogpu_next_queries_reset(encoder,statistics,0,1);
             if (bad == 5) ogpu_next_queries_resolve(encoder,statistics,0,1,(ogpu_next_span){host,2304,40},0,OGPU_NEXT_QUERY_RESULT_64);
             if (bad == 6) ogpu_next_render_end(encoder);

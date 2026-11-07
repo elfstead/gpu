@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 12u
+#define OGPU_NEXT_VERSION 13u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -1861,6 +1861,61 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_FEATURE_DEPTH_BIAS_FLOAT UINT32_C(116)
 #define OGPU_NEXT_FEATURE_DEPTH_BIAS_EXACT UINT32_C(117)
 #define OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE UINT32_C(118)
+#define OGPU_NEXT_FEATURE_TRANSFORM_FEEDBACK UINT32_C(121)
+#define OGPU_NEXT_FEATURE_GEOMETRY_STREAMS UINT32_C(122)
+#define OGPU_NEXT_FEATURE_DYNAMIC_RASTERIZATION_STREAM UINT32_C(123)
+#define OGPU_NEXT_QUERY_CAPTURE_LIMITS UINT32_C(29)
+#define OGPU_NEXT_RASTERIZATION_STREAM_STATE UINT32_C(146)
+#define OGPU_NEXT_USAGE_CAPTURE (UINT64_C(1) << 9)
+#define OGPU_NEXT_USAGE_CAPTURE_COUNTER (UINT64_C(1) << 10)
+#define OGPU_NEXT_STAGE_CAPTURE (UINT64_C(1) << 27)
+#define OGPU_NEXT_ACCESS_CAPTURE_WRITE (UINT64_C(1) << 25)
+#define OGPU_NEXT_ACCESS_CAPTURE_COUNTER_READ (UINT64_C(1) << 26)
+#define OGPU_NEXT_ACCESS_CAPTURE_COUNTER_WRITE (UINT64_C(1) << 27)
+#define OGPU_NEXT_DYNAMIC_RASTERIZATION_STREAM (UINT64_C(1) << 50)
+#define OGPU_NEXT_QUERY_CAPTURE_STREAM UINT32_C(4)
+typedef struct ogpu_next_capture_limits {
+    uint32_t max_streams, max_buffers;
+    uint64_t max_buffer_size;
+    uint32_t max_stream_data_size, max_buffer_data_size, max_stride;
+    uint32_t queries, streams_lines_triangles, rasterization_stream_select;
+    uint32_t draw_byte_count, reserved;
+} ogpu_next_capture_limits;
+/* Chain to GraphicsState, once. Default stream is zero. Nonzero requires
+ * GEOMETRY_STREAMS and rasterization_stream_select. Dynamic selection ignores
+ * static stream, checks reserved zero, and requires the independent dynamic enable. */
+typedef struct ogpu_next_rasterization_stream {
+    ogpu_next_record header;
+    uint32_t stream, reserved;
+} ogpu_next_rasterization_stream;
+/* Capture requires TRANSFORM_FEEDBACK, a graphics queue and a compatible last
+ * pre-raster Xfb shader. Geometry streams require GEOMETRY independently. Caller
+ * proves shader output decoration/stride/stream limits; runtime does not reflect it.
+ * Bind updates [first,first+count), only while inactive; zero count is a no-op.
+ * Every data span has CAPTURE usage, aligned address (4), and size <=max_buffer_size.
+ * A zero/null span unbinds that slot. Capture must begin/end inside rendering,
+ * without multiview; no graphics pipeline switch or render end while active.
+ * Counter spans use CAPTURE_COUNTER, 4-byte aligned address and >=4 bytes.
+ * Zero/null counter starts at zero on begin / suppresses counter output on end.
+ * Empty counter arrays start/stop capture without reading/writing counters.
+ * Counters contain native uint32 byte offsets. Caller owns initialization,
+ * barriers, bound ranges, capacity, overflow handling, replay and retirement.
+ * Binding/counter arrays are borrowed only for the call. Scratch is writable,
+ * aligned, and disjoint from inputs; query once and reuse after each host call.
+ * No implicit barriers, allocations, copies, count conversion or readback.
+ * Draw byte count needs draw_byte_count, nonzero stride <=max_stride, and a live
+ * INDIRECT span. Offset and stride are multiples of four. The GPU derives vertex count from (counter-offset)/stride
+ * with native saturating behavior; first vertex is zero, instances are explicit.
+ * QUERY_CAPTURE_STREAM returns primitives-written then primitives-needed (plus
+ * availability if requested). Query begin/end select stream explicitly; stream
+ * must be zero for existing occlusion/statistics queries. Nonzero capture streams
+ * require GEOMETRY_STREAMS; query support also requires limits.queries. */
+ogpu_next_status ogpu_next_capture_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
+void ogpu_next_bind_capture_buffers(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_span *, ogpu_next_host_span scratch);
+void ogpu_next_capture_begin(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_span *counters, ogpu_next_host_span scratch);
+void ogpu_next_capture_end(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_span *counters, ogpu_next_host_span scratch);
+void ogpu_next_draw_byte_count(ogpu_next_encoder *, ogpu_next_span counter, uint32_t offset, uint32_t stride, uint32_t instances, uint32_t first_instance);
+void ogpu_next_set_rasterization_stream(ogpu_next_encoder *, uint32_t stream);
 #define OGPU_NEXT_FEATURE_DYNAMIC_PATCH_CONTROL_POINTS UINT32_C(119)
 #define OGPU_NEXT_FEATURE_DYNAMIC_TESSELLATION_ORIGIN UINT32_C(120)
 #define OGPU_NEXT_DYNAMIC_PATCH_CONTROL_POINTS (UINT64_C(1) << 48)
@@ -2689,8 +2744,8 @@ typedef struct ogpu_next_query_pool_desc {
 ogpu_next_status ogpu_next_query_pool_create(ogpu_next_device *, const ogpu_next_query_pool_desc *, ogpu_next_query_pool **);
 void ogpu_next_query_pool_destroy(ogpu_next_query_pool *);
 void ogpu_next_queries_reset(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count);
-void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, uint32_t flags);
-void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
+void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, uint32_t stream, uint32_t flags);
+void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, uint32_t stream);
 void ogpu_next_timestamp(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, ogpu_next_stages);
 void ogpu_next_queries_resolve(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count, ogpu_next_span dst, uint64_t stride, uint32_t flags);
 typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;

@@ -93,7 +93,8 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                     | SHADING_RATE_STAGE
                     | TESS_CONTROL_STAGE
                     | TESS_EVALUATION_STAGE
-                    | GEOMETRY_STAGE),
+                    | GEOMETRY_STAGE
+                    | CAPTURE_STAGE),
         ),
         (
             GRAPHICS | COMPUTE,
@@ -103,7 +104,8 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                 | GENERATED_COMMANDS
                 | ATTACHMENT_SHADING_RATE
                 | TESSELLATION
-                | GEOMETRY,
+                | GEOMETRY
+                | TRANSFORM_FEEDBACK,
             KNOWN_SCOPES & !256,
         ),
     ] {

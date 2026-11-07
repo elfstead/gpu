@@ -477,21 +477,27 @@ pub unsafe extern "C" fn ogpu_next_query_begin(
     encoder: *mut List,
     pool: *mut QueryPool,
     index: u32,
+    stream: u32,
     flags: u32,
 ) {
     unsafe {
         encode(encoder, |e| {
-            e.query(pool.as_ref().ok_or(INVALID)?, index, true, flags)
+            e.query(pool.as_ref().ok_or(INVALID)?, index, true, flags, stream)
         });
     }
 }
 /// # Safety
 /// Matching active query in this encoder and rendering scope.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_next_query_end(encoder: *mut List, pool: *mut QueryPool, index: u32) {
+pub unsafe extern "C" fn ogpu_next_query_end(
+    encoder: *mut List,
+    pool: *mut QueryPool,
+    index: u32,
+    stream: u32,
+) {
     unsafe {
         encode(encoder, |e| {
-            e.query(pool.as_ref().ok_or(INVALID)?, index, false, 0)
+            e.query(pool.as_ref().ok_or(INVALID)?, index, false, 0, stream)
         });
     }
 }
@@ -1431,6 +1437,97 @@ pub unsafe extern "C" fn ogpu_next_set_tessellation_origin(encoder: *mut List, v
     unsafe {
         encode(encoder, |e| {
             e.extended_raster_value(DYNAMIC_TESSELLATION_ORIGIN_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Writable disjoint output.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_capture_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        unsafe {
+            out.write(rust::capture_scratch_requirements(count)?);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Exclusive recording pool; live spans, disjoint readable input and writable scratch.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_bind_capture_buffers(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    buffers: *const Span,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| e.bind_capture(first, count, buffers, scratch));
+    }
+}
+/// # Safety
+/// Exclusive recording pool; compatible Xfb artifact and live data/counters through GPU use.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_capture_begin(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    counters: *const Span,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.capture(true, first, count, counters, scratch)
+        });
+    }
+}
+/// # Safety
+/// Exclusive recording pool; active capture and live counter outputs through GPU use.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_capture_end(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    counters: *const Span,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.capture(false, first, count, counters, scratch)
+        });
+    }
+}
+/// # Safety
+/// Exclusive recording pool; compatible graphics state and valid native counter/payload.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_draw_byte_count(
+    encoder: *mut List,
+    counter: Span,
+    offset: u32,
+    stride: u32,
+    instances: u32,
+    first_instance: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.draw_byte_count(counter, offset, stride, instances, first_instance)
+        });
+    }
+}
+/// # Safety
+/// Exclusive recording pool; dynamic-state and pipeline/stream obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_rasterization_stream(encoder: *mut List, stream: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_RASTERIZATION_STREAM_STATE, stream)
         });
     }
 }

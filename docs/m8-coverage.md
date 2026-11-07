@@ -36,7 +36,7 @@ remains execution debt:
    profiles pass, including existing dynamic stride with non-unit/zero divisors
    and nonzero first instance. Patch restart is unsupported on the local GPU and
    remains explicitly unverified. No alternative vertex binding mechanism added.
-2. **Distinct raster mechanisms — partly implemented.** [Conservative coverage,
+2. **Distinct raster mechanisms — implemented.** [Conservative coverage,
    line/stipple modes, provoking vertex and depth convention](raster-mechanisms.md)
    now have independent capabilities, physical properties, static records and
    direct dynamic controls, including independent depth clip enable. Local
@@ -59,12 +59,13 @@ remains execution debt:
    now adds eighteen formats through existing operations and assigns every remaining
    native definition to M11 or an explicit later entry criterion. No draw-time synthesis or shader substitute for a
    distinct native mechanism.
-3. **Resolve geometry capture; dynamic patch state is implemented.** Transform feedback,
-   geometry streams and associated counters/queries need their own native
-   capability/profile; address storage writes are not assumed equivalent. Dynamic
-   [patch count and domain origin](dynamic-tessellation.md) now use the existing
-   dynamic-state model with direct native commands and unequal input/output patch
-   evidence. Record capture backend constraints instead of embedding a stream-management runtime.
+3. **Geometry capture and dynamic patch state — implemented.** [Transform feedback,
+   geometry streams and associated counters/queries](geometry-capture.md) now use
+   native address commands and explicit caller scratch. Ordered output, overflow,
+   pause/resume and byte-count draws pass locally; nonzero rasterization-stream
+   selection remains unavailable. [Dynamic patch count/domain origin](dynamic-tessellation.md)
+   use the existing state model with unequal input/output patch evidence. No
+   stream-management runtime or executable permutation synthesis was added.
 4. **Consolidate the contracts and bounded composition evidence.** Integrate local
    reads into a substantial consumer, exercise available depth/MSAA and stage
    combinations, and distinguish artifact-tool limitations from core omissions.
@@ -96,8 +97,8 @@ Before leaving this M8 batch, add or explicitly resolve these ordinary raster ga
 | Multiple viewports/scissors | Implemented: [arrays and independent counts](viewport-arrays.md), physical limits and shader viewport-index capability. Local VS routing passes at 1/4 samples; other stage/secondary/generated composition remains acceptance debt. |
 | Extended depth behavior | Implemented: [unrestricted ranges, user clamp and explicit bias units/exactness](extended-depth-color.md); numerical D32 output and static/dynamic comparisons pass. Other depth formats/combinations remain acceptance debt. |
 | Color write control | Audit complete: [independent enable retained](extended-depth-color.md#why-color-write-enable-is-retained) because a dynamic-mask-only model loses a separately exposed native capability. Static/dynamic enables over component masks pass at 1/4 samples. |
-| Tessellation controls | Dynamic patch count and domain origin belong with step 3; they are concrete work before M9, not a later unspecified extension. |
-| Geometry capture/streams | Step 3 includes native transform-feedback counters, stream selection and associated queries; ordinary storage writes are not presumed equivalent. |
+| Tessellation controls | Implemented in step 3: dynamic patch count and domain origin with unequal input/output patch execution. |
+| Geometry capture/streams | Step 3 implements native transform-feedback counters, stream selection and associated queries; ordinary storage writes are not presumed equivalent. |
 
 This is a concrete completion list for the current raster scope, not a declaration
 that every vendor-only extension is required. The format inventory and final M8

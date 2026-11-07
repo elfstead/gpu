@@ -129,14 +129,14 @@ static int raster_controls_execution(ogpu_next_device *device,ogpu_next_memory_d
             ogpu_next_set_vertex_input(e,&input,(ogpu_next_host_span){input_scratch,vi.size});
         }
         if(fetch){ogpu_next_vertex_buffer_binding vb={{memory,128,192},dynamic?32u:0u,dynamic?OGPU_NEXT_VERTEX_BIND_STRIDE:0};ogpu_next_bind_vertices(e,binding_id,1,&vb,(ogpu_next_host_span){vertex_scratch,vr.size});}
-        if(statistics)ogpu_next_query_begin(e,statistics,0,0);
+        if(statistics)ogpu_next_query_begin(e,statistics,0,0,0);
         ogpu_next_draw_desc draw={point?1u:restart?5u:fetch?6u:3u,fetch?4u:1u,0,first,0};
         if(restart){ogpu_next_bind_indices(e,(ogpu_next_span){memory,320,20},OGPU_NEXT_INDEX_U32);ogpu_next_draw_indexed(e,&draw);}else if(mode==15) {
             draw.instances=2;ogpu_next_draw(e,&draw);
             entry.divisor=0;ogpu_next_set_vertex_input(e,&input,(ogpu_next_host_span){input_scratch,vi.size});
             draw.first_instance=2;ogpu_next_draw(e,&draw); /* Same executable, different divisor. */
         } else ogpu_next_draw(e,&draw);
-        if(statistics)ogpu_next_query_end(e,statistics,0);
+        if(statistics)ogpu_next_query_end(e,statistics,0,0);
         ogpu_next_render_end(e);
         ib=(ogpu_next_image_barrier){{OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},image,range,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0,NULL};ogpu_next_barrier(e,&dep,bs);
         ogpu_next_image_copy copy={{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};ogpu_next_copy_from_image(e,(ogpu_next_span){memory,1024,256},image,&copy);

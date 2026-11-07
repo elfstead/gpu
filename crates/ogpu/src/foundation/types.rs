@@ -25,9 +25,12 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 12;
+pub const VERSION: u32 = 13;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const TRANSFORM_FEEDBACK: u32 = 121;
+    pub const GEOMETRY_STREAMS: u32 = 122;
+    pub const DYNAMIC_RASTERIZATION_STREAM: u32 = 123;
     pub const DYNAMIC_PATCH_CONTROL_POINTS: u32 = 119;
     pub const DYNAMIC_TESSELLATION_ORIGIN: u32 = 120;
     pub const UNRESTRICTED_DEPTH_RANGE: u32 = 112;
@@ -745,6 +748,8 @@ pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
     for (dynamic, base) in [
+        (TRANSFORM_FEEDBACK, RASTER),
+        (GEOMETRY_STREAMS, GEOMETRY),
         (
             DEPTH_BIAS_UNORM | DEPTH_BIAS_FLOAT | DEPTH_BIAS_EXACT,
             DEPTH_BIAS_CONTROL,
@@ -2212,4 +2217,37 @@ pub struct ColorWriteState {
     pub count: u32,
     pub reserved: u32,
     pub enables: *const u32,
+}
+
+pub const CAPTURE_LIMITS: u32 = 29;
+pub const RASTERIZATION_STREAM_STATE: u32 = 146;
+pub const CAPTURE_USAGE: u64 = 1 << 9;
+pub const CAPTURE_COUNTER_USAGE: u64 = 1 << 10;
+pub const CAPTURE_STAGE: u64 = 1 << 27;
+pub const CAPTURE_WRITE: u64 = 1 << 25;
+pub const CAPTURE_COUNTER_READ: u64 = 1 << 26;
+pub const CAPTURE_COUNTER_WRITE: u64 = 1 << 27;
+pub const DYNAMIC_RASTERIZATION_STREAM_STATE: u64 = 1 << 50;
+pub const QUERY_CAPTURE_STREAM: u32 = 4;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CaptureLimits {
+    pub max_streams: u32,
+    pub max_buffers: u32,
+    pub max_buffer_size: u64,
+    pub max_stream_data_size: u32,
+    pub max_buffer_data_size: u32,
+    pub max_stride: u32,
+    pub queries: u32,
+    pub streams_lines_triangles: u32,
+    pub rasterization_stream_select: u32,
+    pub draw_byte_count: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RasterizationStream {
+    pub header: Record,
+    pub stream: u32,
+    pub reserved: u32,
 }

@@ -191,3 +191,11 @@ vkCmdSetColorWriteEnableEXT
 
 vkCmdSetPatchControlPointsEXT
 vkCmdSetTessellationDomainOriginEXT
+
+vkCmdBindTransformFeedbackBuffers2EXT
+vkCmdBeginTransformFeedback2EXT
+vkCmdEndTransformFeedback2EXT
+vkCmdDrawIndirectByteCount2EXT
+vkCmdBeginQueryIndexedEXT
+vkCmdEndQueryIndexedEXT
+vkCmdSetRasterizationStreamEXT

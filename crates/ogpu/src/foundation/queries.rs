@@ -44,6 +44,11 @@ impl QueryPool {
             3 if d.snapshot.features.enabled & PIPELINE_STATISTICS != 0 => {
                 vk::VkQueryType_VK_QUERY_TYPE_PIPELINE_STATISTICS
             }
+            4 if d.snapshot.features.enabled & TRANSFORM_FEEDBACK != 0
+                && d.snapshot.capture_limits.queries != 0 =>
+            {
+                vk::VkQueryType_VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT
+            }
             _ => return Err(UNSUPPORTED),
         };
         let info = vk::VkQueryPoolCreateInfo {
@@ -118,6 +123,8 @@ pub(super) fn result_layout(
     let width = if flags & 1 != 0 { 8 } else { 4 };
     let values = if kind == 3 {
         u64::from(statistics.count_ones())
+    } else if kind == 4 {
+        2
     } else {
         1
     };
@@ -188,6 +195,13 @@ mod tests {
         unsafe {
             DESTROY.get().unwrap()(d, pool, a);
         }
+    }
+    #[test]
+    fn capture_results_have_two_counters_before_availability() {
+        assert_eq!(result_layout(4, 0, 1, 0, 1).unwrap().0, 16);
+        assert_eq!(result_layout(4, 0, 2, 24, 3).unwrap().0, 48);
+        assert_eq!(result_layout(4, 0, 3, 12, 2).unwrap().0, 36);
+        assert_eq!(controls(4, FeatureBits::MAX, 1), Err(INVALID));
     }
     #[test]
     #[ignore = "requires modern Vulkan; query allocation failure cleanup and synthetic sticky loss"]

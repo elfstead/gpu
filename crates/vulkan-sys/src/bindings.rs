@@ -12682,6 +12682,46 @@ impl Default for VkDrawIndirectCount2InfoKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBindTransformFeedbackBuffer2InfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub addressRange: VkDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBindTransformFeedbackBuffer2InfoEXT",
+    ][::std::mem::size_of::<VkBindTransformFeedbackBuffer2InfoEXT>() - 40usize];
+    [
+        "Alignment of VkBindTransformFeedbackBuffer2InfoEXT",
+    ][::std::mem::align_of::<VkBindTransformFeedbackBuffer2InfoEXT>() - 8usize];
+    [
+        "Offset of field: VkBindTransformFeedbackBuffer2InfoEXT::sType",
+    ][::std::mem::offset_of!(VkBindTransformFeedbackBuffer2InfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkBindTransformFeedbackBuffer2InfoEXT::pNext",
+    ][::std::mem::offset_of!(VkBindTransformFeedbackBuffer2InfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkBindTransformFeedbackBuffer2InfoEXT::addressRange",
+    ][::std::mem::offset_of!(VkBindTransformFeedbackBuffer2InfoEXT, addressRange)
+        - 16usize];
+    [
+        "Offset of field: VkBindTransformFeedbackBuffer2InfoEXT::addressFlags",
+    ][::std::mem::offset_of!(VkBindTransformFeedbackBuffer2InfoEXT, addressFlags)
+        - 32usize];
+};
+impl Default for VkBindTransformFeedbackBuffer2InfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type PFN_vkCmdBindIndexBuffer3KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -12736,6 +12776,40 @@ pub type PFN_vkCmdDrawIndexedIndirectCount2KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pInfo: *const VkDrawIndirectCount2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdBindTransformFeedbackBuffers2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstBinding: u32,
+        bindingCount: u32,
+        pBindingInfos: *const VkBindTransformFeedbackBuffer2InfoEXT,
+    ),
+>;
+pub type PFN_vkCmdBeginTransformFeedback2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstCounterRange: u32,
+        counterRangeCount: u32,
+        pCounterInfos: *const VkBindTransformFeedbackBuffer2InfoEXT,
+    ),
+>;
+pub type PFN_vkCmdEndTransformFeedback2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstCounterRange: u32,
+        counterRangeCount: u32,
+        pCounterInfos: *const VkBindTransformFeedbackBuffer2InfoEXT,
+    ),
+>;
+pub type PFN_vkCmdDrawIndirectByteCount2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        instanceCount: u32,
+        firstInstance: u32,
+        pCounterInfo: *const VkBindTransformFeedbackBuffer2InfoEXT,
+        counterOffset: u32,
+        vertexStride: u32,
     ),
 >;
 pub type PFN_vkCmdDrawMeshTasksIndirect2EXT = ::std::option::Option<
@@ -13422,6 +13496,210 @@ impl Default for VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
         }
     }
 }
+pub type VkPipelineRasterizationStateStreamCreateFlagsEXT = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceTransformFeedbackFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub transformFeedback: VkBool32,
+    pub geometryStreams: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceTransformFeedbackFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceTransformFeedbackFeaturesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceTransformFeedbackFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceTransformFeedbackFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceTransformFeedbackFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceTransformFeedbackFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackFeaturesEXT::transformFeedback",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackFeaturesEXT, transformFeedback
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackFeaturesEXT::geometryStreams",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackFeaturesEXT, geometryStreams
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceTransformFeedbackFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceTransformFeedbackPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxTransformFeedbackStreams: u32,
+    pub maxTransformFeedbackBuffers: u32,
+    pub maxTransformFeedbackBufferSize: VkDeviceSize,
+    pub maxTransformFeedbackStreamDataSize: u32,
+    pub maxTransformFeedbackBufferDataSize: u32,
+    pub maxTransformFeedbackBufferDataStride: u32,
+    pub transformFeedbackQueries: VkBool32,
+    pub transformFeedbackStreamsLinesTriangles: VkBool32,
+    pub transformFeedbackRasterizationStreamSelect: VkBool32,
+    pub transformFeedbackDraw: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceTransformFeedbackPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceTransformFeedbackPropertiesEXT>() - 64usize];
+    [
+        "Alignment of VkPhysicalDeviceTransformFeedbackPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceTransformFeedbackPropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceTransformFeedbackPropertiesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceTransformFeedbackPropertiesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::maxTransformFeedbackStreams",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT, maxTransformFeedbackStreams
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::maxTransformFeedbackBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT, maxTransformFeedbackBuffers
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::maxTransformFeedbackBufferSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT, maxTransformFeedbackBufferSize
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::maxTransformFeedbackStreamDataSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT,
+        maxTransformFeedbackStreamDataSize
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::maxTransformFeedbackBufferDataSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT,
+        maxTransformFeedbackBufferDataSize
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::maxTransformFeedbackBufferDataStride",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT,
+        maxTransformFeedbackBufferDataStride
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::transformFeedbackQueries",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT, transformFeedbackQueries
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::transformFeedbackStreamsLinesTriangles",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT,
+        transformFeedbackStreamsLinesTriangles
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::transformFeedbackRasterizationStreamSelect",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT,
+        transformFeedbackRasterizationStreamSelect
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceTransformFeedbackPropertiesEXT::transformFeedbackDraw",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTransformFeedbackPropertiesEXT, transformFeedbackDraw
+    ) - 56usize];
+};
+impl Default for VkPhysicalDeviceTransformFeedbackPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRasterizationStateStreamCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineRasterizationStateStreamCreateFlagsEXT,
+    pub rasterizationStream: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRasterizationStateStreamCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineRasterizationStateStreamCreateInfoEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPipelineRasterizationStateStreamCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineRasterizationStateStreamCreateInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateStreamCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateStreamCreateInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateStreamCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateStreamCreateInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateStreamCreateInfoEXT::flags",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateStreamCreateInfoEXT, flags)
+        - 16usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateStreamCreateInfoEXT::rasterizationStream",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationStateStreamCreateInfoEXT, rasterizationStream
+    ) - 20usize];
+};
+impl Default for VkPipelineRasterizationStateStreamCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdBeginQueryIndexedEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        queryPool: VkQueryPool,
+        query: u32,
+        flags: VkQueryControlFlags,
+        index: u32,
+    ),
+>;
+pub type PFN_vkCmdEndQueryIndexedEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        queryPool: VkQueryPool,
+        query: u32,
+        index: u32,
+    ),
+>;
 pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT: VkConservativeRasterizationModeEXT = 0;
 pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT: VkConservativeRasterizationModeEXT = 1;
 pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT: VkConservativeRasterizationModeEXT = 2;
@@ -16451,6 +16729,9 @@ pub type PFN_vkCmdSetTessellationDomainOriginEXT = ::std::option::Option<
         commandBuffer: VkCommandBuffer,
         domainOrigin: VkTessellationDomainOrigin,
     ),
+>;
+pub type PFN_vkCmdSetRasterizationStreamEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, rasterizationStream: u32),
 >;
 pub type PFN_vkCmdSetConservativeRasterizationModeEXT = ::std::option::Option<
     unsafe extern "C" fn(

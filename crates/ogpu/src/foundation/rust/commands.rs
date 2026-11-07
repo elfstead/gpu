@@ -63,8 +63,8 @@ record!(/// Referenced secondary lists/arenas outlive the primary and all execut
     fn execute_lists(list, lists: &[ListHandle], scratch: HostSpan) |e| e.execute(count(lists.len())?, lists.as_ptr().cast(), scratch));
 record!(/// Caller orders query reset and use; no pending query may be reset unsafely.
     fn queries_reset(list, pool: QueryPoolHandle, first: u32, count: u32) |e| e.queries_reset(pool.get(), first, count));
-record!(fn query_begin(list, pool: QueryPoolHandle, index: u32, flags: u32) |e| e.query(pool.get(), index, true, flags));
-record!(fn query_end(list, pool: QueryPoolHandle, index: u32) |e| e.query(pool.get(), index, false, 0));
+record!(fn query_begin(list, pool: QueryPoolHandle, index: u32, stream:u32, flags: u32) |e| e.query(pool.get(), index, true, flags,stream));
+record!(fn query_end(list, pool: QueryPoolHandle, index: u32, stream:u32) |e| e.query(pool.get(), index, false, 0,stream));
 record!(fn timestamp(list, pool: QueryPoolHandle, index: u32, scope: u64) |e| e.timestamp(pool.get(), index, scope));
 record!(#[allow(clippy::too_many_arguments)]
     fn queries_resolve(list, pool: QueryPoolHandle, first: u32, count: u32, dst: Span, stride: u64, flags: u32) |e| e.queries_resolve(pool.get(), first, count, dst, stride, flags));
@@ -179,3 +179,10 @@ record!(fn set_color_write_enable(list,enables:&[u32]) |e| e.color_write_enable(
 record!(fn set_patch_control_points(list,value:u32) |e| e.extended_raster_value(DYNAMIC_PATCH_CONTROL_POINTS_STATE,value));
 
 record!(fn set_tessellation_origin(list,value:u32) |e| e.extended_raster_value(DYNAMIC_TESSELLATION_ORIGIN_STATE,value));
+
+scratch!(capture_scratch_requirements, capture_scratch);
+record!(fn bind_capture_buffers(list,first:u32,buffers:&[Span],scratch:HostSpan) |e| e.bind_capture(first,count(buffers.len())?,buffers.as_ptr(),scratch));
+record!(fn capture_begin(list,first:u32,counters:&[Span],scratch:HostSpan) |e| e.capture(true,first,count(counters.len())?,counters.as_ptr(),scratch));
+record!(fn capture_end(list,first:u32,counters:&[Span],scratch:HostSpan) |e| e.capture(false,first,count(counters.len())?,counters.as_ptr(),scratch));
+record!(fn draw_byte_count(list,counter:Span,offset:u32,stride:u32,instances:u32,first_instance:u32) |e| e.draw_byte_count(counter,offset,stride,instances,first_instance));
+record!(fn set_rasterization_stream(list,stream:u32) |e| e.extended_raster_value(DYNAMIC_RASTERIZATION_STREAM_STATE,stream));
