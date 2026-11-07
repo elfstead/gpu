@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 12,
+  "implementation": "4b6b2ca4d640ccb10ee0e2f6b70c859ad069edbe",
+  "source_dirty": false,
+  "runtime_sha256": "dc79854a548cb241be8554543785b41e044362f2ccd6923cbe0949642e42c53b",
+  "checks": {
+    "host_tests": 118,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "tool_tests": 21,
+    "abi_values": 2347,
+    "surface": {
+      "operations": 190,
+      "records": 160,
+      "constants": 297,
+      "values": 1532
+    },
+    "clippy": "pass",
+    "bindings": "reproduce",
+    "shader_artifacts": 72,
+    "depth": {
+      "profiles": 5,
+      "submissions": 20,
+      "color_depth_pairs": 1280,
+      "rejected_recordings": 5
+    },
+    "extended_raster": {
+      "profiles": 12,
+      "submissions": 96,
+      "pixels": 12288,
+      "rejected_recordings": 12
+    },
+    "validation_errors": 0,
+    "preexisting_warnings": 4,
+    "installed_c": "optimized fixture pass",
+    "native_rust": "relocated build, correspondence, missing-loader and headless pass"
+  },
+  "unverified": [
+    "other depth formats and bias/sample-shading combinations",
+    "geometry/mesh and secondary/generated compositions",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-depth-color-sdk/share/ogpu/manifest.json": "d15d37ded9d7dab4de4049f3e48eca1dc46bb6820fa35057f85413385131ba62",
+    "/tmp/ogpu-rust-external-7n3aax97/report.json": "17d2c6e52aefc97ab2e473f28b98d747816deb09caa93dfc17e17070a68bb848",
+    "/tmp/ogpu-run-depth-color-installed.py": "b53d90e83fc2cc3b5a8a2c873a5fde5de137e72087a74115f50d420e42b9997e",
+    "/tmp/ogpu-raster-profiles-abi.log": "785561ec7e0826112df6bd77c4ed62cf8e4acc89989abcb03adc0db4417448c0",
+    "/tmp/ogpu-raster-profiles-bindings-check.log": "2ec25bb29243e3d493f84ab9480033724c8161cb10b82a66e9d8837d850019f6",
+    "/tmp/ogpu-raster-profiles-bindings.log": "e5ec499f9160034ef86e586f6fc6d9b53a05dbb71d5875b693ec882a6d21ad61",
+    "/tmp/ogpu-raster-profiles-clippy.log": "579846048ef7cf88806a8e006d868581ec5880c8d71624f796393def7f38c91b",
+    "/tmp/ogpu-raster-profiles-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/ogpu-raster-profiles-gpu.log": "1dc3744e5e6402635082d07dc3bf079a559536e108bee67f4ef97828568a1d25",
+    "/tmp/ogpu-raster-profiles-host.log": "060a40a905698cf85871d7f91d672fc283ab8b7db32748a7e91553d2a8da389d",
+    "/tmp/ogpu-raster-profiles-install.log": "c8d884dc044e73c93ba4ac26a43449f64c20dc04c21670d43ca407640f6b6b12",
+    "/tmp/ogpu-raster-profiles-installed-fixture.log": "6e091c186fd2ca756cd64a56b5c92dedc803905910a10467d912b0fd6de07bf5",
+    "/tmp/ogpu-raster-profiles-native.log": "9caec52a2560b6595b1edc74e9a8f6bf6d74125ec807668f6098f0a68e394f88",
+    "/tmp/ogpu-raster-profiles-rust-sdk.log": "5d88dfeee91ce9e73d9187ffcd4cdbca165b8b4954fb3a9f88064064a86e2585",
+    "/tmp/ogpu-raster-profiles-surface.log": "f7d53dcc18ddc515b91f50175c4995f1650b44fda621deaadda3853d7d964e70",
+    "/tmp/ogpu-raster-profiles-tools.log": "04ce7fcf38798cce0e2935abf866b8b59701a2532cb3714f92e12cfd3995e62c"
+  }
+}

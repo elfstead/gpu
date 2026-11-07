@@ -98,3 +98,8 @@ four existing unused-output warnings. Strict Clippy, 2,347 ABI values, the surfa
 inventory (190 operations / 160 records / 297 constants / 1,532 values), pinned
 binding reproduction and 21 tooling tests pass. All shader artifacts are unchanged
 from the preceding validated viewport commit; the fixture still takes 72 inputs.
+
+Clean committed SDK acceptance at `4b6b2ca` passes the optimized installed C fixture
+and isolated native Rust build/correspondence/missing-loader/headless checks. The
+[machine-readable receipt](results/m8-depth-color-2026-11-07.json) records provenance
+and hashes; no new native warnings were introduced.
