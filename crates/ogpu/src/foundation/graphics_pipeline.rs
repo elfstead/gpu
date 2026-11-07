@@ -929,6 +929,7 @@ pub(super) unsafe fn prepare(
         stages: stage_mask,
         view_mask: state.view_mask,
         indirect_bindable: desc.compile_flags & 2 != 0,
+        dispatch_origin: false,
         dynamic_state: desc.dynamic_state,
         vertex_bindings: vertex_bindings.iter().map(|b| b.binding).collect(),
         ray_groups: Box::new([]),

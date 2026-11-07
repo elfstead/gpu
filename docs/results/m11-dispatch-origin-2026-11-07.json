@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M11 native dispatch origins",
+  "revision": 13,
+  "origin": [
+    2,
+    1,
+    1
+  ],
+  "groups": [
+    2,
+    2,
+    1
+  ],
+  "input_phases": 2,
+  "native_shader_workgroup_ids_checked": 8,
+  "untouched_grid_slots_checked": 120,
+  "guarded_allocation_bytes": 4096,
+  "missing_pipeline_permission": "rejected before native dispatch",
+  "validation_errors": 0,
+  "regression": "four prior shader profiles and full C foundation fixture pass",
+  "checks": {
+    "host_tests": 136,
+    "c_rust_signatures": 233,
+    "abi_records": 199,
+    "explicit_constants": 467,
+    "layout_values": 2584,
+    "strict_clippy": "pass",
+    "shader_reproduction": "Slang 2026.14.1, spirv-val Vulkan 1.4"
+  },
+  "not_claimed": [
+    "dynamic shared-memory launch",
+    "dynamic local shape",
+    "cooperative grid/cluster launch",
+    "device enqueue"
+  ],
+  "logs": [
+    "/tmp/ogpu-m11-origin-gpu.log",
+    "/tmp/ogpu-m11-origin-host.log",
+    "/tmp/ogpu-m11-origin-clippy.log",
+    "/tmp/ogpu-m11-origin-foundation.log",
+    "/tmp/ogpu-m11-origin-surface.log",
+    "/tmp/ogpu-m11-origin-abi.log",
+    "/tmp/ogpu-m11-origin-shader-check.log"
+  ]
+}

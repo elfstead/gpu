@@ -1,0 +1,36 @@
+{
+  "source": {
+    "revision": "74d3771c1ca68d34f794a20a0211b3f90eee879a",
+    "source_dirty": false,
+    "target": "x86_64-unknown-linux-gnu",
+    "manifest": "examples/foundation_rust/Cargo.toml",
+    "default_features": false,
+    "registry_dependencies": "Cargo.lock pinned; fetch or supply a Cargo cache; not vendored",
+    "linkage": "native Rust source, not the SDK C shared library"
+  },
+  "complete": true,
+  "build": true,
+  "runs": [
+    "headless",
+    "native-interop",
+    "execution-controls",
+    "shader-profiles"
+  ],
+  "human_acceptance": "unverified",
+  "external_environment": {
+    "OGPU_EXTERNAL_SYNC_CONTROL": null
+  },
+  "ray_environment": {
+    "RADV_EXPERIMENTAL": null,
+    "OGPU_RAY_GENERATED": null
+  },
+  "date": "2026-11-07",
+  "scope": "M11 intermediate checkpoint; predates native dispatch origin",
+  "prefix": "/tmp/ogpu-m11-profiles-sdk",
+  "artifact_root": "/tmp/ogpu-rust-external-v1bdp4fx",
+  "validation": "VVL 1.4.357 with synchronization validation; zero errors",
+  "logs": [
+    "/tmp/ogpu-m11-profiles-sdk-install.log",
+    "/tmp/ogpu-m11-profiles-sdk-rust.log"
+  ]
+}

@@ -77,8 +77,10 @@ shader/vertex execution remains separate. GPU conditionals and primitive-generat
 queries are implemented through C and direct Rust. Local primary compute/draw
 predication and primitive queries without transform feedback pass; inherited
 conditional execution is unavailable on this device. The selected shader profiles are now implemented (32 independent native enables;
-four bounded artifact consumers pass). Richer launch/matrix mapping and artifacts
-are next; no hardware-matrix acceptance is claimed.
+four bounded artifact consumers pass). The [launch/matrix audit](m11-launch-mapping.md) is recorded and native dispatch
+origins now pass. Extended matrix profiles, the accelerated ML consumer and binaries
+are next; native execution graphs remain an explicit subsequent package. No
+hardware-matrix acceptance is claimed.
 The remaining rows are scheduled work, not implemented claims or vague examples.
 
 ## GPU execution controls (2026-11-07)
@@ -178,3 +180,14 @@ consumers and all embedded shader inputs; its relocated checker exposes
 `--execution-controls --shader-profiles`. Full clean SDK consolidation remains a
 milestone exit, separate from this implementation/consumer batch.
 [Receipt](results/m11-shader-profiles-2026-11-07.json).
+
+## Intermediate source SDK checkpoint
+
+Clean source `74d3771c1ca68d34f794a20a0211b3f90eee879a` installed at
+`/tmp/ogpu-m11-profiles-sdk` and rebuilt independently at
+`/tmp/ogpu-rust-external-v1bdp4fx`. All nine consumer binaries built; depfile and
+linkage checks kept every input in the relocated source bundle. Headless,
+native interoperability, primary execution controls and four shader-profile
+artifacts passed with validation, as did host and missing-loader checks.
+This checkpoint predates the dispatch-origin addition and is not M11 completion.
+[Receipt](results/m11-profiles-sdk-2026-11-07.json).

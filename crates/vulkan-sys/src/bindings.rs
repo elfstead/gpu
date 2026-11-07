@@ -8467,6 +8467,17 @@ pub type PFN_vkGetPhysicalDeviceExternalSemaphoreProperties = ::std::option::Opt
         pExternalSemaphoreProperties: *mut VkExternalSemaphoreProperties,
     ),
 >;
+pub type PFN_vkCmdDispatchBase = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        baseGroupX: u32,
+        baseGroupY: u32,
+        baseGroupZ: u32,
+        groupCountX: u32,
+        groupCountY: u32,
+        groupCountZ: u32,
+    ),
+>;
 pub const VkDriverId_VK_DRIVER_ID_AMD_PROPRIETARY: VkDriverId = 1;
 pub const VkDriverId_VK_DRIVER_ID_AMD_OPEN_SOURCE: VkDriverId = 2;
 pub const VkDriverId_VK_DRIVER_ID_MESA_RADV: VkDriverId = 3;
@@ -11706,6 +11717,7 @@ pub type VkBufferUsageFlagBits2 = VkFlags64;
 pub const VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT: VkBufferUsageFlagBits2 = 2147483648;
 pub type VkPipelineCreateFlags2 = VkFlags64;
 pub type VkPipelineCreateFlagBits2 = VkFlags64;
+pub const VK_PIPELINE_CREATE_2_DISPATCH_BASE_BIT: VkPipelineCreateFlagBits2 = 16;
 pub const VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT: VkPipelineCreateFlagBits2 = 256;
 pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits2 = 68719476736;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_BUILT_IN_PRIMITIVES_BIT_KHR: VkPipelineCreateFlagBits2 = 4096;

@@ -394,7 +394,10 @@ consumer passes primary draw/compute predicates and counters without capture.
 Inheritance is locally unavailable; abandoned-scope reset has a separately recorded
 VVL diagnostic. Thirty-two remaining shader capability profiles now have exact
 native enablement; four public Rust artifacts pass rotation/derivative/narrow-storage
-checks. Richer launch/matrix mapping and pipeline artifacts follow.
+checks. The launch/matrix mapping audit is recorded; native workgroup origins now
+pass without shader-ID rewriting. Extended matrix profiles, accelerated ML consumer,
+pipeline artifacts and native execution-graph profiles precede media. See the
+[concrete mapping packages](m11-launch-mapping.md).
 
 M9's [implemented boundary and clean SDK handoff](m9-consolidation.md) are complete
 for the Vulkan/Linux diagnostic scope. The source-only Rust SDK runs all four ray

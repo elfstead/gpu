@@ -10,7 +10,7 @@ struct Profile {
     local: [u32; 3],
     words: usize,
 }
-const PROFILES: [Profile; 4] = [
+const PROFILES: [Profile; 5] = [
     Profile {
         name: c"rotateMain",
         code: include_bytes!("../../../shaders/foundation-shader-profiles.rotate.comp.spv"),
@@ -45,6 +45,13 @@ const PROFILES: [Profile; 4] = [
             feature_ids::INT16,
         ],
         local: [64, 1, 1],
+        words: 64,
+    },
+    Profile {
+        name: c"originMain",
+        code: include_bytes!("../../../shaders/foundation-shader-profiles.origin.comp.spv"),
+        features: &[],
+        local: [1, 1, 1],
         words: 64,
     },
 ];
@@ -153,16 +160,22 @@ pub fn run() -> gpu::Result<()> {
                 dynamic_state: 0,
                 requirements: &requirements.header,
                 cache: ptr::null_mut(),
-                compile_flags: 0,
+                compile_flags: if kind == 4 {
+                    COMPILE_DISPATCH_ORIGIN
+                } else {
+                    0
+                },
                 reserved: 0,
             };
             // The same declaration must fail on a device which did not enable it.
             let base_device = gpu::device_create(adapter, &requests, &[])?;
             let base_arguments = gpu::argument_layout_create(base_device, &ld)?;
-            assert_eq!(
-                gpu::executable_create(base_device, &ed, base_arguments),
-                Err(UNSUPPORTED)
-            );
+            if !p.features.is_empty() {
+                assert_eq!(
+                    gpu::executable_create(base_device, &ed, base_arguments),
+                    Err(UNSUPPORTED)
+                );
+            }
             gpu::argument_layout_destroy(base_arguments);
             gpu::device_destroy(base_device);
             let pipeline = gpu::executable_create(device, &ed, arguments)?;
@@ -208,12 +221,25 @@ pub fn run() -> gpu::Result<()> {
                 let list = gpu::commands_begin(arena, &rd)?;
                 gpu::bind_executable(list, pipeline);
                 gpu::set_arguments(list, arguments, 0, &root);
+                let origin = DispatchOrigin {
+                    header: Record::new::<DispatchOrigin>(DISPATCH_ORIGIN),
+                    base: [2, 1, 1],
+                    reserved: 0,
+                };
                 gpu::dispatch(
                     list,
                     &Launch {
-                        groups: Extent { x: 1, y: 1, z: 1 },
+                        groups: if kind == 4 {
+                            Extent { x: 2, y: 2, z: 1 }
+                        } else {
+                            Extent { x: 1, y: 1, z: 1 }
+                        },
                         dynamic_shared_bytes: 0,
-                        extensions: ptr::null(),
+                        extensions: if kind == 4 {
+                            &origin.header
+                        } else {
+                            ptr::null()
+                        },
                     },
                 );
                 let scope = BarrierScope {
@@ -277,6 +303,20 @@ pub fn run() -> gpu::Result<()> {
                                 if kind == 1 { 2.0 } else { 8.0 }
                             );
                         }
+                        4 => {
+                            let x = i % 8;
+                            let y = (i / 8) % 4;
+                            let z = i / 32;
+                            let selected = (2..4).contains(&x) && (1..3).contains(&y) && z == 1;
+                            assert_eq!(
+                                values[i],
+                                if selected {
+                                    seed + x as u32 + y as u32 * 256 + z as u32 * 65536
+                                } else {
+                                    0xcdcdcdcd
+                                }
+                            );
+                        }
                         _ => assert_eq!(values[i], seed + (0x1234 + phase as u32) * 256 + i as u32),
                     }
                 }
@@ -287,6 +327,34 @@ pub fn run() -> gpu::Result<()> {
                     .all(|b| *b == 0xcd));
                 gpu::arena_reset(arena)?;
             }
+            if kind == 4 {
+                let plain = gpu::executable_create(
+                    device,
+                    &ExecutableDesc {
+                        compile_flags: 0,
+                        ..ed
+                    },
+                    arguments,
+                )?;
+                let list = gpu::commands_begin(arena, &rd)?;
+                gpu::bind_executable(list, plain);
+                let origin = DispatchOrigin {
+                    header: Record::new::<DispatchOrigin>(DISPATCH_ORIGIN),
+                    base: [1, 0, 0],
+                    reserved: 0,
+                };
+                gpu::dispatch(
+                    list,
+                    &Launch {
+                        groups: Extent { x: 1, y: 1, z: 1 },
+                        dynamic_shared_bytes: 0,
+                        extensions: &origin.header,
+                    },
+                );
+                assert_eq!(gpu::commands_end(list), Err(INVALID));
+                gpu::arena_reset(arena)?;
+                gpu::executable_destroy(plain);
+            }
             gpu::arena_destroy(arena);
             gpu::timeline_destroy(done);
             gpu::executable_destroy(pipeline);
@@ -295,7 +363,10 @@ pub fn run() -> gpu::Result<()> {
             gpu::memory_destroy(memory);
             gpu::device_destroy(device);
             executed += 1;
-            println!("SHADER_PROFILE_PASS={:?} invocations=128 guards=pass disabled-requirements=rejected",p.name);
+            println!(
+                "SHADER_PROFILE_PASS={:?} phases=2 guards=pass required-enablement=checked",
+                p.name
+            );
         }
     }
     if executed == 0 {

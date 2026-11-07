@@ -39,3 +39,10 @@ struct NarrowControl { uint* output; uint8_t small; uint8_t pad; uint16_t medium
 void narrowPush(uint3 id : SV_DispatchThreadID) {
     narrow.output[id.x] = uint(narrow.small) + uint(narrow.medium) * 256 + id.x;
 }
+
+[shader("compute")]
+[numthreads(1, 1, 1)]
+void originMain(uint3 group : SV_GroupID) {
+    uint index = (group.z * 4 + group.y) * 8 + group.x;
+    control.output[index] = control.seed + group.x + group.y * 256 + group.z * 65536;
+}

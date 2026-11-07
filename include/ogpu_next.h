@@ -3990,6 +3990,24 @@ typedef struct ogpu_next_shader_profile_limits { uint64_t derivative_stages; } o
  * Subgroup rotate operation bits describe physical support; their feature IDs
  * independently control device enablement. No enabled capability is inferred. */
 
+
+#define OGPU_NEXT_COMPILE_DISPATCH_ORIGIN UINT32_C(8)
+#define OGPU_NEXT_DISPATCH_ORIGIN UINT32_C(151)
+typedef struct ogpu_next_dispatch_origin {
+    ogpu_next_record header;
+    uint32_t base[3], reserved;
+} ogpu_next_dispatch_origin;
+/* Launch.extensions optionally names DISPATCH_ORIGIN (reserved=0, no next).
+ * Each base is below max_groups; groups <= max_groups-base, without overflow.
+ * Nonzero origins require COMPILE_DISPATCH_ORIGIN on the compute executable.
+ * The shader sees native workgroup/global IDs with this origin; NumWorkgroups
+ * remains the dispatched group count. There is no shader-ID rewrite or dispatch
+ * splitting. This option neither changes shared-memory size nor promises a grid
+ * barrier or cooperative launch. Indirect launch retains its native zero origin.
+ * The flag is invalid for graphics/ray executables. A zero origin is permitted
+ * without the flag. Ordinary launches keep their existing direct native command.
+ */
+
 #ifdef __cplusplus
 }
 #endif

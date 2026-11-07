@@ -231,3 +231,4 @@ vkGetDeviceImageSparseMemoryRequirements
 
 vkCmdBeginConditionalRendering2EXT
 vkCmdEndConditionalRenderingEXT
+vkCmdDispatchBase

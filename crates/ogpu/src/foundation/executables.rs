@@ -16,6 +16,7 @@ pub struct Executable {
     pub(super) stages: u64,
     pub(super) view_mask: u32,
     pub(super) indirect_bindable: bool,
+    pub(super) dispatch_origin: bool,
     pub(super) dynamic_state: u64,
     pub(super) vertex_bindings: Box<[u32]>,
     pub(super) ray_groups: Box<[u8]>,
@@ -73,7 +74,7 @@ unsafe fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Statu
     Ok(())
 }
 fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64, Status> {
-    if flags & !7 != 0
+    if flags & !15 != 0
         || reserved != 0
         || (flags & 1 != 0 && enabled & CACHE_CONTROL == 0)
         || (flags & 2 != 0 && enabled & GENERATED_COMMANDS == 0)
@@ -82,6 +83,11 @@ fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64,
         return Err(UNSUPPORTED);
     }
     Ok(vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+        | if flags & COMPILE_DISPATCH_ORIGIN != 0 {
+            vk::VK_PIPELINE_CREATE_2_DISPATCH_BASE_BIT
+        } else {
+            0
+        }
         | if flags & 4 != 0 {
             vk::VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR
         } else {
@@ -126,6 +132,9 @@ impl Executable {
             desc.compile_flags,
             desc.reserved,
         )?;
+        if desc.kind != 1 && desc.compile_flags & COMPILE_DISPATCH_ORIGIN != 0 {
+            return Err(INVALID);
+        }
         if desc.kind == 3 {
             return unsafe { ray_pipeline::prepare(d, desc, pipeline_flags, layout) };
         }
@@ -213,6 +222,7 @@ impl Executable {
             stages: 4,
             view_mask: 0,
             indirect_bindable: desc.compile_flags & 2 != 0,
+            dispatch_origin: desc.compile_flags & COMPILE_DISPATCH_ORIGIN != 0,
             dynamic_state: 0,
             vertex_bindings: Box::new([]),
             ray_groups: Box::new([]),
@@ -324,6 +334,10 @@ mod tests {
     #[test]
     fn compilation_policy_is_explicit() {
         let base = vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
+        assert_eq!(
+            compile_flags(FeatureBits::ZERO, COMPILE_DISPATCH_ORIGIN, 0),
+            Ok(base | vk::VK_PIPELINE_CREATE_2_DISPATCH_BASE_BIT)
+        );
         assert_eq!(compile_flags(FeatureBits::ZERO, 0, 0), Ok(base));
         assert_eq!(compile_flags(FeatureBits::ZERO, 1, 0), Err(UNSUPPORTED));
         assert_eq!(
@@ -335,7 +349,7 @@ mod tests {
             Ok(base | vk::VK_PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR)
         );
         assert_eq!(
-            compile_flags(ATTACHMENT_SHADING_RATE, 8, 0),
+            compile_flags(ATTACHMENT_SHADING_RATE, 16, 0),
             Err(UNSUPPORTED)
         );
         assert_eq!(compile_flags(CACHE_CONTROL, 2, 0), Err(UNSUPPORTED));

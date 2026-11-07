@@ -249,6 +249,7 @@ functions! {
     vkCmdBindPipeline: PFN_vkCmdBindPipeline,
     vkCmdPushDataEXT: PFN_vkCmdPushDataEXT,
     vkCmdDispatch: PFN_vkCmdDispatch,
+    vkCmdDispatchBase: PFN_vkCmdDispatchBase,
     vkCmdDispatchIndirect: PFN_vkCmdDispatchIndirect,
     vkCreateGraphicsPipelines: PFN_vkCreateGraphicsPipelines,
     vkCmdBeginRendering: PFN_vkCmdBeginRendering,

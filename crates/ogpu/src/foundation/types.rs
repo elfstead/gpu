@@ -2774,3 +2774,14 @@ pub const SUBGROUP_ROTATE_CLUSTERED_OPERATION: u32 = 1024;
 pub struct ShaderProfileLimits {
     pub derivative_stages: u64,
 }
+
+/// Permit native nonzero workgroup origins without rewriting shader IDs.
+pub const COMPILE_DISPATCH_ORIGIN: u32 = 8;
+pub const DISPATCH_ORIGIN: u32 = 151;
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct DispatchOrigin {
+    pub header: Record,
+    pub base: [u32; 3],
+    pub reserved: u32,
+}

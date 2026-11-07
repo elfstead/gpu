@@ -269,6 +269,7 @@ pub(super) unsafe fn prepare(
         stages: STAGE_RAY,
         view_mask: 0,
         indirect_bindable: desc.compile_flags & 2 != 0,
+        dispatch_origin: false,
         dynamic_state: desc.dynamic_state,
         vertex_bindings: Box::new([]),
         ray_groups: members,

@@ -382,6 +382,18 @@ const RASTER_SCOPES: u64 = 8
     | GEOMETRY_STAGE
     | CAPTURE_STAGE;
 
+fn dispatch_range(limits: [u32; 3], base: [u32; 3], count: [u32; 3]) -> Result<(), Status> {
+    if base
+        .iter()
+        .zip(count)
+        .zip(limits)
+        .any(|((&base, count), max)| base >= max || count > max - base)
+    {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
+
 fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u64, Status> {
     if mask & !KNOWN_SCOPES != 0 {
         return Err(UNSUPPORTED);
@@ -786,22 +798,41 @@ impl List {
         Ok(())
     }
     pub(in crate::foundation) fn dispatch(&self, launch: &Launch) -> Result<(), Status> {
-        self.executable(4)?;
+        let executable = self.executable(4)?;
         self.outside_render()?;
-        if launch.dynamic_shared_bytes != 0 || !launch.extensions.is_null() {
+        if launch.dynamic_shared_bytes != 0 {
             return Err(UNSUPPORTED);
+        }
+        let base = if launch.extensions.is_null() {
+            [0; 3]
+        } else {
+            let origin =
+                unsafe { executable_record::<DispatchOrigin>(launch.extensions, DISPATCH_ORIGIN)? };
+            if origin.reserved != 0 {
+                return Err(UNSUPPORTED);
+            }
+            origin.base
+        };
+        if base != [0; 3] && !executable.dispatch_origin {
+            return Err(INVALID);
         }
         let d = unsafe { &*self.device };
         let groups = [launch.groups.x, launch.groups.y, launch.groups.z];
-        if groups
-            .iter()
-            .zip(d.snapshot.execution_limits.max_groups)
-            .any(|(n, max)| *n > max)
-        {
-            return Err(UNSUPPORTED);
-        }
+        dispatch_range(d.snapshot.execution_limits.max_groups, base, groups)?;
         unsafe {
-            (d.f.vkCmdDispatch.unwrap())(self.command, groups[0], groups[1], groups[2]);
+            if launch.extensions.is_null() {
+                (d.f.vkCmdDispatch.unwrap())(self.command, groups[0], groups[1], groups[2]);
+            } else {
+                (d.f.vkCmdDispatchBase.unwrap())(
+                    self.command,
+                    base[0],
+                    base[1],
+                    base[2],
+                    groups[0],
+                    groups[1],
+                    groups[2],
+                );
+            }
         }
         Ok(())
     }
@@ -2568,6 +2599,16 @@ mod tests {
     }
     #[test]
     fn scratch_layout_and_scope_contracts() {
+        assert_eq!(dispatch_range([8, 4, 2], [2, 1, 1], [6, 3, 1]), Ok(()));
+        assert_eq!(
+            dispatch_range([8, 4, 2], [8, 0, 0], [0, 0, 0]),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            dispatch_range([8, 4, 2], [7, 0, 0], [u32::MAX, 1, 1]),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(dispatch_range([8, 4, 2], [0, 0, 0], [0, 4, 2]), Ok(()));
         for (l, w, s) in [(1, 0, 0), (0, 1, 1), (3, 5, 7)] {
             let (layout, wo, so) = submit_layout(l, w, s).unwrap();
             assert!(wo >= l as usize * size_of::<vk::VkCommandBufferSubmitInfo>());

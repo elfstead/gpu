@@ -64,7 +64,7 @@ fn bindings(root: &Path, check: bool) -> Result {
         .clang_arg("-DVK_NO_PROTOTYPES")
         .clang_arg("--target=x86_64-unknown-linux-gnu")
         .allowlist_var("VK_(TRUE|FALSE|HEADER_VERSION|MAX_PHYSICAL_DEVICE_NAME_SIZE|WHOLE_SIZE|SUBPASS_EXTERNAL)")
-        .allowlist_var("VK_(PIPELINE_CREATE_2_(DESCRIPTOR_HEAP_BIT_EXT|FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)|PIPELINE_STAGE_2_.*|ACCESS_2_.*|ADDRESS_COMMAND_.*|QUEUE_FAMILY_IGNORED)")
+        .allowlist_var("VK_(PIPELINE_CREATE_2_(DESCRIPTOR_HEAP_BIT_EXT|DISPATCH_BASE_BIT|FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)|PIPELINE_STAGE_2_.*|ACCESS_2_.*|ADDRESS_COMMAND_.*|QUEUE_FAMILY_IGNORED)")
         .allowlist_var("VK_PIPELINE_CREATE_2_RAY_TRACING_.*")
         .allowlist_var("VK_FORMAT_FEATURE_2_STORAGE_(READ|WRITE)_WITHOUT_FORMAT_BIT")
         .allowlist_var("VK_(PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT|PIPELINE_CREATE_2_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR|BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT)")
@@ -511,6 +511,12 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
             "narrowPush",
             "compute",
             "narrow.comp",
+        ),
+        (
+            "foundation-shader-profiles",
+            "originMain",
+            "compute",
+            "origin.comp",
         ),
         ("foundation-matrix", "matrixMain", "compute", "comp"),
         ("foundation-integer-dot", "dotMain", "compute", "comp"),
