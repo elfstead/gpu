@@ -141,8 +141,7 @@ validation error was emitted. Omitting generated-layout creation while retaining
 the combined usage reproduced it. Enabling generated commands without that buffer
 usage passed. Separately allocated preprocessing storage then passed both generated
 modes. This isolates a usage/placement interaction in the local diagnostic, not
-its ultimate cause: a direct native reproducer is still needed before assigning
-blame to RADV or OGPU. M10 owns that reproduction and combined-backing acceptance.
+its ultimate cause. The subsequent [M10 direct Vulkan control](m10-memory-interop.md#combined-preprocessingray-storage--native-reproduction-complete) reproduces the same untouched output without OGPU resource/command lowering. The precise driver/emulation defect and combined-backing acceptance remain open.
 The implementation neither rejects the combination nor silently splits allocations.
 
 AABBs, procedural/any-hit execution, batched builds and the final M9 contract/SDK

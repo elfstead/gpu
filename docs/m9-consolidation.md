@@ -52,9 +52,7 @@ Normal local RADV exits 77 for missing ray support; no fallback is installed.
 - Native ray acceleration/performance and native Metal/DX12 mappings remain open.
 - Native indirect AS builds and generated ray **pipeline selection** are not
   advertised locally. Host contracts are implemented; execution is unaccepted.
-- M10 owns the observed combined PREPROCESS/AS/table backing failure and a direct
-  native reproduction. Separate caller preprocessing allocations pass; OGPU does
-  not silently split or forbid the combination.
+- The [M10 direct-native reproduction](m10-memory-interop.md#combined-preprocessingray-storage--native-reproduction-complete) reproduces the combined PREPROCESS/AS/table failure without OGPU resource/command lowering. Driver/emulation diagnosis and acceptance remain open. Separate caller preprocessing allocations pass; OGPU does not silently split or forbid the combination.
 - M11's artifact audit covers ray libraries, capture/replay and pipeline binaries.
   Vendor motion/micromap/cluster/primitive families remain explicit native capability
   candidates, not a claim that ordinary triangles/AABBs express every hardware unit.

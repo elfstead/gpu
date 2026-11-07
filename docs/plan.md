@@ -62,7 +62,7 @@ M9 now implements AS operations and ray executables/tables, direct/indirect/gene
 trace commands through C and native Rust. [Explicit emulation diagnostics](results/m9-ray-pipelines-2026-11-07.json)
 pass with two geometry identities and caller-owned preprocessing. Procedural
 geometry/any-hit/intersection and batched builds now pass a [96-ray diagnostic](results/m9-procedural-rays-2026-11-07.json).
-[Clean M9 SDK/contract consolidation](m9-consolidation.md) passes at `ea0f268`; M10 [mixed placement](m10-memory-interop.md) is implemented and locally validated; typed native interoperability is also implemented with a validated native producer. Linux opaque-FD composition now passes a two-logical-device roundtrip, with the documented SyncVal tracking/control distinction. Sparse buffers/images and explicit mapping batches now pass local native validation. Next: the M9 combined-usage native control and clean M10 SDK consolidation. Native ray acceptance remains open.
+[Clean M9 SDK/contract consolidation](m9-consolidation.md) passes at `ea0f268`; M10 [mixed placement](m10-memory-interop.md) is implemented and locally validated; typed native interoperability is also implemented with a validated native producer. Linux opaque-FD composition now passes a two-logical-device roundtrip, with the documented SyncVal tracking/control distinction. Sparse buffers/images and explicit mapping batches now pass local native validation. The combined-usage failure now reproduces through direct Vulkan without OGPU resource/command lowering. Next: clean M10 SDK consolidation. Native ray acceptance remains open.
 
 The [current design](design.md) describes the model; the
 [implemented surface](foundation-implementation.md) gives exact profiles and
@@ -390,8 +390,9 @@ profiles under explicit emulation; normal local RADV rejects them as unsupported
 Native acceleration, unadvertised optional profiles and external backends remain open.
 
 M10's mixed backing, typed native/external sharing, and virtual/sparse primitives
-are implemented and locally exercised. Resolve the combined preprocessing/AS/table usage observation
-with a native reproducer. Keep ownership, placement, queue synchronization and
+are implemented and locally exercised. The combined preprocessing/AS/table failure
+now reproduces through direct Vulkan; precise driver/emulation diagnosis and its
+acceptance remain open. Complete clean SDK/contract consolidation. Keep ownership, placement, queue synchronization and
 residency policy explicit. M11 follows; M6/native DX12 acceptance stay deferred.
 
 ## Parallel candidate: native DX12 on Windows

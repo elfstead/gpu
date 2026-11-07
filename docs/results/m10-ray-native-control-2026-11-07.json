@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-07",
+  "device": "AMD Radeon RX 5700 XT",
+  "driver": "RADV Mesa 26.2.5",
+  "environment": {
+    "RADV_EXPERIMENTAL": "emulate_rt",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation"
+  },
+  "validation_version": "1.4.357",
+  "control": "examples/foundation_rust/src/bin/ray_native.rs",
+  "ogpu_scope": "device bootstrap and immutable discovery only",
+  "native_scope": [
+    "buffer/allocation",
+    "shader/pipeline/table",
+    "acceleration objects/builds",
+    "recording/barriers",
+    "submit/timeline/wait",
+    "map/flush/invalidate"
+  ],
+  "no_generated_commands_executed": true,
+  "results": {
+    "plain_raygen": "pass",
+    "flags2_raygen": "pass",
+    "combined_raygen": "pass",
+    "plain_scene": "pass",
+    "flags2_scene": "pass",
+    "combined_scene": {
+      "status": -6,
+      "exit": 1,
+      "output_words": [
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd",
+        "0xcdcdcdcd"
+      ],
+      "validation_errors": 0
+    },
+    "flags2_scene_forced_type4": {
+      "status": -2,
+      "exit": 77,
+      "reason": "type 4 not compatible with ordinary usage; no illegal native allocation attempted"
+    }
+  },
+  "native_memory": {
+    "ordinary": {
+      "type_mask": "0x7ad",
+      "selected_type": 2,
+      "properties": "0x6",
+      "heap": 1,
+      "example_address": "0xffff800100020000"
+    },
+    "combined": {
+      "type_mask": "0x52",
+      "selected_type": 4,
+      "properties": "0x7",
+      "heap": 2,
+      "example_address": "0xffff800000010000"
+    }
+  },
+  "all_six_validation_errors": 0,
+  "conclusion": "Failure reproduces outside OGPU resource/command lowering; exact native driver/emulation defect unresolved",
+  "acceptance": "combined scene unaccepted; this is emulation diagnosis, not native ray acceleration evidence",
+  "logs": [
+    "/tmp/ogpu-m10-ray-native-plain.log",
+    "/tmp/ogpu-m10-ray-native-flags2.log",
+    "/tmp/ogpu-m10-ray-native-combined.log",
+    "/tmp/ogpu-m10-ray-native-scene-plain.log",
+    "/tmp/ogpu-m10-ray-native-scene-flags2.log",
+    "/tmp/ogpu-m10-ray-native-scene-combined.log",
+    "/tmp/ogpu-m10-ray-native-scene-type4.log"
+  ]
+}

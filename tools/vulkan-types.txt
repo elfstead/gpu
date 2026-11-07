@@ -175,3 +175,5 @@ VkImportMemoryFdInfoKHR
 VkExportSemaphoreCreateInfo
 VkBufferCreateFlagBits
 VkTimelineSemaphoreSubmitInfo
+VkGeometryFlagBitsKHR
+VkBuildAccelerationStructureFlagBitsKHR

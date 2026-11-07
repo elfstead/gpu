@@ -88,7 +88,7 @@ def main():
         run([cargo, "build", *common, "--release", "--bins"], "build")
         # Cargo's depfiles expose include_bytes! and build.rs-generated inputs as
         # well as Rust modules. No checkout, SDK library, or old target is allowed.
-        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native", "external", "sparse"):
+        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native", "external", "sparse", "ray_native"):
             text = (target / "release" / (filename + ".d")).read_text()
             dependencies = shlex.split(text.split(": ", 1)[1].split("\n\n", 1)[0].replace("\\\n", ""))
             require(dependencies and all(Path(p).resolve().is_relative_to(bundle) for p in dependencies),

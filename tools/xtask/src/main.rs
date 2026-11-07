@@ -563,6 +563,7 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
             "shared-exchange.comp",
         ),
         ("foundation-ray-query", "queryMain", "compute", "comp"),
+        ("foundation-ray-native", "rayMain", "raygeneration", "rgen"),
         (
             "foundation-ray-pipeline",
             "intersectMain",

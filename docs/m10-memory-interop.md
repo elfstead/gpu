@@ -226,3 +226,56 @@ zero-value assertion is inferred from testing reads of resident pages.
 [local receipt](results/m10-sparse-2026-11-07.json).
 The remaining M10 work is the direct-native M9 combined-usage reproducer and clean
 SDK/contract consolidation; M11 follows without waiting for another GPU.
+
+
+## Combined preprocessing/ray storage — native reproduction complete
+
+`ray_native` is an independent direct-Vulkan control. OGPU supplies device
+bootstrap and immutable discovery only; buffers, allocation, shader modules,
+ray pipeline, shader tables, acceleration objects/builds, commands, barriers,
+submission, timeline wait and mapped readback all call Vulkan directly.
+The same device enables generated commands for every case; no generated command
+or preprocessing operation runs.
+
+| Native buffer creation | Raygen-only write | Two-geometry BLAS, TLAS and four traced rays |
+| --- | --- | --- |
+| Ordinary legacy usage field | Pass | Pass |
+| Identical usage via `VkBufferUsageFlags2CreateInfo` | Pass | Pass |
+| Same usage plus PREPROCESS | Pass | Fails: all 16 output words retain the sentinel |
+
+All six runs emit zero validation/synchronization diagnostics. The native scene
+uses the same checked-in ray shaders, callable initialization and local hit-record
+bias as the OGPU consumer. Thus the failure reproduces outside OGPU's resource and
+command lowering; it is not evidence for forbidding this composition in the API.
+The precise driver/emulation defect remains unresolved, and the composition is
+**not accepted** on this driver. Ordinary creation itself succeeds; shader output
+failure must not be reported as unsupported without actually running the control.
+
+Preprocessing changes the native compatible-type mask from `0x7ad` to `0x52`.
+The selected host-visible type changes from 2 (properties `0x6`, heap 1) to 4
+(properties `0x7`, heap 2), with a different device-address region. These masks
+are disjoint. Forcing type 4 onto the ordinary usage case is rejected by the
+consumer's compatibility check; it is not a legal isolation experiment. The
+raygen-only combined case passes, so neither usage-record syntax nor the memory
+type alone explains the traversal failure. Native acceleration internals, the
+address domain and this combined placement remain candidates, not proven causes.
+
+Reproduce after building the independent Rust consumer:
+
+```sh
+RADV_EXPERIMENTAL=emulate_rt ./target/debug/ray_native plain --scene
+RADV_EXPERIMENTAL=emulate_rt ./target/debug/ray_native flags2 --scene
+RADV_EXPERIMENTAL=emulate_rt ./target/debug/ray_native combined --scene
+```
+
+Run from `examples/foundation_rust`; omit `--scene` for the reduced raygen-only
+control. Select loader/driver/validation externally. Emulation is never enabled
+by the program. The combined scene currently exits 1 with `BACKEND_ERROR`; absent
+advertised features exit 77. There is no expected-failure filter in the SDK checker.
+The shader is reproduced by `cargo xtask foundation-shaders --check`, and the
+native binary is included in the relocated source-bundle dependency checks.
+[Receipt](results/m10-ray-native-control-2026-11-07.json).
+
+M10's implementation and required native reproduction are now complete. The final
+checkpoint is a clean installed C/direct-Rust SDK run and contract consolidation.
+Remaining hardware/OS/diagnostic acceptance gaps stay explicit as M11 starts.
