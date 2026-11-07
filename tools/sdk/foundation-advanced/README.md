@@ -6,14 +6,19 @@ pkg-config and the installed runtime are needed; shader artifacts are included.
 The run requires native raster, tessellation and geometry support. Missing
 capabilities fail explicitly; no emulation or automatic profile downgrade occurs.
 
-Five profiles use the same GPU-generated indexed scene: vertex/fragment control,
+Seven profiles use the same GPU-generated indexed scene: vertex/fragment control,
 geometry, tessellation, both stages, and both stages with suspend/resume between
-overlapping depth-tested draws. Base patches use factor two; the blended overlay
+overlapping depth-tested draws. Two additional profiles combine tessellation and
+geometry with a framebuffer-local color/depth pass, with and without continuation.
+They require LOCAL_READ, depth/stencil and multisample local-read limits, and
+SAMPLE_SHADING. Each also checks a bounded four-sample producer whose samples
+contain different color/depth values, weighted input-attachment reads and resolve. Base patches use factor two; the blended overlay
 uses factor four. Six texture/mip/filter/viewport cases each replay A/B/A at
-257×193 and 640×360 (180 frames). `--scale` adds 1280×720.
+257×193 and 640×360 (252 frames). `--scale` adds 1280×720.
 
 The independent CPU oracle checks texture, color, depth, generated geometry,
-indirect records and guards. Mip-view equivalence and A/B/A repeat are exact.
+indirect records and guards. Local output is independently checked against the color/depth
+readback at every pixel, including backgrounds and edge pixels. Mip-view equivalence and A/B/A repeat are exact.
 Geometry matches the control with the existing all-pixel tolerance; tessellation
 uses the existing oracle boundary mask for nearest-filter ties, while every
 linear-filter color and every depth value remains compared. Reports count large

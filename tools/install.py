@@ -158,7 +158,7 @@ def install(prefix, *, legacy=False):
     for name in ("release-policy.md", "support.md", "foundation-quickstart.md", "legacy-sdk.md",
                  "minimal-core-arguments.md", "minimal-core-descriptors.md",
                  "minimal-core-dependencies.md", "minimal-core-presentation.md",
-                 "extended-depth-color.md", "format-inventory.md", "dynamic-tessellation.md", "geometry-capture.md", "viewport-arrays.md", "extended-dynamic-raster.md", "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md"):
+                 "extended-depth-color.md", "format-inventory.md", "dynamic-tessellation.md", "geometry-capture.md", "m8-consolidation.md", "viewport-arrays.md", "extended-dynamic-raster.md", "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md"):
         copy(ROOT / "docs" / name, f"share/ogpu/{name}")
     if legacy:
         # Keep the measured consumer's relative source graph intact. Only the public
@@ -189,7 +189,7 @@ def install(prefix, *, legacy=False):
             *[("examples/graphics_scene/"+n,n) for n in ("textured.c","foundation.c","oracle.py","textured_oracle.py","textured_checks.py",
                 "foundation_scene_prepare.generated.h","foundation_scene_prepare16.generated.h","textured_scene.generated.h",
                 "textured.vert.slang","textured.frag.slang","advanced_textured.generated.h","advanced_common.slang",
-                "advanced.hull.slang","advanced.domain.slang","advanced.geometry.slang","advanced_shaders.py","advanced_checks.py")],
+                "advanced.hull.slang","advanced.domain.slang","advanced.geometry.slang","advanced.local.slang","advanced.local_ms.slang","advanced_local.h","advanced_local_ms.h","advanced_shaders.py","advanced_checks.py")],
             ("tools/sdk/foundation-advanced/run.py","run.py"),("tools/sdk/foundation-advanced/README.md","README.md")],
         "foundation-textured-scene": [("examples/graphics_scene/textured.c","main.c"),
             *[("examples/graphics_scene/"+n,n) for n in ("foundation.c","oracle.py","textured_oracle.py","textured_checks.py",

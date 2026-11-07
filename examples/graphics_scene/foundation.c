@@ -178,7 +178,8 @@ static int context(Scene *s,const char *directory) {
 #endif
 #endif
 #ifdef SCENE_ADVANCED_RASTER
-    NEED(required.count+2<=32);
+    NEED(required.count+4<=32);
+    if(scene_advanced_mode>=5){feature_storage[required.count++]=OGPU_NEXT_FEATURE_LOCAL_READ;feature_storage[required.count++]=OGPU_NEXT_FEATURE_SAMPLE_SHADING;}
     if(scene_advanced_mode>=2)feature_storage[required.count++]=OGPU_NEXT_FEATURE_TESSELLATION;
     if(scene_advanced_mode==1 || scene_advanced_mode>=3)feature_storage[required.count++]=OGPU_NEXT_FEATURE_GEOMETRY;
 #endif
@@ -291,6 +292,12 @@ static int context(Scene *s,const char *directory) {
     advanced_requirements.features=required;ed.requirements=&advanced_requirements.header;
     ogpu_next_tessellation_state tess={HEADER(ogpu_next_tessellation_state,OGPU_NEXT_TESSELLATION_STATE),3,OGPU_NEXT_DOMAIN_UPPER_LEFT};
     if(scene_advanced_mode>=2){gs.topology=OGPU_NEXT_PATCHES;gs.header.next=&tess.header;}
+    ogpu_next_color_state local_colors[2]={color,color};
+    uint32_t local_locations[2]={0,OGPU_NEXT_ATTACHMENT_UNUSED},local_inputs[2]={0,OGPU_NEXT_ATTACHMENT_UNUSED},depth_index=1,unused=OGPU_NEXT_ATTACHMENT_UNUSED;
+    ogpu_next_render_locations locations={2,0,local_locations};
+    ogpu_next_render_inputs inputs={2,0,local_inputs,&depth_index,&unused};
+    ogpu_next_render_mapping mapping={HEADER(ogpu_next_render_mapping,OGPU_NEXT_RENDER_MAPPING),&locations,&inputs,0,0,NULL};
+    if(scene_advanced_mode>=5){mapping.header.next=gs.header.next;gs.header.next=&mapping.header;gs.color_count=2;gs.colors=local_colors;}
 #endif
 #ifdef SCENE_TEXTURE_CONSUMER
     for(unsigned i=0;i<2;++i) {
@@ -304,7 +311,11 @@ static int context(Scene *s,const char *directory) {
     return 1;
 }
 static int storage(Scene *s) {
-    GPU(ogpu_next_barrier_scratch_requirements(s->device,1,0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(1,&s->render_scratch));
+    GPU(ogpu_next_barrier_scratch_requirements(s->device,1,0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(
+#ifdef SCENE_ADVANCED_RASTER
+        scene_advanced_mode>=5?2:
+#endif
+        1,&s->render_scratch));
     GPU(ogpu_next_submit_scratch_requirements(s->device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&s->submit_scratch));
     NEED(s->barrier_scratch.alignment<=_Alignof(max_align_t) && s->render_scratch.alignment<=_Alignof(max_align_t) && s->submit_scratch.alignment<=_Alignof(max_align_t));
     s->bs=malloc(s->barrier_scratch.size); s->rs=malloc(s->render_scratch.size); s->ss=malloc(s->submit_scratch.size); NEED(s->bs && s->rs && s->ss);
@@ -340,6 +351,9 @@ static void transition(Scene *s,unsigned i,int discard) {
     uint32_t state=i ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT;
     uint64_t access=i ? OGPU_NEXT_ACCESS_DEPTH_READ|OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE;
     uint64_t stage=i ? OGPU_NEXT_STAGE_DEPTH : OGPU_NEXT_STAGE_COLOR;
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5){state=OGPU_NEXT_STATE_LOCAL_READ;access|=OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ;stage|=OGPU_NEXT_STAGE_FRAGMENT;}
+#endif
     ogpu_next_image_barrier b={{0,0,discard ? OGPU_NEXT_ACCESS_COPY_READ : access,discard ? access : OGPU_NEXT_ACCESS_COPY_READ},s->images[i],{aspect,0,1,0,1},discard ? OGPU_NEXT_STATE_UNDEFINED : state,discard ? state : OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,(uint32_t)discard,0,NULL};
     ogpu_next_barrier_scope dep_scope = {discard ? OGPU_NEXT_STAGE_COPY : stage,discard ? stage : OGPU_NEXT_STAGE_COPY,0,0};
     ogpu_next_host_span dep_scratch = {s->bs,s->barrier_scratch.size};
@@ -349,6 +363,9 @@ static int resources(Scene *s) {
     for(unsigned i=0;i<2;++i) {
         uint32_t format=i ? OGPU_NEXT_D32_FLOAT : OGPU_NEXT_RGBA8_UNORM;
         uint64_t usage=i ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT;
+#ifdef SCENE_ADVANCED_RASTER
+        if(scene_advanced_mode>=5)usage|=OGPU_NEXT_IMAGE_INPUT_ATTACHMENT;
+#endif
         ogpu_next_image_desc id={HEADER(ogpu_next_image_desc,OGPU_NEXT_IMAGE_DESC),format,OGPU_NEXT_IMAGE_2D,1,1,1,
             {s->width,s->height,1},usage|OGPU_NEXT_IMAGE_COPY_SRC,0,NULL,0,0,NULL};
         uint32_t types[32],type; ogpu_next_requirements req={.compatible_type_capacity=32,.compatible_types=types};

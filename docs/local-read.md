@@ -55,7 +55,8 @@ The two recording setters update output locations and input indices independentl
 Counts must match the current render scope. The application proves agreement
 between executable, current mapping, shader, attachments and secondary inheritance
 at use. No array survives preparation/recording and no per-draw mapping comparison
-is added. A primary scope marked SECONDARY cannot use inline setters/barriers;
+is added. Render begin initializes native input/output mappings, including a
+resumed render: reissue the selected mappings after begin before drawing. A primary scope marked SECONDARY cannot use inline setters/barriers;
 render-continuation secondary lists can record their own local commands.
 
 There is one necessary native shader-interface detail: Vulkan descriptor heaps
@@ -105,9 +106,19 @@ chooses the physical implementation. Structurally, commands map to native
 mapping setters and one barrier, with borrowed caller arrays/scratch and no extra
 submit, render break, staging or hot-path allocation.
 
-Remaining combinations are depth/stencil and multisample input reads, input
-arrays/alternate compiler decorations, secondary execution, multiview,
-suspend/resume, shading rate, mesh/generated draws and larger textured consumers.
+The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
+composes color/D32 local reads with texture heaps, mip/filtering, generated indexed
+draws, tessellation, geometry, blending, depth and suspend/resume. It checks all
+local-output pixels against independently read-back source color/depth. A separate
+four-sample probe supplies distinct per-sample color/depth values and validates a
+weighted reduction through multisample input attachments followed by resolve.
+Its fixed artifact recipe reflects root offsets; it does not expand the general
+`ogpu-graphics` linker. Pinned Slang emits invalid Vulkan SPIR-V for scalar
+`SubpassInput<float>` in this probe; `SubpassInput<float4>` with `.x` is validated.
+
+Remaining combinations include stencil reads, input arrays/alternate compiler
+decorations, secondary execution, multiview, shading rate and mesh/generated-command
+local reads (GPU-produced ordinary indexed arguments are covered).
 LOCAL_READ resolve destinations are representable but not newly executed by this
 fixture. Native Metal/DX12 mappings and compiler-generated input binding metadata
 remain unaccepted. These do not block the next planned M8 tessellation/geometry

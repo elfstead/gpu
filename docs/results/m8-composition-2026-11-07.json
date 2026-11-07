@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "scope": "M8 composition implementation, before clean installed matrix acceptance",
+  "host_tests": 122,
+  "native_correspondence_tests": 2,
+  "scene_tests": 49,
+  "tool_tests": 22,
+  "profile_6": {
+    "extent": [
+      257,
+      193
+    ],
+    "textured_frames": 18,
+    "local_pixels": 892818,
+    "local_max_byte_delta": 0,
+    "msaa_samples": 4,
+    "msaa_pixels": 64,
+    "validation_errors": 0
+  },
+  "initial_failures": [
+    "scalar SubpassInput<float> emitted invalid Vulkan SPIR-V; use float4.x",
+    "LOCAL_READ output-only usage invalid; shared guard corrected and output uses GENERAL",
+    "resume resets attachment mapping; caller now reissues mappings"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-composition-profile6-fixed.log": "312c30645da9440a382c0f844173e7c5b39a99b1258925904f2b6551fd2d8e6d",
+    "/tmp/ogpu-m8-composition-host.log": "5d89ff4ac4b120b24c7a7eaf6a9555af17a582454be3f0c59a40c5c87404175d",
+    "/tmp/ogpu-m8-composition-shaders-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/ogpu-m8-composition-scene-tests.log": "40e300d9598fc6c6a26ad112c39d0e4c3419003b82141445ac2a77860fd4f2c4",
+    "/tmp/ogpu-m8-composition-tool-tests.log": "93972a677e19819462d1624f9e71ede8ffe4e36e97dd970f395fcc92950f7b8a",
+    "/tmp/ogpu-m8-composition-shaders.log": "e8baa99bdd4df318e304fa22b58fc231acc4fc538b586ff2d7e995d4f2725124",
+    "/tmp/ogpu-m8-composition-profile5-fixed.log": "743ea1f13dfa13a613dcad3914f17a1e293419757c9cf93cb66aee3fe3e6462f",
+    "/tmp/ogpu-m8-composition-matrix.log": "63e8b8ade05153f0d8b0ccaa0e54532efbc4f8b74e4c3eb6dba6429c27f9a4de"
+  }
+}

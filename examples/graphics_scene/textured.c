@@ -33,8 +33,17 @@ typedef struct {
     ogpu_next_descriptor_heap *bindings[2];
     ogpu_next_descriptor_shape shapes[2];
     ogpu_next_host_span scratch;
+#ifdef SCENE_ADVANCED_RASTER
+    ogpu_next_image *local_image; ogpu_next_view *local_view;
+    ogpu_next_memory *local_backing,*local_readback; ogpu_next_mapping local_map;
+    ogpu_next_argument_layout *local_arguments; ogpu_next_executable *local_pipeline;
+    uint64_t local_stride;
+#endif
 } Textured;
 static uint64_t align_up(uint64_t n,uint64_t a) { return (n+a-1)/a*a; }
+#ifdef SCENE_ADVANCED_RASTER
+#include "advanced_local.h"
+#endif
 static int texture_resources(Textured *t) {
     Scene *s=&t->scene;
     ogpu_next_query q=query(OGPU_NEXT_QUERY_FORMATS,NULL,0,sizeof(ogpu_next_format_info));
@@ -66,7 +75,21 @@ static int texture_resources(Textured *t) {
     GPU(ogpu_next_sampler_descriptor_shape(s->device,&sampler,&t->shapes[1]));
     for(unsigned i=0;i<2;++i) {
         ogpu_next_heap_requirements hr; GPU(heap_requirements_for(s->device,i+1,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&hr));
-        uint64_t payload=t->shapes[i].size, reserved=align_up(payload,hr.reserved_alignment), tail=hr.reserved_size;
+        uint64_t payload=t->shapes[i].size;
+#ifdef SCENE_ADVANCED_RASTER
+        if(i==0 && scene_advanced_mode>=5) {
+            ogpu_next_resource_descriptor input={OGPU_NEXT_DESCRIPTOR_INPUT_ATTACHMENT,OGPU_NEXT_STATE_LOCAL_READ,s->views[0],{0}};
+            ogpu_next_descriptor_shape shape; GPU(ogpu_next_resource_descriptor_shape(s->device,&input,&shape));
+            uint64_t alignment=shape.alignment>t->shapes[0].alignment?shape.alignment:t->shapes[0].alignment;
+            uint64_t size=shape.size>payload?shape.size:payload;
+            input.view=s->views[1];GPU(ogpu_next_resource_descriptor_shape(s->device,&input,&shape));
+            if(shape.alignment>alignment)alignment=shape.alignment;
+            if(shape.size>size)size=shape.size;
+            t->local_stride=align_up(size,alignment);NEED(t->local_stride<=UINT32_MAX/3);
+            payload=3*t->local_stride;
+        }
+#endif
+        uint64_t reserved=align_up(payload,hr.reserved_alignment), tail=hr.reserved_size;
         ogpu_next_memory_desc md={HEADER(ogpu_next_memory_desc,OGPU_NEXT_MEMORY_DESC),reserved+tail,
             hr.backing_alignment,
             OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,UINT32_MAX,OGPU_NEXT_MEMORY_LINEAR,NULL,0,0};
@@ -106,9 +129,22 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
     ogpu_next_attachment depth={s->views[1],NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,overlay ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={1,0}}};
     ogpu_next_render_desc rd={HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,s->width,s->height,1,0,1,0,1,&color,&depth,NULL,{s->rs,s->render_scratch.size},NULL};
 #ifdef SCENE_ADVANCED_RASTER
-    if(scene_advanced_mode==4 && !overlay)rd.flags=OGPU_NEXT_RENDER_SUSPENDING;
+    ogpu_next_attachment local_colors[2];
+    uint32_t locations_array[2]={0,OGPU_NEXT_ATTACHMENT_UNUSED},input_array[2]={0,OGPU_NEXT_ATTACHMENT_UNUSED},depth_index=1,unused=OGPU_NEXT_ATTACHMENT_UNUSED;
+    ogpu_next_render_locations locations={2,0,locations_array};
+    ogpu_next_render_inputs inputs={2,0,input_array,&depth_index,&unused};
+    if(scene_advanced_mode>=5){
+        color.state=depth.state=OGPU_NEXT_STATE_LOCAL_READ;
+        local_colors[0]=color;
+        local_colors[1]=(ogpu_next_attachment){t->local_view,NULL,OGPU_NEXT_STATE_GENERAL,0,overlay?OGPU_NEXT_LOAD:OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
+        rd.colors=local_colors;rd.color_count=2;
+    }
+    if((scene_advanced_mode==4 || scene_advanced_mode==6) && !overlay)rd.flags=OGPU_NEXT_RENDER_SUSPENDING;
 #endif
     ogpu_next_render_begin(s->encoder,&rd); ogpu_next_bind_executable(s->encoder,s->raster[overlay ? 1 : 0]);
+    #ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5){ogpu_next_set_render_locations(s->encoder,&locations);ogpu_next_set_render_inputs(s->encoder,&inputs);}
+#endif
     unsigned inset=mode>=4,vx=inset ? s->width/8 : 0,vy=inset ? s->height/8 : 0;
     ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),
         (float)vx,(float)vy,(float)(s->width-2*vx),(float)(s->height-2*vy),0,1,
@@ -122,13 +158,17 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
     for(unsigned i=0;i<(overlay ? 1u : 2u);++i) {
         ogpu_next_indirect draw={span(s,DRAWS,GUARD+20*i,20),20,1,{0}}; ogpu_next_draw_indexed_indirect(s->encoder,&draw);
 #ifdef SCENE_ADVANCED_RASTER
-        if(scene_advanced_mode==4 && !overlay && i==0) {
+        if((scene_advanced_mode==4 || scene_advanced_mode==6) && !overlay && i==0) {
             ogpu_next_render_end(s->encoder);
             rd.flags=OGPU_NEXT_RENDER_RESUMING;
             ogpu_next_render_begin(s->encoder,&rd);
+            if(scene_advanced_mode>=5){ogpu_next_set_render_locations(s->encoder,&locations);ogpu_next_set_render_inputs(s->encoder,&inputs);}
         }
 #endif
     }
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5 && overlay)advanced_local_draw(t);
+#endif
     ogpu_next_render_end(s->encoder);
 }
 static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *directory) {
@@ -153,6 +193,9 @@ static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *d
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_INDEX_INPUT|OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_INDIRECT,
         OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_INDEX_READ|OGPU_NEXT_ACCESS_SHADER_READ|OGPU_NEXT_ACCESS_INDIRECT_READ);
     transition(s,0,1);transition(s,1,1);
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5)advanced_local_transition(t,1);
+#endif
     for(unsigned i=0;i<2;++i)ogpu_next_bind_heap(s->encoder,t->bindings[i]);
     textured_pass(t,mode,0);
     dependency(s,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,
@@ -164,6 +207,9 @@ static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *d
         ogpu_next_image_copy copy={{i ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{s->width,s->height,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
         ogpu_next_copy_from_image(s->encoder,span(s,READBACK,i ? s->pixels+3*GUARD : GUARD,s->pixels),s->images[i],&copy);
     }
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5)advanced_local_copy(t);
+#endif
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_COPY_READ);
     uint64_t at=0; for(unsigned i=VERTICES;i<=DRAWS;++i) {ogpu_next_copy_memory(s->encoder,span(s,GEOMETRY,at,s->sizes[i]),span(s,i,0,s->sizes[i]));at+=s->sizes[i];}
     dependency(s,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
@@ -171,6 +217,9 @@ static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *d
     GPU(ogpu_next_memory_invalidate(span(s,READBACK,0,s->sizes[READBACK])));GPU(ogpu_next_memory_invalidate(span(s,GEOMETRY,0,584)));
     NEED(write_output(directory,mode,frame,"images",s->maps[READBACK].data,s->sizes[READBACK]) && write_output(directory,mode,frame,"geometry",s->maps[GEOMETRY].data,584));
     NEED(write_output(directory,mode,frame,"texture",s->maps[CONTROL].data,512));
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5){GPU(ogpu_next_memory_invalidate((ogpu_next_span){t->local_readback,0,s->pixels+2*GUARD}));NEED(write_output(directory,mode,frame,"local",t->local_map.data,s->pixels+2*GUARD));}
+#endif
     printf("TEXTURED_FRAME {\"mode\":%u,\"frame\":%u,\"phase\":%u}\n",mode,frame,frame==1);return 1;
 }
 int main(int argc,char **argv) {
@@ -182,11 +231,17 @@ int main(int argc,char **argv) {
     else return 1;
     s->pixels=(size_t)s->width*s->height*4;
     if(!context(s,NULL) || !storage(s) || !resources(s) || !texture_resources(&t))goto done;
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=5 && !advanced_local_setup(&t))goto done;
+#endif
     for(unsigned mode=0;mode<6;++mode)for(unsigned f=0;f<3;++f)if(!textured_frame(&t,mode,f,argv[3]))goto done;
     okay=1;
 done:
     destroy_resources(s); /* Retire recordings before descriptor/image backing. */
     for(unsigned i=0;i<2;++i){ogpu_next_view_destroy(t.views[i]);ogpu_next_heap_destroy(t.bindings[i]);ogpu_next_memory_destroy(t.heaps[i]);}
+#ifdef SCENE_ADVANCED_RASTER
+    advanced_local_destroy(&t);
+#endif
     ogpu_next_image_destroy(t.texture);ogpu_next_memory_destroy(t.backing);free(t.scratch.data);destroy_context(s);
     if(okay)puts("Foundation textured frames drained; independent oracle required");
     return !okay;

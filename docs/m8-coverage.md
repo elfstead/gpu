@@ -1,6 +1,7 @@
 # M8 coverage and remaining work
 
-2026-11-07. M8 remains active. Implemented representation, local execution and
+2026-11-07. Scheduled M8 implementation and contract consolidation are complete;
+clean installed consolidation acceptance is next. Implemented representation, local execution and
 complete native coverage are separate claims. The public core exposes native
 mechanisms; applications own culling, render graphs, texture policy and scheduling.
 
@@ -11,14 +12,14 @@ mechanisms; applications own culling, render graphs, texture policy and scheduli
 | Generated commands | Compute and graphics actions, counts, identity, vertex/index tokens, explicit preprocessing and scratch; Radeon execution | Pipeline selection unavailable locally; mesh and advanced-stage combinations need native receipts. Consumer culling stays outside the core. |
 | Multiview | View masks, limits, native enabling, sparse/layer-offset checks | MSAA/resolve and advanced stage combinations need coverage, not another view abstraction. |
 | Shading rate | Pipeline, primitive and attachment capabilities, state, limits and compiler requirements | Local native inputs unavailable. Keep host checks separate from positive execution claims. |
-| Local read | Attachment maps, input-attachment root bindings, region dependencies; color/storage fixture | Depth/MSAA, secondary/multiview and integrated consumer coverage remain. General artifact generation remains a tooling task. |
+| Local read | Attachment maps, input-attachment root bindings, region dependencies; color/storage fixture | Integrated textured color/D32 and bounded 4-sample input/resolve evidence added; secondary/multiview/stencil remain unaccepted. General artifact generation remains a tooling task. |
 | Continuation | Native suspend/resume flags and ordered submissions; depth/MSAA/resolve fixture | Textured stage composition added by this step. Cross-list and other stage combinations retain their own evidence requirements. |
 | Tessellation/geometry | Independent stages, patch/origin state, adjacency, shared argument/synchronization scopes and statistics | Textured/depth integration added. Line/point, quad/isoline, unequal patch sizes, multiview, secondary and generated combinations remain acceptance work. |
 
 The new [textured consumer](../tools/sdk/foundation-advanced/README.md) composes
 GPU-produced indexed draws, sampled texture heaps, mip views, filtering, depth,
-blending and scissors with geometry, tessellation and continuation. It uses five
-explicit profiles. No runtime operation, public layout or hidden policy was added.
+blending and scissors with geometry, tessellation and continuation. It now uses seven
+explicit profiles, including local color/depth reads with and without continuation. No runtime operation, public layout or hidden policy was added.
 [Clean installed acceptance](results/m8-advanced-textured-2026-11-06.md) passes
 180 frames at both extents. Its fixed offline shader recipe is deliberately separate from the bounded VS/FS
 `ogpu-graphics` linker. It is not evidence that arbitrary stage interfaces are
@@ -66,9 +67,11 @@ remains execution debt:
    selection remains unavailable. [Dynamic patch count/domain origin](dynamic-tessellation.md)
    use the existing state model with unequal input/output patch evidence. No
    stream-management runtime or executable permutation synthesis was added.
-4. **Consolidate the contracts and bounded composition evidence.** Integrate local
-   reads into a substantial consumer, exercise available depth/MSAA and stage
-   combinations, and distinguish artifact-tool limitations from core omissions.
+4. **Contract and bounded composition consolidation — implemented.** The
+   [final disposition](m8-consolidation.md) records all selected mechanisms,
+   application compositions, compiler limitations and remaining exclusions. The
+   textured consumer integrates local color/depth reads, and a bounded probe
+   exercises distinct multisample values and resolve.
    Use existing CPU/reference checks and native validation. Collect timing only
    for an unresolved mechanism/cost question; do not make every state addition a
    benchmark project. Publish one M8 disposition table before starting M9.

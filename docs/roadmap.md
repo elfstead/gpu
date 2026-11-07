@@ -650,7 +650,8 @@ adds eighteen IDs through existing mechanisms and accounts for every pinned nati
 definition. [Dynamic patch count/origin](dynamic-tessellation.md) now preserve native
 per-draw selection. [Geometry capture/streams](geometry-capture.md) now implement native
 ordered output, counters, queries and byte-count draws in revision 13. Contract and
-consumer composition consolidation remains before M9.
+[Consumer composition and contract consolidation](m8-consolidation.md) is implemented;
+clean installed acceptance completes the M8 checkpoint before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 
@@ -724,7 +725,9 @@ cluster/device-enqueue execution where native APIs support it, pipeline artifact
 binary interfaces, and remaining numerical/subgroup/matrix profiles. Extend
 generated artifact requirements and implement a hardware matrix variant of the
 bounded ML consumer with explicit layout, accumulation and numerical permissions.
-First use shader/toolchain capability declarations and the existing launch model;
+Audit conditional rendering and primitive-generation query variants here as
+independent execution/counter profiles; capture counters and ordinary indirect
+counts do not establish their equivalence. First use shader/toolchain capability declarations and the existing launch model;
 add host records only for a native facility not expressible that way. Do not add
 host tensor operators, graph execution or an automatic precision selector to the core.
 

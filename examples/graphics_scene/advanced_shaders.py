@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate this consumer's fixed HS/DS/GS artifacts, not a general stage linker."""
+"""Regenerate this consumer's fixed advanced-stage and local-read artifacts, not a general stage linker."""
 import argparse
 import hashlib
 import json
@@ -24,33 +24,38 @@ def main():
              '#ifndef OGPU_ADVANCED_TEXTURED_GENERATED_H', '#define OGPU_ADVANCED_TEXTURED_GENERATED_H',
              '#include "ogpu_next.h"']
     with tempfile.TemporaryDirectory() as tmp:
-        for stage, bit in [('hull', 'TESS_CONTROL'), ('domain', 'TESS_EVALUATION'), ('geometry', 'GEOMETRY')]:
-            source = HERE / f'advanced.{stage}.slang'
-            binary = Path(tmp) / f'{stage}.spv'
+        recipes=[(s,b,s,'main',s) for s,b in [('hull','TESS_CONTROL'),('domain','TESS_EVALUATION'),('geometry','GEOMETRY')]]
+        recipes += [('vertex','VERTEX','local','localVertex','local_vertex'),('fragment','FRAGMENT','local','localFragment','local_fragment')]
+        recipes += [('fragment','FRAGMENT','local_ms','localProduce','local_produce'),('fragment','FRAGMENT','local_ms','localConsumeMS','local_ms_fragment')]
+        for stage, bit, source_name, entry, symbol in recipes:
+            source = HERE / f'advanced.{source_name}.slang'
+            binary = Path(tmp) / f'{symbol}.spv'
             reflection = binary.with_suffix('.json')
             subprocess.run([compiler, str(source), '-target', 'spirv', '-profile', 'spirv_1_5',
                 '-emit-spirv-directly', '-fvk-use-entrypoint-name', '-fvk-use-c-layout',
-                '-entry', 'main', '-stage', stage, '-reflection-json', str(reflection), '-o', str(binary)], check=True)
+                '-entry', entry, '-stage', stage, '-reflection-json', str(reflection), '-o', str(binary)], check=True)
             subprocess.run(['spirv-val', '--target-env', 'vulkan1.3', str(binary)], check=True)
             info = json.loads(reflection.read_text())
             if info['entryPoints'][0]['stage'] != stage:
                 raise ValueError('wrong reflected stage')
             for parameter in info['parameters']:
+                if source_name.startswith('local') and parameter['name'] in ('sourceColor','sourceDepth'):continue
                 if parameter['name'] != 'root':
                     raise ValueError('unexpected shader parameter')
                 fields = parameter['type']['elementType']['fields']
                 actual = [(f['name'], f['binding']['offset'], f['binding']['size']) for f in fields]
-                if actual != [('vertices',0,8),('image',8,4),('samplerIndex',12,4),('lod',16,4),('overlay',20,4)]:
+                expected=[('color',0,4),('depth',4,4)] if source_name.startswith('local') else [('vertices',0,8),('image',8,4),('samplerIndex',12,4),('lod',16,4),('overlay',20,4)]
+                if actual != expected:
                     raise ValueError('root layout disagrees with textured scene')
             data = binary.read_bytes()
             source_hash = hashlib.sha256(source.read_bytes() + (HERE/'advanced_common.slang').read_bytes()).hexdigest()
             lines += [f'/* Slang 2026.14.1; source+common SHA256 {source_hash}; SPIR-V SHA256 {hashlib.sha256(data).hexdigest()} */',
-                      f'static const uint32_t advanced_{stage}_code[] = {{']
+                      f'static const uint32_t advanced_{symbol}_code[] = {{']
             words = struct.unpack('<'+'I'*(len(data)//4), data)
             lines += ['    '+', '.join(f'0x{w:08x}u' for w in words[i:i+8])+',' for i in range(0,len(words),8)]
-            lines += ['};', f'static ogpu_next_shader advanced_{stage}_shader(void) {{',
+            lines += ['};', f'static ogpu_next_shader advanced_{symbol}_shader(void) {{',
                       f'    return (ogpu_next_shader){{OGPU_NEXT_STAGE_{bit},OGPU_NEXT_SHADER_SPIRV,',
-                      f'        {{advanced_{stage}_code,sizeof(advanced_{stage}_code)}},"main",NULL,NULL}};', '}']
+                      f'        {{advanced_{symbol}_code,sizeof(advanced_{symbol}_code)}},"{entry}",NULL,NULL}};', '}']
     lines += ['#endif', '']
     output = HERE/'advanced_textured.generated.h'
     generated = '\n'.join(lines)
