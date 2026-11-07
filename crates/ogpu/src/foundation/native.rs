@@ -372,7 +372,7 @@ pub(super) fn snapshot(
             && instance
                 .supports_extension(physical, c"VK_EXT_shader_atomic_float2")
                 .map_err(loader_error)?;
-        let (mut float_atomic, mut float_atomic2) = float_atomics::requested(0);
+        let (mut float_atomic, mut float_atomic2) = float_atomics::requested(FeatureBits::ZERO);
         if has_float_atomic2 {
             float_atomic.pNext = ptr::from_mut(&mut float_atomic2).cast();
         }
@@ -1483,7 +1483,7 @@ mod tests {
                     count: 1,
                     priority: 1.0,
                 }],
-                0,
+                FeatureBits::ZERO,
             )
             .unwrap();
             let create = d.f.vkCreateSemaphore;

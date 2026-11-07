@@ -43,7 +43,7 @@ fn gpu_mapped_argument_execution() {
                 count: 1,
                 priority: 0.5,
             }],
-            0,
+            FeatureBits::ZERO,
         )
         .unwrap();
         let uniform_alignment = u32::try_from(

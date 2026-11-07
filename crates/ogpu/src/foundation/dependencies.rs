@@ -431,13 +431,16 @@ mod local_tests {
     use super::*;
     #[test]
     fn framebuffer_dependency_contract() {
-        assert_eq!(local_context(0, true, false, 0, 1), Err(UNSUPPORTED));
+        assert_eq!(
+            local_context(FeatureBits::ZERO, true, false, 0, 1),
+            Err(UNSUPPORTED)
+        );
         assert_eq!(local_context(LOCAL_READ, true, true, 0, 1), Err(INVALID));
         assert_eq!(local_context(LOCAL_READ, true, false, 5, 1), Err(INVALID));
         assert_eq!(local_context(LOCAL_READ, true, false, 8, 1), Ok(()));
         assert_eq!(local_context(LOCAL_READ, true, false, 5, 3), Ok(()));
         assert_eq!(local_context(LOCAL_READ, false, false, 0, 2), Err(INVALID));
-        assert_eq!(local_context(0, false, false, 0, 1), Ok(()));
+        assert_eq!(local_context(FeatureBits::ZERO, false, false, 0, 1), Ok(()));
         let mut s = BarrierScope {
             stages_before: 64,
             stages_after: 16,

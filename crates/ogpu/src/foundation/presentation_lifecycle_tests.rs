@@ -329,9 +329,9 @@ fn gpu_presentation_lifecycle() {
         count: 1,
         priority: 1.0,
     }];
-    let mut d = Device::create(adapter, &request, 0).unwrap();
+    let mut d = Device::create(adapter, &request, FeatureBits::ZERO).unwrap();
     d.snapshot.features.enabled |= PRESENTATION;
-    let foreign = Device::create(adapter, &request, 0).unwrap();
+    let foreign = Device::create(adapter, &request, FeatureBits::ZERO).unwrap();
     let binary = Binary::create(&d).unwrap();
     let foreign_binary = Binary::create(&foreign).unwrap();
     let fence = Fence::create(&d, false).unwrap();
@@ -723,7 +723,7 @@ fn gpu_presentation_replacement() {
             count: 1,
             priority: 1.0,
         }],
-        0,
+        FeatureBits::ZERO,
     )
     .unwrap();
     d.snapshot.features.enabled |= PRESENTATION;

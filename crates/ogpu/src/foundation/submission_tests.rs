@@ -380,7 +380,7 @@ fn gpu_unified_submission() {
             count: 1,
             priority: 0.5,
         }];
-        let mut d = Device::create(&adapter, &requests, 0).unwrap();
+        let mut d = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
         intercept(&mut d);
         let m = memory(&d);
         let mapping = m.map(0, 1024).unwrap();
@@ -549,7 +549,7 @@ fn gpu_unified_submission() {
             unsafe { reject_last(queue, &batches, bad, extra.span(), expected) };
             extra.guards();
         }
-        let other = Device::create(&adapter, &requests, 0).unwrap();
+        let other = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
         let foreign_t = Timeline::create(&other, 0).unwrap();
         let foreign_b = Binary::create(&other).unwrap();
         let mut foreign_pool = arena(&other, domain, 0);
@@ -851,7 +851,7 @@ fn gpu_unified_submission_unknown() {
             (vk::VkResult_VK_ERROR_UNKNOWN, BACKEND_ERROR),
             (vk::VkResult_VK_ERROR_VALIDATION_FAILED, BACKEND_ERROR),
         ] {
-            let mut d = Device::create(&adapter, &requests, 0).unwrap();
+            let mut d = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
             intercept(&mut d);
             let mut pool = arena(&d, domain, 0);
             let one = begin(&mut pool, 1, 0);

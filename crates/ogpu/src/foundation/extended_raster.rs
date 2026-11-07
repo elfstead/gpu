@@ -1,17 +1,19 @@
 //! Optional native extended dynamic raster state. No current-state cache.
 use super::*;
-pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_RASTERIZATION_STREAM
-    | DYNAMIC_TESSELLATION_ORIGIN
-    | DYNAMIC_DEPTH_CLAMP
-    | DYNAMIC_POLYGON_MODE
-    | DYNAMIC_RASTERIZATION_SAMPLES
-    | DYNAMIC_SAMPLE_MASK
-    | DYNAMIC_ALPHA_TO_COVERAGE
-    | DYNAMIC_ALPHA_TO_ONE
-    | DYNAMIC_LOGIC_OP_ENABLE
-    | DYNAMIC_COLOR_BLEND_ENABLE
-    | DYNAMIC_COLOR_BLEND_EQUATION
-    | DYNAMIC_COLOR_WRITE_MASK;
+pub(super) const EDS3_FEATURES: FeatureBits = FeatureBits::union(&[
+    DYNAMIC_RASTERIZATION_STREAM,
+    DYNAMIC_TESSELLATION_ORIGIN,
+    DYNAMIC_DEPTH_CLAMP,
+    DYNAMIC_POLYGON_MODE,
+    DYNAMIC_RASTERIZATION_SAMPLES,
+    DYNAMIC_SAMPLE_MASK,
+    DYNAMIC_ALPHA_TO_COVERAGE,
+    DYNAMIC_ALPHA_TO_ONE,
+    DYNAMIC_LOGIC_OP_ENABLE,
+    DYNAMIC_COLOR_BLEND_ENABLE,
+    DYNAMIC_COLOR_BLEND_EQUATION,
+    DYNAMIC_COLOR_WRITE_MASK,
+]);
 pub(super) const STATES: &[(u64, vk::VkDynamicState)] = &[
     (
         DYNAMIC_RASTERIZATION_STREAM_STATE,
@@ -308,7 +310,7 @@ pub(super) fn scalar(field: u64, value: u32, enabled: FeatureBits) -> Result<(),
         DYNAMIC_POLYGON_MODE_STATE => NON_SOLID_FILL,
         DYNAMIC_ALPHA_TO_ONE_STATE => ALPHA_TO_ONE,
         DYNAMIC_LOGIC_OP_ENABLE_STATE => LOGIC_OP,
-        _ => 0,
+        _ => FeatureBits::ZERO,
     };
     if value != 0 && base & !enabled != 0 {
         return Err(UNSUPPORTED);
@@ -415,7 +417,7 @@ mod tests {
                 ][field]
                     .clone_from(&factor);
                 assert_eq!(
-                    equation(&e, 0),
+                    equation(&e, FeatureBits::ZERO),
                     if factor > 18 {
                         Err(INVALID)
                     } else if factor >= 15 {

@@ -43,7 +43,7 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_EXT_mesh_shader")
         .map_err(loader_error)?
     {
-        return Ok((0, MeshLimits::default()));
+        return Ok((FeatureBits::ZERO, MeshLimits::default()));
     }
     let mut mesh = vk::VkPhysicalDeviceMeshShaderFeaturesEXT {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
@@ -72,16 +72,20 @@ pub(super) fn snapshot(
             | if mesh.primitiveFragmentShadingRateMeshShader != 0 {
                 MESH_PRIMITIVE_SHADING_RATE
             } else {
-                0
+                FeatureBits::ZERO
             }
-            | if mesh.taskShader != 0 { TASK_SHADER } else { 0 }
+            | if mesh.taskShader != 0 {
+                TASK_SHADER
+            } else {
+                FeatureBits::ZERO
+            }
             | if mesh.multiviewMeshShader != 0 {
                 MESH_MULTIVIEW
             } else {
-                0
+                FeatureBits::ZERO
             }
     } else {
-        0
+        FeatureBits::ZERO
     };
     Ok((features, limits(&p)))
 }

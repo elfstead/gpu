@@ -67,7 +67,7 @@ fn host_edge() -> BarrierScope {
 
 #[test]
 fn capabilities_follow_native_queue_and_feature_scopes() {
-    let transfer = limits(7, TRANSFER, 0);
+    let transfer = limits(7, TRANSFER, FeatureBits::ZERO);
     assert_eq!(transfer.domain, 7);
     assert_eq!(transfer.flags, DEPENDENCY_OWNERSHIP | DEPENDENCY_BINARY);
     assert_eq!(transfer.memory_scope, MEMORY_SCOPE_BYTES);
@@ -75,7 +75,11 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
     assert_eq!(transfer.signal_stages, transfer.wait_stages);
     assert_eq!(transfer.split_stages, 0);
     for (flags, enabled, expected) in [
-        (COMPUTE, 0, 1 | 2 | 4 | 32 | COPY_SCOPE | CLEAR_SCOPE),
+        (
+            COMPUTE,
+            FeatureBits::ZERO,
+            1 | 2 | 4 | 32 | COPY_SCOPE | CLEAR_SCOPE,
+        ),
         (
             COMPUTE,
             GENERATED_COMMANDS,

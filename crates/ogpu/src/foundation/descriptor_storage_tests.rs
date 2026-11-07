@@ -230,7 +230,7 @@ fn gpu_descriptor_storage_and_replay() {
                 count: 1,
                 priority: 0.5,
             }],
-            0,
+            FeatureBits::ZERO,
         )
         .unwrap();
         WRITE.set(device.f.vkWriteResourceDescriptorsEXT);

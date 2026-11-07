@@ -2,133 +2,220 @@
 //! This representation covers today's implemented catalog and is not an ABI limit.
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
-pub(super) type FeatureBits = u128;
-pub(super) const TRANSFORM_FEEDBACK: FeatureBits = 1 << 120;
-pub(super) const GEOMETRY_STREAMS: FeatureBits = 1 << 121;
-pub(super) const DYNAMIC_RASTERIZATION_STREAM: FeatureBits = 1 << 122;
-pub(super) const DYNAMIC_PATCH_CONTROL_POINTS: FeatureBits = 1 << 118;
-pub(super) const DYNAMIC_TESSELLATION_ORIGIN: FeatureBits = 1 << 119;
-pub(super) const UNRESTRICTED_DEPTH_RANGE: FeatureBits = 1 << 111;
-pub(super) const DEPTH_CLAMP_CONTROL: FeatureBits = 1 << 112;
-pub(super) const DEPTH_BIAS_CONTROL: FeatureBits = 1 << 113;
-pub(super) const DEPTH_BIAS_UNORM: FeatureBits = 1 << 114;
-pub(super) const DEPTH_BIAS_FLOAT: FeatureBits = 1 << 115;
-pub(super) const DEPTH_BIAS_EXACT: FeatureBits = 1 << 116;
-pub(super) const COLOR_WRITE_ENABLE: FeatureBits = 1 << 117;
+#[path = "feature_bits.rs"]
+mod storage;
+pub(super) use storage::FeatureBits;
+pub(super) const TRANSFORM_FEEDBACK: FeatureBits =
+    FeatureBits::bit(feature_ids::TRANSFORM_FEEDBACK - 1);
+pub(super) const GEOMETRY_STREAMS: FeatureBits =
+    FeatureBits::bit(feature_ids::GEOMETRY_STREAMS - 1);
+pub(super) const DYNAMIC_RASTERIZATION_STREAM: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_RASTERIZATION_STREAM - 1);
+pub(super) const DYNAMIC_PATCH_CONTROL_POINTS: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_PATCH_CONTROL_POINTS - 1);
+pub(super) const DYNAMIC_TESSELLATION_ORIGIN: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_TESSELLATION_ORIGIN - 1);
+pub(super) const UNRESTRICTED_DEPTH_RANGE: FeatureBits =
+    FeatureBits::bit(feature_ids::UNRESTRICTED_DEPTH_RANGE - 1);
+pub(super) const DEPTH_CLAMP_CONTROL: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_CLAMP_CONTROL - 1);
+pub(super) const DEPTH_BIAS_CONTROL: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_BIAS_CONTROL - 1);
+pub(super) const DEPTH_BIAS_UNORM: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_BIAS_UNORM - 1);
+pub(super) const DEPTH_BIAS_FLOAT: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_BIAS_FLOAT - 1);
+pub(super) const DEPTH_BIAS_EXACT: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_BIAS_EXACT - 1);
+pub(super) const COLOR_WRITE_ENABLE: FeatureBits =
+    FeatureBits::bit(feature_ids::COLOR_WRITE_ENABLE - 1);
 
-pub(super) const MULTI_VIEWPORT: FeatureBits = 1 << 109;
-pub(super) const SHADER_OUTPUT_VIEWPORT_INDEX: FeatureBits = 1 << 110;
-pub(super) const DYNAMIC_DEPTH_CLAMP: FeatureBits = 1 << 98;
-pub(super) const DYNAMIC_POLYGON_MODE: FeatureBits = 1 << 99;
-pub(super) const DYNAMIC_RASTERIZATION_SAMPLES: FeatureBits = 1 << 100;
-pub(super) const DYNAMIC_SAMPLE_MASK: FeatureBits = 1 << 101;
-pub(super) const DYNAMIC_ALPHA_TO_COVERAGE: FeatureBits = 1 << 102;
-pub(super) const DYNAMIC_ALPHA_TO_ONE: FeatureBits = 1 << 103;
-pub(super) const DYNAMIC_LOGIC_OP_ENABLE: FeatureBits = 1 << 104;
-pub(super) const DYNAMIC_COLOR_BLEND_ENABLE: FeatureBits = 1 << 105;
-pub(super) const DYNAMIC_COLOR_BLEND_EQUATION: FeatureBits = 1 << 106;
-pub(super) const DYNAMIC_COLOR_WRITE_MASK: FeatureBits = 1 << 107;
-pub(super) const DYNAMIC_LOGIC_OP: FeatureBits = 1 << 108;
-pub(super) const DYNAMIC_VERTEX_INPUT: FeatureBits = 1 << 97;
-pub(super) const SAMPLE_LOCATIONS: FeatureBits = 1 << 95;
-pub(super) const DYNAMIC_SAMPLE_LOCATIONS_ENABLE: FeatureBits = 1 << 96;
-pub(super) const CONSERVATIVE_RASTER: FeatureBits = 1 << 79;
-pub(super) const PROVOKING_LAST: FeatureBits = 1 << 80;
-pub(super) const DEPTH_NEGATIVE_ONE_TO_ONE: FeatureBits = 1 << 81;
-pub(super) const RECTANGULAR_LINES: FeatureBits = 1 << 82;
-pub(super) const BRESENHAM_LINES: FeatureBits = 1 << 83;
-pub(super) const SMOOTH_LINES: FeatureBits = 1 << 84;
-pub(super) const STIPPLED_RECTANGULAR_LINES: FeatureBits = 1 << 85;
-pub(super) const STIPPLED_BRESENHAM_LINES: FeatureBits = 1 << 86;
-pub(super) const STIPPLED_SMOOTH_LINES: FeatureBits = 1 << 87;
-pub(super) const DYNAMIC_CONSERVATIVE_MODE: FeatureBits = 1 << 88;
-pub(super) const DYNAMIC_EXTRA_OVERESTIMATION: FeatureBits = 1 << 89;
-pub(super) const DYNAMIC_PROVOKING_VERTEX: FeatureBits = 1 << 90;
-pub(super) const DYNAMIC_DEPTH_CLIP: FeatureBits = 1 << 91;
-pub(super) const DYNAMIC_DEPTH_CONVENTION: FeatureBits = 1 << 92;
-pub(super) const DYNAMIC_LINE_MODE: FeatureBits = 1 << 93;
-pub(super) const DYNAMIC_LINE_STIPPLE_ENABLE: FeatureBits = 1 << 94;
+pub(super) const MULTI_VIEWPORT: FeatureBits = FeatureBits::bit(feature_ids::MULTI_VIEWPORT - 1);
+pub(super) const SHADER_OUTPUT_VIEWPORT_INDEX: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_OUTPUT_VIEWPORT_INDEX - 1);
+pub(super) const DYNAMIC_DEPTH_CLAMP: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_DEPTH_CLAMP - 1);
+pub(super) const DYNAMIC_POLYGON_MODE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_POLYGON_MODE - 1);
+pub(super) const DYNAMIC_RASTERIZATION_SAMPLES: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_RASTERIZATION_SAMPLES - 1);
+pub(super) const DYNAMIC_SAMPLE_MASK: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_SAMPLE_MASK - 1);
+pub(super) const DYNAMIC_ALPHA_TO_COVERAGE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_ALPHA_TO_COVERAGE - 1);
+pub(super) const DYNAMIC_ALPHA_TO_ONE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_ALPHA_TO_ONE - 1);
+pub(super) const DYNAMIC_LOGIC_OP_ENABLE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_LOGIC_OP_ENABLE - 1);
+pub(super) const DYNAMIC_COLOR_BLEND_ENABLE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_COLOR_BLEND_ENABLE - 1);
+pub(super) const DYNAMIC_COLOR_BLEND_EQUATION: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_COLOR_BLEND_EQUATION - 1);
+pub(super) const DYNAMIC_COLOR_WRITE_MASK: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_COLOR_WRITE_MASK - 1);
+pub(super) const DYNAMIC_LOGIC_OP: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_LOGIC_OP - 1);
+pub(super) const DYNAMIC_VERTEX_INPUT: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_VERTEX_INPUT - 1);
+pub(super) const SAMPLE_LOCATIONS: FeatureBits =
+    FeatureBits::bit(feature_ids::SAMPLE_LOCATIONS - 1);
+pub(super) const DYNAMIC_SAMPLE_LOCATIONS_ENABLE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_SAMPLE_LOCATIONS_ENABLE - 1);
+pub(super) const CONSERVATIVE_RASTER: FeatureBits =
+    FeatureBits::bit(feature_ids::CONSERVATIVE_RASTER - 1);
+pub(super) const PROVOKING_LAST: FeatureBits = FeatureBits::bit(feature_ids::PROVOKING_LAST - 1);
+pub(super) const DEPTH_NEGATIVE_ONE_TO_ONE: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_NEGATIVE_ONE_TO_ONE - 1);
+pub(super) const RECTANGULAR_LINES: FeatureBits =
+    FeatureBits::bit(feature_ids::RECTANGULAR_LINES - 1);
+pub(super) const BRESENHAM_LINES: FeatureBits = FeatureBits::bit(feature_ids::BRESENHAM_LINES - 1);
+pub(super) const SMOOTH_LINES: FeatureBits = FeatureBits::bit(feature_ids::SMOOTH_LINES - 1);
+pub(super) const STIPPLED_RECTANGULAR_LINES: FeatureBits =
+    FeatureBits::bit(feature_ids::STIPPLED_RECTANGULAR_LINES - 1);
+pub(super) const STIPPLED_BRESENHAM_LINES: FeatureBits =
+    FeatureBits::bit(feature_ids::STIPPLED_BRESENHAM_LINES - 1);
+pub(super) const STIPPLED_SMOOTH_LINES: FeatureBits =
+    FeatureBits::bit(feature_ids::STIPPLED_SMOOTH_LINES - 1);
+pub(super) const DYNAMIC_CONSERVATIVE_MODE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_CONSERVATIVE_MODE - 1);
+pub(super) const DYNAMIC_EXTRA_OVERESTIMATION: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_EXTRA_OVERESTIMATION - 1);
+pub(super) const DYNAMIC_PROVOKING_VERTEX: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_PROVOKING_VERTEX - 1);
+pub(super) const DYNAMIC_DEPTH_CLIP: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_DEPTH_CLIP - 1);
+pub(super) const DYNAMIC_DEPTH_CONVENTION: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_DEPTH_CONVENTION - 1);
+pub(super) const DYNAMIC_LINE_MODE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_LINE_MODE - 1);
+pub(super) const DYNAMIC_LINE_STIPPLE_ENABLE: FeatureBits =
+    FeatureBits::bit(feature_ids::DYNAMIC_LINE_STIPPLE_ENABLE - 1);
 
-pub(super) const LARGE_POINTS: FeatureBits = 1 << 73;
-pub(super) const DEPTH_CLIP: FeatureBits = 1 << 74;
-pub(super) const VERTEX_DIVISOR: FeatureBits = 1 << 75;
-pub(super) const VERTEX_ZERO_DIVISOR: FeatureBits = 1 << 76;
-pub(super) const LIST_RESTART: FeatureBits = 1 << 77;
-pub(super) const PATCH_RESTART: FeatureBits = 1 << 78;
-pub(super) const TESSELLATION: FeatureBits = 1 << 68;
-pub(super) const GEOMETRY: FeatureBits = 1 << 69;
-pub(super) const TESSELLATION_MULTIVIEW: FeatureBits = 1 << 70;
-pub(super) const GEOMETRY_MULTIVIEW: FeatureBits = 1 << 71;
-pub(super) const TESSELLATION_GEOMETRY_POINT_SIZE: FeatureBits = 1 << 72;
-pub(super) const LOCAL_READ: FeatureBits = 1 << 67;
-pub(super) const PIPELINE_SHADING_RATE: FeatureBits = 1 << 63;
-pub(super) const PRIMITIVE_SHADING_RATE: FeatureBits = 1 << 64;
-pub(super) const ATTACHMENT_SHADING_RATE: FeatureBits = 1 << 65;
-pub(super) const MESH_PRIMITIVE_SHADING_RATE: FeatureBits = 1 << 66;
+pub(super) const LARGE_POINTS: FeatureBits = FeatureBits::bit(feature_ids::LARGE_POINTS - 1);
+pub(super) const DEPTH_CLIP: FeatureBits = FeatureBits::bit(feature_ids::DEPTH_CLIP - 1);
+pub(super) const VERTEX_DIVISOR: FeatureBits = FeatureBits::bit(feature_ids::VERTEX_DIVISOR - 1);
+pub(super) const VERTEX_ZERO_DIVISOR: FeatureBits =
+    FeatureBits::bit(feature_ids::VERTEX_ZERO_DIVISOR - 1);
+pub(super) const LIST_RESTART: FeatureBits = FeatureBits::bit(feature_ids::LIST_RESTART - 1);
+pub(super) const PATCH_RESTART: FeatureBits = FeatureBits::bit(feature_ids::PATCH_RESTART - 1);
+pub(super) const TESSELLATION: FeatureBits = FeatureBits::bit(feature_ids::TESSELLATION - 1);
+pub(super) const GEOMETRY: FeatureBits = FeatureBits::bit(feature_ids::GEOMETRY - 1);
+pub(super) const TESSELLATION_MULTIVIEW: FeatureBits =
+    FeatureBits::bit(feature_ids::TESSELLATION_MULTIVIEW - 1);
+pub(super) const GEOMETRY_MULTIVIEW: FeatureBits =
+    FeatureBits::bit(feature_ids::GEOMETRY_MULTIVIEW - 1);
+pub(super) const TESSELLATION_GEOMETRY_POINT_SIZE: FeatureBits =
+    FeatureBits::bit(feature_ids::TESSELLATION_GEOMETRY_POINT_SIZE - 1);
+pub(super) const LOCAL_READ: FeatureBits = FeatureBits::bit(feature_ids::LOCAL_READ - 1);
+pub(super) const PIPELINE_SHADING_RATE: FeatureBits =
+    FeatureBits::bit(feature_ids::PIPELINE_SHADING_RATE - 1);
+pub(super) const PRIMITIVE_SHADING_RATE: FeatureBits =
+    FeatureBits::bit(feature_ids::PRIMITIVE_SHADING_RATE - 1);
+pub(super) const ATTACHMENT_SHADING_RATE: FeatureBits =
+    FeatureBits::bit(feature_ids::ATTACHMENT_SHADING_RATE - 1);
+pub(super) const MESH_PRIMITIVE_SHADING_RATE: FeatureBits =
+    FeatureBits::bit(feature_ids::MESH_PRIMITIVE_SHADING_RATE - 1);
 
-pub(super) const RASTER: FeatureBits = 1;
-pub(super) const FLOAT16: FeatureBits = 2;
-pub(super) const UNIFIED_IMAGES: FeatureBits = 4;
-pub(super) const SAMPLER_ANISOTROPY: FeatureBits = 8;
-pub(super) const CACHE_CONTROL: FeatureBits = 16;
-pub(super) const INT8: FeatureBits = 32;
-pub(super) const INT16: FeatureBits = 64;
-pub(super) const INT64: FeatureBits = 128;
-pub(super) const FLOAT64: FeatureBits = 256;
-pub(super) const STORAGE8: FeatureBits = 512;
-pub(super) const BUFFER_ATOMIC64: FeatureBits = 1024;
-pub(super) const SHARED_ATOMIC64: FeatureBits = 2048;
-pub(super) const SUBGROUP_SIZE_CONTROL: FeatureBits = 4096;
-pub(super) const FULL_SUBGROUPS: FeatureBits = 8192;
-pub(super) const SUBGROUP_EXTENDED_TYPES: FeatureBits = 16384;
-pub(super) const PIPELINE_STATISTICS: FeatureBits = 32768;
-pub(super) const PRECISE_OCCLUSION: FeatureBits = 65536;
-pub(super) const INHERITED_QUERIES: FeatureBits = 131072;
-pub(super) const VERTEX_STORES_ATOMICS: FeatureBits = 262144;
-pub(super) const FRAGMENT_STORES_ATOMICS: FeatureBits = 524288;
-pub(super) const INDIRECT_FIRST_INSTANCE: FeatureBits = 1048576;
-pub(super) const INDEPENDENT_BLEND: FeatureBits = 2097152;
-pub(super) const DEPTH_CLAMP: FeatureBits = 4194304;
-pub(super) const DEPTH_BIAS_CLAMP: FeatureBits = 8388608;
-pub(super) const NON_SOLID_FILL: FeatureBits = 16777216;
-pub(super) const WIDE_LINES: FeatureBits = 33554432;
-pub(super) const DEPTH_BOUNDS: FeatureBits = 67108864;
-pub(super) const SAMPLE_SHADING: FeatureBits = 134217728;
-pub(super) const ALPHA_TO_ONE: FeatureBits = 268435456;
-pub(super) const UNUSED_ATTACHMENTS: FeatureBits = 536870912;
-pub(super) const LOGIC_OP: FeatureBits = 1073741824;
-pub(super) const DUAL_SOURCE_BLEND: FeatureBits = 2147483648;
-pub(super) const SHADER_OUTPUT_LAYER: FeatureBits = 4294967296;
-pub(super) const BUFFER_FLOAT32_ATOMICS: FeatureBits = 8589934592;
-pub(super) const BUFFER_FLOAT32_ATOMIC_ADD: FeatureBits = 17179869184;
-pub(super) const BUFFER_FLOAT32_ATOMIC_MIN_MAX: FeatureBits = 34359738368;
-pub(super) const SHARED_FLOAT32_ATOMICS: FeatureBits = 68719476736;
-pub(super) const SHARED_FLOAT32_ATOMIC_ADD: FeatureBits = 137438953472;
-pub(super) const SHARED_FLOAT32_ATOMIC_MIN_MAX: FeatureBits = 274877906944;
-pub(super) const BUFFER_FLOAT64_ATOMICS: FeatureBits = 549755813888;
-pub(super) const BUFFER_FLOAT64_ATOMIC_ADD: FeatureBits = 1099511627776;
-pub(super) const BUFFER_FLOAT64_ATOMIC_MIN_MAX: FeatureBits = 2199023255552;
-pub(super) const SHARED_FLOAT64_ATOMICS: FeatureBits = 4398046511104;
-pub(super) const SHARED_FLOAT64_ATOMIC_ADD: FeatureBits = 8796093022208;
-pub(super) const SHARED_FLOAT64_ATOMIC_MIN_MAX: FeatureBits = 17592186044416;
-pub(super) const COOPERATIVE_MATRIX: FeatureBits = 35184372088832;
-pub(super) const VULKAN_MEMORY_MODEL: FeatureBits = 70368744177664;
-pub(super) const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: FeatureBits = 140737488355328;
-pub(super) const INTEGER_DOT: FeatureBits = 281474976710656;
-pub(super) const BUFFER_FLOAT16_ATOMICS: FeatureBits = 562949953421312;
-pub(super) const BUFFER_FLOAT16_ATOMIC_ADD: FeatureBits = 1125899906842624;
-pub(super) const BUFFER_FLOAT16_ATOMIC_MIN_MAX: FeatureBits = 2251799813685248;
-pub(super) const SHARED_FLOAT16_ATOMICS: FeatureBits = 4503599627370496;
-pub(super) const SHARED_FLOAT16_ATOMIC_ADD: FeatureBits = 9007199254740992;
-pub(super) const SHARED_FLOAT16_ATOMIC_MIN_MAX: FeatureBits = 18014398509481984;
-pub(super) const VULKAN_MEMORY_MODEL_CHAINS: FeatureBits = 36028797018963968;
-pub(super) const CUBE_ARRAY: FeatureBits = 72057594037927936;
-pub(super) const PRESENTATION: FeatureBits = 144115188075855872;
-pub(super) const MESH_SHADER: FeatureBits = 288230376151711744;
-pub(super) const TASK_SHADER: FeatureBits = 576460752303423488;
-pub(super) const GENERATED_COMMANDS: FeatureBits = 1152921504606846976;
-pub(super) const MULTIVIEW: FeatureBits = 1 << 61;
-pub(super) const MESH_MULTIVIEW: FeatureBits = 1 << 62;
+pub(super) const RASTER: FeatureBits = FeatureBits::bit(feature_ids::RASTER - 1);
+pub(super) const FLOAT16: FeatureBits = FeatureBits::bit(feature_ids::FLOAT16 - 1);
+pub(super) const UNIFIED_IMAGES: FeatureBits = FeatureBits::bit(feature_ids::UNIFIED_IMAGES - 1);
+pub(super) const SAMPLER_ANISOTROPY: FeatureBits =
+    FeatureBits::bit(feature_ids::SAMPLER_ANISOTROPY - 1);
+pub(super) const CACHE_CONTROL: FeatureBits = FeatureBits::bit(feature_ids::CACHE_CONTROL - 1);
+pub(super) const INT8: FeatureBits = FeatureBits::bit(feature_ids::INT8 - 1);
+pub(super) const INT16: FeatureBits = FeatureBits::bit(feature_ids::INT16 - 1);
+pub(super) const INT64: FeatureBits = FeatureBits::bit(feature_ids::INT64 - 1);
+pub(super) const FLOAT64: FeatureBits = FeatureBits::bit(feature_ids::FLOAT64 - 1);
+pub(super) const STORAGE8: FeatureBits = FeatureBits::bit(feature_ids::STORAGE8 - 1);
+pub(super) const BUFFER_ATOMIC64: FeatureBits = FeatureBits::bit(feature_ids::BUFFER_ATOMIC64 - 1);
+pub(super) const SHARED_ATOMIC64: FeatureBits = FeatureBits::bit(feature_ids::SHARED_ATOMIC64 - 1);
+pub(super) const SUBGROUP_SIZE_CONTROL: FeatureBits =
+    FeatureBits::bit(feature_ids::SUBGROUP_SIZE_CONTROL - 1);
+pub(super) const FULL_SUBGROUPS: FeatureBits = FeatureBits::bit(feature_ids::FULL_SUBGROUPS - 1);
+pub(super) const SUBGROUP_EXTENDED_TYPES: FeatureBits =
+    FeatureBits::bit(feature_ids::SUBGROUP_EXTENDED_TYPES - 1);
+pub(super) const PIPELINE_STATISTICS: FeatureBits =
+    FeatureBits::bit(feature_ids::PIPELINE_STATISTICS - 1);
+pub(super) const PRECISE_OCCLUSION: FeatureBits =
+    FeatureBits::bit(feature_ids::PRECISE_OCCLUSION - 1);
+pub(super) const INHERITED_QUERIES: FeatureBits =
+    FeatureBits::bit(feature_ids::INHERITED_QUERIES - 1);
+pub(super) const VERTEX_STORES_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::VERTEX_STORES_ATOMICS - 1);
+pub(super) const FRAGMENT_STORES_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::FRAGMENT_STORES_ATOMICS - 1);
+pub(super) const INDIRECT_FIRST_INSTANCE: FeatureBits =
+    FeatureBits::bit(feature_ids::INDIRECT_FIRST_INSTANCE - 1);
+pub(super) const INDEPENDENT_BLEND: FeatureBits =
+    FeatureBits::bit(feature_ids::INDEPENDENT_BLEND - 1);
+pub(super) const DEPTH_CLAMP: FeatureBits = FeatureBits::bit(feature_ids::DEPTH_CLAMP - 1);
+pub(super) const DEPTH_BIAS_CLAMP: FeatureBits =
+    FeatureBits::bit(feature_ids::DEPTH_BIAS_CLAMP - 1);
+pub(super) const NON_SOLID_FILL: FeatureBits = FeatureBits::bit(feature_ids::NON_SOLID_FILL - 1);
+pub(super) const WIDE_LINES: FeatureBits = FeatureBits::bit(feature_ids::WIDE_LINES - 1);
+pub(super) const DEPTH_BOUNDS: FeatureBits = FeatureBits::bit(feature_ids::DEPTH_BOUNDS - 1);
+pub(super) const SAMPLE_SHADING: FeatureBits = FeatureBits::bit(feature_ids::SAMPLE_SHADING - 1);
+pub(super) const ALPHA_TO_ONE: FeatureBits = FeatureBits::bit(feature_ids::ALPHA_TO_ONE - 1);
+pub(super) const UNUSED_ATTACHMENTS: FeatureBits =
+    FeatureBits::bit(feature_ids::UNUSED_ATTACHMENTS - 1);
+pub(super) const LOGIC_OP: FeatureBits = FeatureBits::bit(feature_ids::LOGIC_OP - 1);
+pub(super) const DUAL_SOURCE_BLEND: FeatureBits =
+    FeatureBits::bit(feature_ids::DUAL_SOURCE_BLEND - 1);
+pub(super) const SHADER_OUTPUT_LAYER: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_OUTPUT_LAYER - 1);
+pub(super) const BUFFER_FLOAT32_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT32_ATOMICS - 1);
+pub(super) const BUFFER_FLOAT32_ATOMIC_ADD: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT32_ATOMIC_ADD - 1);
+pub(super) const BUFFER_FLOAT32_ATOMIC_MIN_MAX: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT32_ATOMIC_MIN_MAX - 1);
+pub(super) const SHARED_FLOAT32_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT32_ATOMICS - 1);
+pub(super) const SHARED_FLOAT32_ATOMIC_ADD: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT32_ATOMIC_ADD - 1);
+pub(super) const SHARED_FLOAT32_ATOMIC_MIN_MAX: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT32_ATOMIC_MIN_MAX - 1);
+pub(super) const BUFFER_FLOAT64_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT64_ATOMICS - 1);
+pub(super) const BUFFER_FLOAT64_ATOMIC_ADD: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT64_ATOMIC_ADD - 1);
+pub(super) const BUFFER_FLOAT64_ATOMIC_MIN_MAX: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT64_ATOMIC_MIN_MAX - 1);
+pub(super) const SHARED_FLOAT64_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT64_ATOMICS - 1);
+pub(super) const SHARED_FLOAT64_ATOMIC_ADD: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT64_ATOMIC_ADD - 1);
+pub(super) const SHARED_FLOAT64_ATOMIC_MIN_MAX: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT64_ATOMIC_MIN_MAX - 1);
+pub(super) const COOPERATIVE_MATRIX: FeatureBits =
+    FeatureBits::bit(feature_ids::COOPERATIVE_MATRIX - 1);
+pub(super) const VULKAN_MEMORY_MODEL: FeatureBits =
+    FeatureBits::bit(feature_ids::VULKAN_MEMORY_MODEL - 1);
+pub(super) const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: FeatureBits =
+    FeatureBits::bit(feature_ids::VULKAN_MEMORY_MODEL_DEVICE_SCOPE - 1);
+pub(super) const INTEGER_DOT: FeatureBits = FeatureBits::bit(feature_ids::INTEGER_DOT - 1);
+pub(super) const BUFFER_FLOAT16_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT16_ATOMICS - 1);
+pub(super) const BUFFER_FLOAT16_ATOMIC_ADD: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT16_ATOMIC_ADD - 1);
+pub(super) const BUFFER_FLOAT16_ATOMIC_MIN_MAX: FeatureBits =
+    FeatureBits::bit(feature_ids::BUFFER_FLOAT16_ATOMIC_MIN_MAX - 1);
+pub(super) const SHARED_FLOAT16_ATOMICS: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT16_ATOMICS - 1);
+pub(super) const SHARED_FLOAT16_ATOMIC_ADD: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT16_ATOMIC_ADD - 1);
+pub(super) const SHARED_FLOAT16_ATOMIC_MIN_MAX: FeatureBits =
+    FeatureBits::bit(feature_ids::SHARED_FLOAT16_ATOMIC_MIN_MAX - 1);
+pub(super) const VULKAN_MEMORY_MODEL_CHAINS: FeatureBits =
+    FeatureBits::bit(feature_ids::VULKAN_MEMORY_MODEL_CHAINS - 1);
+pub(super) const CUBE_ARRAY: FeatureBits = FeatureBits::bit(feature_ids::CUBE_ARRAY - 1);
+pub(super) const PRESENTATION: FeatureBits = FeatureBits::bit(feature_ids::PRESENTATION - 1);
+pub(super) const MESH_SHADER: FeatureBits = FeatureBits::bit(feature_ids::MESH_SHADER - 1);
+pub(super) const TASK_SHADER: FeatureBits = FeatureBits::bit(feature_ids::TASK_SHADER - 1);
+pub(super) const GENERATED_COMMANDS: FeatureBits =
+    FeatureBits::bit(feature_ids::GENERATED_COMMANDS - 1);
+pub(super) const MULTIVIEW: FeatureBits = FeatureBits::bit(feature_ids::MULTIVIEW - 1);
+pub(super) const MESH_MULTIVIEW: FeatureBits = FeatureBits::bit(feature_ids::MESH_MULTIVIEW - 1);
 #[derive(Clone, Copy, Default)]
 pub(super) struct FeatureState {
     pub available: FeatureBits,
@@ -137,22 +224,24 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
+const MAX_ID: u32 = feature_ids::DYNAMIC_RASTERIZATION_STREAM;
+const _: () = assert!(MAX_ID <= FeatureBits::CAPACITY);
 pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
-    let mut mask = 0;
+    let mut mask = FeatureBits::ZERO;
     for &id in ids {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 123 {
+        if id > MAX_ID {
             return Err(UNSUPPORTED);
         }
-        mask |= 1u128 << (id - 1);
+        mask |= FeatureBits::bit(id - 1);
     }
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=123)
-        .filter(|id| mask & (1u128 << (id - 1)) != 0)
+    (1..=MAX_ID)
+        .filter(|id| mask & (FeatureBits::bit(id - 1)) != 0)
         .collect()
 }
 pub(super) unsafe fn required(features: Features) -> Result<FeatureBits, Status> {
@@ -209,7 +298,7 @@ mod tests {
         );
         // The public count is a list length, not the size of the native mask.
         assert_eq!(encode(&[feature_ids::RASTER; 129]), Ok(RASTER));
-        assert_eq!(encode(&[]), Ok(0));
+        assert_eq!(encode(&[]), Ok(FeatureBits::ZERO));
     }
 
     #[test]
@@ -227,7 +316,7 @@ mod tests {
             ids: std::ptr::dangling(),
             ..Default::default()
         };
-        assert_eq!(unsafe { required(list) }, Ok(0));
+        assert_eq!(unsafe { required(list) }, Ok(FeatureBits::ZERO));
         list.reserved = 1;
         assert_eq!(unsafe { required(list) }, Err(INVALID));
         list.reserved = 0;
@@ -242,8 +331,8 @@ mod tests {
             max_multiview_views: 4,
             ..Default::default()
         };
-        assert_eq!(view_mask(0, &limits, 0), Ok(()));
-        assert_eq!(view_mask(0, &limits, 1), Err(UNSUPPORTED));
+        assert_eq!(view_mask(FeatureBits::ZERO, &limits, 0), Ok(()));
+        assert_eq!(view_mask(FeatureBits::ZERO, &limits, 1), Err(UNSUPPORTED));
         assert_eq!(view_mask(MULTIVIEW, &limits, 0b1010), Ok(()));
         assert_eq!(view_mask(MULTIVIEW, &limits, 0b10000), Err(UNSUPPORTED));
         assert_eq!(render_layers(9, 0), 9);

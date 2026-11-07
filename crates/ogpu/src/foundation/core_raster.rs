@@ -202,26 +202,29 @@ mod tests {
     }
     #[test]
     fn values_preserve_native_limits_and_independent_capabilities() {
-        assert_eq!(line_width(1.0, 0), Ok(()));
-        assert_eq!(line_width(2.0, 0), Err(UNSUPPORTED));
+        assert_eq!(line_width(1.0, FeatureBits::ZERO), Ok(()));
+        assert_eq!(line_width(2.0, FeatureBits::ZERO), Err(UNSUPPORTED));
         assert_eq!(line_width(2.0, WIDE_LINES), Ok(()));
         assert_eq!(line_width(9.0, WIDE_LINES), Ok(()));
         assert_eq!(line_width(f32::NAN, WIDE_LINES), Err(INVALID));
         assert_eq!(line_width(0.0, WIDE_LINES), Err(INVALID));
-        assert_eq!(depth_bias(-2.0, 0.0, 3.0, 0), Ok(()));
-        assert_eq!(depth_bias(0.0, -1.0, 0.0, 0), Err(UNSUPPORTED));
+        assert_eq!(depth_bias(-2.0, 0.0, 3.0, FeatureBits::ZERO), Ok(()));
+        assert_eq!(
+            depth_bias(0.0, -1.0, 0.0, FeatureBits::ZERO),
+            Err(UNSUPPORTED)
+        );
         assert_eq!(depth_bias(0.0, -1.0, 0.0, DEPTH_BIAS_CLAMP), Ok(()));
         assert_eq!(
             depth_bias(f32::INFINITY, 0.0, 0.0, DEPTH_BIAS_CLAMP),
             Err(INVALID)
         );
-        assert_eq!(depth_bounds(0.0, 1.0, 0), Ok(()));
+        assert_eq!(depth_bounds(0.0, 1.0, FeatureBits::ZERO), Ok(()));
         for (a, b) in [(0.7, 0.3), (-0.1, 1.0), (0.0, 1.1), (f32::NAN, 1.0)] {
-            assert_eq!(depth_bounds(a, b, 0), Err(INVALID));
+            assert_eq!(depth_bounds(a, b, FeatureBits::ZERO), Err(INVALID));
         }
-        assert_eq!(topology(4, 0), Ok(()));
+        assert_eq!(topology(4, FeatureBits::ZERO), Ok(()));
         assert_eq!(topology(11, FeatureBits::MAX), Err(INVALID));
-        assert_eq!(topology(PATCHES, 0), Err(UNSUPPORTED));
+        assert_eq!(topology(PATCHES, FeatureBits::ZERO), Err(UNSUPPORTED));
         assert_eq!(topology(PATCHES, TESSELLATION), Ok(()));
         assert_eq!(topology(6, TESSELLATION), Err(UNSUPPORTED));
         assert_eq!(topology(6, GEOMETRY), Ok(()));

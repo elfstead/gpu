@@ -1,7 +1,11 @@
 //! Explicit depth units/ranges and independent native color-write control.
 use super::*;
-pub(super) const BIAS_FEATURES: FeatureBits =
-    DEPTH_BIAS_CONTROL | DEPTH_BIAS_UNORM | DEPTH_BIAS_FLOAT | DEPTH_BIAS_EXACT;
+pub(super) const BIAS_FEATURES: FeatureBits = FeatureBits::union(&[
+    DEPTH_BIAS_CONTROL,
+    DEPTH_BIAS_UNORM,
+    DEPTH_BIAS_FLOAT,
+    DEPTH_BIAS_EXACT,
+]);
 pub(super) const STATES: &[(u64, vk::VkDynamicState)] = &[
     (
         DYNAMIC_DEPTH_CLAMP_RANGE_STATE,
@@ -73,7 +77,7 @@ pub(super) fn snapshot(
     physical: vk::VkPhysicalDevice,
     f: &Functions,
 ) -> Result<FeatureBits, Status> {
-    let mut selected = 0;
+    let mut selected = FeatureBits::ZERO;
     for (name, bits) in [
         (c"VK_EXT_depth_range_unrestricted", UNRESTRICTED_DEPTH_RANGE),
         (c"VK_EXT_depth_clamp_control", DEPTH_CLAMP_CONTROL),
@@ -87,7 +91,7 @@ pub(super) fn snapshot(
             selected |= bits;
         }
     }
-    let mut native = Native::new(0);
+    let mut native = Native::new(FeatureBits::ZERO);
     let mut root = vk::VkPhysicalDeviceFeatures2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         pNext: native.link(ptr::null_mut(), selected),
@@ -180,9 +184,13 @@ pub(super) fn bias(
         | match representation {
             1 => DEPTH_BIAS_UNORM,
             2 => DEPTH_BIAS_FLOAT,
-            _ => 0,
+            _ => FeatureBits::ZERO,
         }
-        | if exact != 0 { DEPTH_BIAS_EXACT } else { 0 };
+        | if exact != 0 {
+            DEPTH_BIAS_EXACT
+        } else {
+            FeatureBits::ZERO
+        };
     if bits & !enabled != 0 {
         return Err(UNSUPPORTED);
     }
@@ -270,7 +278,11 @@ mod tests {
             core_raster::depth_bounds(-2.0, 3.0, UNRESTRICTED_DEPTH_RANGE),
             Ok(())
         );
-        for (r, bit) in [(0, 0), (1, DEPTH_BIAS_UNORM), (2, DEPTH_BIAS_FLOAT)] {
+        for (r, bit) in [
+            (0, FeatureBits::ZERO),
+            (1, DEPTH_BIAS_UNORM),
+            (2, DEPTH_BIAS_FLOAT),
+        ] {
             assert!(bias(r, 0, DEPTH_BIAS_CONTROL | bit).is_ok());
             assert!(bias(r, 1, DEPTH_BIAS_CONTROL | bit).is_err());
             assert!(bias(r, 1, DEPTH_BIAS_CONTROL | bit | DEPTH_BIAS_EXACT).is_ok());

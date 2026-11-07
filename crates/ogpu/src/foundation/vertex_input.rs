@@ -20,9 +20,9 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_EXT_vertex_input_dynamic_state")
         .map_err(loader_error)?
     {
-        return Ok(0);
+        return Ok(FeatureBits::ZERO);
     }
-    let mut value = features(0, ptr::null_mut());
+    let mut value = features(FeatureBits::ZERO, ptr::null_mut());
     let mut root = vk::VkPhysicalDeviceFeatures2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         pNext: ptr::from_mut(&mut value).cast(),
@@ -34,7 +34,7 @@ pub(super) fn snapshot(
     Ok(if value.vertexInputDynamicState != 0 {
         DYNAMIC_VERTEX_INPUT
     } else {
-        0
+        FeatureBits::ZERO
     })
 }
 pub(super) fn load(
@@ -232,7 +232,7 @@ mod tests {
             Ok((ptr::null(), ptr::null()))
         );
         assert_eq!(
-            unsafe { pack(&p, 0, &args.0, &args.1, &[], args.2) },
+            unsafe { pack(&p, FeatureBits::ZERO, &args.0, &args.1, &[], args.2) },
             Err(UNSUPPORTED)
         );
         assert_eq!(requirements(0, 0).unwrap().size, 0);

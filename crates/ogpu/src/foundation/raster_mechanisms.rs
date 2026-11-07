@@ -1,16 +1,21 @@
 //! Native raster mechanisms and dynamic dispatch; no pipeline-dependent command state.
 use super::*;
-pub(super) const STIPPLED: FeatureBits =
-    STIPPLED_RECTANGULAR_LINES | STIPPLED_BRESENHAM_LINES | STIPPLED_SMOOTH_LINES;
-pub(super) const DYNAMIC_FEATURES: FeatureBits = DYNAMIC_CONSERVATIVE_MODE
-    | DYNAMIC_EXTRA_OVERESTIMATION
-    | DYNAMIC_PROVOKING_VERTEX
-    | DYNAMIC_DEPTH_CLIP
-    | DYNAMIC_DEPTH_CONVENTION
-    | DYNAMIC_LINE_MODE
-    | DYNAMIC_LINE_STIPPLE_ENABLE
-    | DYNAMIC_SAMPLE_LOCATIONS_ENABLE
-    | extended_raster::EDS3_FEATURES;
+pub(super) const STIPPLED: FeatureBits = FeatureBits::union(&[
+    STIPPLED_RECTANGULAR_LINES,
+    STIPPLED_BRESENHAM_LINES,
+    STIPPLED_SMOOTH_LINES,
+]);
+pub(super) const DYNAMIC_FEATURES: FeatureBits = FeatureBits::union(&[
+    DYNAMIC_CONSERVATIVE_MODE,
+    DYNAMIC_EXTRA_OVERESTIMATION,
+    DYNAMIC_PROVOKING_VERTEX,
+    DYNAMIC_DEPTH_CLIP,
+    DYNAMIC_DEPTH_CONVENTION,
+    DYNAMIC_LINE_MODE,
+    DYNAMIC_LINE_STIPPLE_ENABLE,
+    DYNAMIC_SAMPLE_LOCATIONS_ENABLE,
+    extended_raster::EDS3_FEATURES,
+]);
 pub(super) const DYNAMIC_STATES: &[(u64, vk::VkDynamicState)] = &[
     (
         DYNAMIC_SAMPLE_LOCATIONS_STATE,
@@ -182,7 +187,7 @@ pub(super) fn snapshot(
     v14: &vk::VkPhysicalDeviceVulkan14Properties,
     core: &vk::VkPhysicalDeviceLimits,
 ) -> Result<(FeatureBits, RasterMechanismLimits), Status> {
-    let mut selected = 0;
+    let mut selected = FeatureBits::ZERO;
     for (name, bit) in [
         (c"VK_EXT_conservative_rasterization", CONSERVATIVE_RASTER),
         (c"VK_EXT_provoking_vertex", PROVOKING_LAST),
@@ -200,7 +205,7 @@ pub(super) fn snapshot(
             selected |= bit;
         }
     }
-    let mut native = Native::new(0);
+    let mut native = Native::new(FeatureBits::ZERO);
     let mut root = vk::VkPhysicalDeviceFeatures2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         pNext: native.link(ptr::null_mut(), selected),
@@ -411,7 +416,7 @@ pub(super) fn extra(value: f32, p: &RasterMechanismLimits) -> Result<(), Status>
 }
 pub(super) fn line_mode(mode: u32, enabled: FeatureBits) -> Result<(), Status> {
     let bit = match mode {
-        0 => 0,
+        0 => FeatureBits::ZERO,
         1 => RECTANGULAR_LINES,
         2 => BRESENHAM_LINES,
         3 => SMOOTH_LINES,

@@ -74,7 +74,7 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_KHR_cooperative_matrix")
         .map_err(loader_error)?
     {
-        return Ok((0, Vec::new()));
+        return Ok((FeatureBits::ZERO, Vec::new()));
     }
     let mut matrix = vk::VkPhysicalDeviceCooperativeMatrixFeaturesKHR {
         sType:
@@ -90,7 +90,7 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
     }
     if matrix.cooperativeMatrix == 0 {
-        return Ok((0, Vec::new()));
+        return Ok((FeatureBits::ZERO, Vec::new()));
     }
     let mut matrix_props = vk::VkPhysicalDeviceCooperativeMatrixPropertiesKHR {
         sType:

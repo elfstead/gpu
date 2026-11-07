@@ -317,8 +317,8 @@ mod tests {
     #[test]
     fn compilation_policy_is_explicit() {
         let base = vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
-        assert_eq!(compile_flags(0, 0, 0), Ok(base));
-        assert_eq!(compile_flags(0, 1, 0), Err(UNSUPPORTED));
+        assert_eq!(compile_flags(FeatureBits::ZERO, 0, 0), Ok(base));
+        assert_eq!(compile_flags(FeatureBits::ZERO, 1, 0), Err(UNSUPPORTED));
         assert_eq!(
             compile_flags(PIPELINE_SHADING_RATE, COMPILE_SHADING_RATE_ATTACHMENT, 0),
             Err(UNSUPPORTED)
@@ -468,17 +468,17 @@ mod tests {
             };
             // Exercise each independent bit and each otherwise-complete profile
             // missing one required bit, not merely a device with everything disabled.
-            let profiles = [0, all].into_iter().chain(
-                (0..128)
-                    .map(|n| 1u128 << n)
+            let profiles = [FeatureBits::ZERO, all].into_iter().chain(
+                (0..FeatureBits::CAPACITY)
+                    .map(FeatureBits::bit)
                     .filter(|bit| all & bit != 0)
                     .flat_map(|bit| [bit, all & !bit]),
             );
             // Float operations are independent even within the same width/domain.
             let profiles = profiles.chain(
-                (0..128)
-                    .map(|n| 1u128 << n)
-                    .filter(|bit| all & float_atomics::ALL != 0 && bit & float_atomics::ALL != 0),
+                (0..FeatureBits::CAPACITY)
+                    .map(FeatureBits::bit)
+                    .filter(|bit| all & float_atomics::ALL != 0 && *bit & float_atomics::ALL != 0),
             );
             for enabled in profiles {
                 if enabled & !available != 0 {
@@ -880,7 +880,7 @@ mod tests {
                 assert_eq!(DYNAMIC_MASK.get(), 0); // Rejected before native preparation.
             }
             let profiles = [
-                0,
+                FeatureBits::ZERO,
                 VERTEX_STORES_ATOMICS,
                 FRAGMENT_STORES_ATOMICS,
                 VERTEX_STORES_ATOMICS | FRAGMENT_STORES_ATOMICS,
@@ -1164,23 +1164,23 @@ mod tests {
                 };
                 assert!(unsafe { check_pipeline(&profile_device, &unused_desc, 8, 24) }.is_ok());
                 for (bit, options) in [
-                    (0, defaults),
+                    (FeatureBits::ZERO, defaults),
                     (
-                        0,
+                        FeatureBits::ZERO,
                         RasterOptions {
                             discard: 1,
                             ..defaults
                         },
                     ),
                     (
-                        0,
+                        FeatureBits::ZERO,
                         RasterOptions {
                             primitive_restart: 1,
                             ..defaults
                         },
                     ),
                     (
-                        0,
+                        FeatureBits::ZERO,
                         RasterOptions {
                             depth_bias: 1,
                             depth_bias_constant: -2.0,
@@ -1189,7 +1189,7 @@ mod tests {
                         },
                     ),
                     (
-                        0,
+                        FeatureBits::ZERO,
                         RasterOptions {
                             sample_mask: 0,
                             alpha_to_coverage: 1,
@@ -1270,7 +1270,7 @@ mod tests {
                     let width_supported = bit != WIDE_LINES
                         || profile_device.snapshot.graphics_limits.line_width_range[1] >= 2.0;
                     if bit & !enabled == 0 && width_supported {
-                        assert!(result.is_ok(), "raster option {bit}: {:?}", result.err());
+                        assert!(result.is_ok(), "raster option {bit:x}: {:?}", result.err());
                     } else {
                         assert!(matches!(result, Err(UNSUPPORTED)));
                     }

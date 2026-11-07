@@ -2037,7 +2037,7 @@ mod tests {
                 GEOMETRY,
             ),
         ] {
-            assert_eq!(stage_features(0, stage), Err(UNSUPPORTED));
+            assert_eq!(stage_features(FeatureBits::ZERO, stage), Err(UNSUPPORTED));
             assert_eq!(stage_features(feature, stage), Ok(()));
             assert_eq!(stage_mask(GRAPHICS, true, stage, false), Ok(native));
             assert_eq!(stage_mask(COMPUTE, false, stage, false), Err(UNSUPPORTED));
@@ -2173,7 +2173,7 @@ mod tests {
                 inheritance: ptr::null(),
             };
             for terminal in [4, 5] {
-                let mut d = Device::create(&adapter, &requests, 0).unwrap();
+                let mut d = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
                 // Install mocks before borrowing the device into any child.
                 BEGIN.set(d.f.vkBeginCommandBuffer);
                 d.f.vkBeginCommandBuffer = Some(begin);
@@ -2322,7 +2322,7 @@ mod tests {
                 drop(d);
             }
             // Separate arenas permit independent simultaneous host recording.
-            let d = Device::create(&adapter, &requests, 0).unwrap();
+            let d = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
             std::thread::scope(|scope| {
                 for _ in 0..4 {
                     let d = &d;
@@ -2355,7 +2355,10 @@ mod tests {
     }
     #[test]
     fn synchronization_scopes_remain_narrow_and_queue_specific() {
-        assert_eq!(stage_features(0, PREPROCESS_STAGE), Err(UNSUPPORTED));
+        assert_eq!(
+            stage_features(FeatureBits::ZERO, PREPROCESS_STAGE),
+            Err(UNSUPPORTED)
+        );
         assert_eq!(stage_features(GENERATED_COMMANDS, PREPROCESS_STAGE), Ok(()));
         assert_eq!(
             stage_mask(COMPUTE, false, PREPROCESS_STAGE, false),
@@ -2374,7 +2377,10 @@ mod tests {
             Ok(vk::VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT)
         );
         assert_eq!(access(PREPROCESS_READ, 4), Err(INVALID));
-        assert_eq!(stage_features(0, MESH_STAGE), Err(UNSUPPORTED));
+        assert_eq!(
+            stage_features(FeatureBits::ZERO, MESH_STAGE),
+            Err(UNSUPPORTED)
+        );
         assert_eq!(stage_features(MESH_SHADER, TASK_STAGE), Err(UNSUPPORTED));
         assert_eq!(stage_features(MESH_SHADER, MESH_STAGE), Ok(()));
         assert_eq!(

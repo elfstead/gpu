@@ -198,8 +198,8 @@ mod tests {
             count: 1,
             priority: 1.0,
         }];
-        let mut d = Device::create(adapter, &requests, 0).unwrap();
-        let other = Device::create(adapter, &requests, 0).unwrap();
+        let mut d = Device::create(adapter, &requests, FeatureBits::ZERO).unwrap();
+        let other = Device::create(adapter, &requests, FeatureBits::ZERO).unwrap();
         let foreign = Binary::create(&other).unwrap();
         let saved = d.f.vkCreateFence;
         d.f.vkCreateFence = Some(fail_fence);

@@ -157,7 +157,7 @@ mod tests {
                     count: 1,
                     priority: 0.5,
                 }],
-                0,
+                FeatureBits::ZERO,
             )
             .unwrap();
             CREATE.set(device.f.vkCreateEvent);

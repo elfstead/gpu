@@ -1,8 +1,11 @@
 //! Native fragment shading rate. No rate selection, view loop or image synthesis.
 use super::*;
 
-pub(super) const INPUTS: FeatureBits =
-    PIPELINE_SHADING_RATE | PRIMITIVE_SHADING_RATE | ATTACHMENT_SHADING_RATE;
+pub(super) const INPUTS: FeatureBits = FeatureBits::union(&[
+    PIPELINE_SHADING_RATE,
+    PRIMITIVE_SHADING_RATE,
+    ATTACHMENT_SHADING_RATE,
+]);
 pub(super) fn requested(
     enabled: FeatureBits,
 ) -> vk::VkPhysicalDeviceFragmentShadingRateFeaturesKHR {
@@ -35,9 +38,9 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_KHR_fragment_shading_rate")
         .map_err(loader_error)?
     {
-        return Ok((0, ShadingRateLimits::default(), Vec::new()));
+        return Ok((FeatureBits::ZERO, ShadingRateLimits::default(), Vec::new()));
     }
-    let mut features = requested(0);
+    let mut features = requested(FeatureBits::ZERO);
     let mut root = vk::VkPhysicalDeviceFeatures2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         pNext: ptr::from_mut(&mut features).cast(),
@@ -56,15 +59,15 @@ pub(super) fn snapshot(
     let available = if features.pipelineFragmentShadingRate != 0 {
         PIPELINE_SHADING_RATE
     } else {
-        0
+        FeatureBits::ZERO
     } | if features.primitiveFragmentShadingRate != 0 {
         PRIMITIVE_SHADING_RATE
     } else {
-        0
+        FeatureBits::ZERO
     } | if features.attachmentFragmentShadingRate != 0 {
         ATTACHMENT_SHADING_RATE
     } else {
-        0
+        FeatureBits::ZERO
     };
     let query = unsafe {
         std::mem::transmute::<
@@ -204,7 +207,7 @@ mod tests {
             ..Default::default()
         };
         let mut rate = ShadingRateState::default();
-        assert_eq!(state(0, &limits, &rate), Err(UNSUPPORTED));
+        assert_eq!(state(FeatureBits::ZERO, &limits, &rate), Err(UNSUPPORTED));
         for mask in [
             PIPELINE_SHADING_RATE,
             PRIMITIVE_SHADING_RATE,

@@ -1003,7 +1003,7 @@ mod tests {
     fn raster_options_validate_without_normalizing_or_enabling_features() {
         let base = RasterOptions::default();
         assert_eq!(base.sample_mask, u64::MAX);
-        assert_eq!(raster_options(&base, 0, 3), Ok(()));
+        assert_eq!(raster_options(&base, FeatureBits::ZERO, 3), Ok(()));
         for (bit, options) in [
             (
                 DEPTH_CLAMP,
@@ -1058,7 +1058,10 @@ mod tests {
                 },
             ),
         ] {
-            assert_eq!(raster_options(&options, 0, 3), Err(UNSUPPORTED));
+            assert_eq!(
+                raster_options(&options, FeatureBits::ZERO, 3),
+                Err(UNSUPPORTED)
+            );
             assert_eq!(raster_options(&options, !bit, 3), Err(UNSUPPORTED));
             assert_eq!(raster_options(&options, bit, 3), Ok(()));
         }
@@ -1083,7 +1086,7 @@ mod tests {
                 ..base
             },
         ] {
-            assert_eq!(raster_options(&options, 0, 3), Ok(()));
+            assert_eq!(raster_options(&options, FeatureBits::ZERO, 3), Ok(()));
         }
         let restart = RasterOptions {
             primitive_restart: 1,
@@ -1091,7 +1094,7 @@ mod tests {
         };
         for topology in 0..=4 {
             assert_eq!(
-                raster_options(&restart, 0, topology),
+                raster_options(&restart, FeatureBits::ZERO, topology),
                 if matches!(topology, 2 | 4) {
                     Ok(())
                 } else {

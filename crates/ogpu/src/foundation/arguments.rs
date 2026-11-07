@@ -409,7 +409,14 @@ mod tests {
         }
     }
     fn prepare(fields: &[ArgumentField], bytes: u32) -> Result<ArgumentLayout, Status> {
-        ArgumentLayout::prepare(ptr::null(), &desc(fields, bytes), fields, 256, 0, 16)
+        ArgumentLayout::prepare(
+            ptr::null(),
+            &desc(fields, bytes),
+            fields,
+            256,
+            FeatureBits::ZERO,
+            16,
+        )
     }
     fn status(result: Result<ArgumentLayout, Status>) -> Status {
         result.err().unwrap_or(OK)
@@ -822,7 +829,7 @@ mod tests {
                     count: 1,
                     priority: 0.5,
                 }],
-                0,
+                FeatureBits::ZERO,
             )
             .unwrap();
             device.f.vkCmdPushDataEXT = Some(push);

@@ -143,7 +143,7 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_EXT_device_generated_commands")
         .map_err(loader_error)?
     {
-        return Ok((0, GeneratedLimits::default()));
+        return Ok((FeatureBits::ZERO, GeneratedLimits::default()));
     }
     let mut features = vk::VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_GENERATED_COMMANDS_FEATURES_EXT, ..Default::default()
@@ -179,7 +179,7 @@ pub(super) fn snapshot(
         if features.deviceGeneratedCommands != 0 {
             GENERATED_COMMANDS
         } else {
-            0
+            FeatureBits::ZERO
         },
         GeneratedLimits {
             stages: public_stages(p.supportedIndirectCommandsShaderStages),
@@ -932,7 +932,7 @@ mod tests {
                 reserved: 0,
                 tokens: &token,
             };
-            let d = rust::device_create(a, &request, &features::decode(0)).unwrap();
+            let d = rust::device_create(a, &request, &features::decode(FeatureBits::ZERO)).unwrap();
             let mut rejected = ptr::dangling_mut();
             assert_eq!(
                 unsafe { ogpu_next_generated_layout_create(d.as_raw(), &desc, &mut rejected) },

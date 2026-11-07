@@ -121,12 +121,15 @@ mod tests {
             flags: 0,
             reserved: 0,
         };
-        assert_eq!(validate(&limits, 0, 4, [33, 1, 1], &state), Ok(()));
+        assert_eq!(
+            validate(&limits, FeatureBits::ZERO, 4, [33, 1, 1], &state),
+            Ok(())
+        );
         state.required_size = 3;
         assert_eq!(validate(&limits, all, 4, [64, 1, 1], &state), Err(INVALID));
         state.required_size = 8;
         assert_eq!(
-            validate(&limits, 0, 4, [32, 1, 1], &state),
+            validate(&limits, FeatureBits::ZERO, 4, [32, 1, 1], &state),
             Err(UNSUPPORTED)
         );
         assert_eq!(validate(&limits, all, 4, [32, 1, 1], &state), Ok(()));
@@ -155,8 +158,14 @@ mod tests {
         assert_eq!(validate(&limits, all, 16, [0; 3], &state), Err(UNSUPPORTED));
         state.flags = 0;
         state.operations = 128;
-        assert_eq!(validate(&limits, 0, 8, [0; 3], &state), Err(UNSUPPORTED));
-        assert_eq!(validate(&limits, 0, 16, [0; 3], &state), Ok(()));
+        assert_eq!(
+            validate(&limits, FeatureBits::ZERO, 8, [0; 3], &state),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            validate(&limits, FeatureBits::ZERO, 16, [0; 3], &state),
+            Ok(())
+        );
         state.operations = 256;
         assert_eq!(
             validate(&limits, all, 4, [64, 1, 1], &state),

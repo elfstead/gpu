@@ -10,7 +10,7 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_EXT_sample_locations")
         .map_err(loader_error)?
     {
-        return Ok((0, SampleLocationLimits::default()));
+        return Ok((FeatureBits::ZERO, SampleLocationLimits::default()));
     }
     let mut p = vk::VkPhysicalDeviceSampleLocationsPropertiesEXT {
         sType:
@@ -246,7 +246,7 @@ mod tests {
         let native = unsafe { pattern(&p, SAMPLE_LOCATIONS, &limits()) }.unwrap();
         assert_eq!(native.pSampleLocations, coords.as_ptr().cast());
         assert!(matches!(
-            unsafe { pattern(&p, 0, &limits()) },
+            unsafe { pattern(&p, FeatureBits::ZERO, &limits()) },
             Err(UNSUPPORTED)
         ));
         p.grid = [3, 1];

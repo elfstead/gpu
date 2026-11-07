@@ -333,7 +333,7 @@ mod tests {
                 physical,
                 snapshot,
             };
-            let disabled = Device::create(&adapter, &requests, 0).unwrap();
+            let disabled = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
             assert!(matches!(
                 unsafe { ExecutableCache::create(&disabled, &description(1)) },
                 Err(UNSUPPORTED)

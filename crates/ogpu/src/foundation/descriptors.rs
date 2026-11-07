@@ -417,7 +417,7 @@ mod tests {
                 count: 1,
                 priority: 0.5,
             }];
-            let mut device = Device::create(&adapter, &requests, 0).unwrap();
+            let mut device = Device::create(&adapter, &requests, FeatureBits::ZERO).unwrap();
             // Real native writers on four independent caller buffers/scratch areas.
             std::thread::scope(|scope| {
                 for _ in 0..4 {
@@ -534,9 +534,12 @@ mod tests {
             lod_bias: 0.0,
             max_anisotropy: 1.0,
         };
-        assert!(sampler(&desc, &limits, 0).is_ok());
+        assert!(sampler(&desc, &limits, FeatureBits::ZERO).is_ok());
         desc.max_anisotropy = 2.0;
-        assert!(matches!(sampler(&desc, &limits, 0), Err(UNSUPPORTED)));
+        assert!(matches!(
+            sampler(&desc, &limits, FeatureBits::ZERO),
+            Err(UNSUPPORTED)
+        ));
         assert_eq!(
             sampler(&desc, &limits, SAMPLER_ANISOTROPY)
                 .unwrap()
@@ -546,11 +549,17 @@ mod tests {
         desc.max_anisotropy = 1.0;
         desc.unnormalized_coordinates = 1;
         desc.max_lod = 1.0;
-        assert!(matches!(sampler(&desc, &limits, 0), Err(INVALID)));
+        assert!(matches!(
+            sampler(&desc, &limits, FeatureBits::ZERO),
+            Err(INVALID)
+        ));
         desc.max_lod = 0.0;
-        assert!(sampler(&desc, &limits, 0).is_ok());
+        assert!(sampler(&desc, &limits, FeatureBits::ZERO).is_ok());
         desc.lod_bias = f32::NAN;
-        assert!(matches!(sampler(&desc, &limits, 0), Err(INVALID)));
+        assert!(matches!(
+            sampler(&desc, &limits, FeatureBits::ZERO),
+            Err(INVALID)
+        ));
         for kind in [1, 2] {
             assert_eq!(
                 descriptor_scratch(kind, 0),

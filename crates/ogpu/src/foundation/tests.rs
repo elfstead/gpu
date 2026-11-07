@@ -406,15 +406,15 @@ fn memory_model_subfeatures_require_base_without_implying_each_other() {
         let required = if selection & 1 != 0 {
             VULKAN_MEMORY_MODEL
         } else {
-            0
+            FeatureBits::ZERO
         } | if selection & 2 != 0 {
             VULKAN_MEMORY_MODEL_DEVICE_SCOPE
         } else {
-            0
+            FeatureBits::ZERO
         } | if selection & 4 != 0 {
             VULKAN_MEMORY_MODEL_CHAINS
         } else {
-            0
+            FeatureBits::ZERO
         };
         assert_eq!(
             validate_feature_dependencies(required | FLOAT16 | INTEGER_DOT),
@@ -526,7 +526,7 @@ fn gpu_foundation_setup() {
                     != 0
             );
             for enabled in [
-                0,
+                FeatureBits::ZERO,
                 features::required(features[0].available).unwrap(),
                 features::required(features[0].available).unwrap() & COOPERATIVE_MATRIX,
                 features::required(features[0].available).unwrap() & CUBE_ARRAY,

@@ -42,7 +42,7 @@ pub(super) fn snapshot(
     physical: vk::VkPhysicalDevice,
     f: &Functions,
 ) -> Result<FeatureBits, Status> {
-    let mut selected = 0;
+    let mut selected = FeatureBits::ZERO;
     for (name, bits) in [
         (c"VK_EXT_depth_clip_enable", DEPTH_CLIP),
         (
@@ -57,7 +57,7 @@ pub(super) fn snapshot(
             selected |= bits;
         }
     }
-    let mut native = Native::new(0);
+    let mut native = Native::new(FeatureBits::ZERO);
     let mut root = vk::VkPhysicalDeviceFeatures2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         pNext: native.link(ptr::null_mut(), selected),
@@ -66,7 +66,7 @@ pub(super) fn snapshot(
     unsafe {
         (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
     }
-    let mut available = 0;
+    let mut available = FeatureBits::ZERO;
     for (value, bit) in [
         (native.clip.depthClipEnable, DEPTH_CLIP),
         (native.restart.primitiveTopologyListRestart, LIST_RESTART),
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn restart_features_preserve_independence() {
         for t in [2, 4, 5, 7, 9] {
-            assert_eq!(restart(t, 0), Ok(()));
+            assert_eq!(restart(t, FeatureBits::ZERO), Ok(()));
         }
         for t in [0, 1, 3, 6, 8] {
             assert_eq!(restart(t, PATCH_RESTART), Err(UNSUPPORTED));
@@ -183,7 +183,9 @@ mod tests {
             enable: 0,
             reserved: 0,
         };
-        assert!(unsafe { depth_clip(ptr::null(), 0) }.unwrap().is_none());
+        assert!(unsafe { depth_clip(ptr::null(), FeatureBits::ZERO) }
+            .unwrap()
+            .is_none());
         for enable in [0, 1] {
             s.enable = enable;
             assert!(matches!(

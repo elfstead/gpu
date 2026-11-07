@@ -120,8 +120,11 @@ mod tests {
             max_viewports: 16,
             subpixel_bits: 8,
         };
-        assert_eq!(range(0, 1, SET_COUNT, 0, &limits), Ok(()));
-        assert_eq!(range(0, 2, SET_COUNT, 0, &limits), Err(UNSUPPORTED));
+        assert_eq!(range(0, 1, SET_COUNT, FeatureBits::ZERO, &limits), Ok(()));
+        assert_eq!(
+            range(0, 2, SET_COUNT, FeatureBits::ZERO, &limits),
+            Err(UNSUPPORTED)
+        );
         assert_eq!(range(0, 2, SET_COUNT, MULTI_VIEWPORT, &limits), Ok(()));
         assert_eq!(range(15, 1, 0, MULTI_VIEWPORT, &limits), Ok(()));
         assert_eq!(
@@ -141,7 +144,12 @@ mod tests {
             scissors: 1,
         };
         assert_eq!(
-            counts(Some(s), DYNAMIC_VIEWPORT_COUNT_STATE, 0, &limits),
+            counts(
+                Some(s),
+                DYNAMIC_VIEWPORT_COUNT_STATE,
+                FeatureBits::ZERO,
+                &limits
+            ),
             Ok([0, 1])
         );
         assert_eq!(
@@ -173,13 +181,13 @@ mod tests {
             min_depth: 1.0,
             max_depth: 0.0,
         };
-        assert_eq!(viewport(&v, &p, 0), Ok(()));
+        assert_eq!(viewport(&v, &p, FeatureBits::ZERO), Ok(()));
         assert_eq!(
-            viewport(&Viewport { height: 0.0, ..v }, &p, 0),
+            viewport(&Viewport { height: 0.0, ..v }, &p, FeatureBits::ZERO),
             Err(INVALID)
         );
         assert_eq!(
-            viewport(&Viewport { x: f32::NAN, ..v }, &p, 0),
+            viewport(&Viewport { x: f32::NAN, ..v }, &p, FeatureBits::ZERO),
             Err(INVALID)
         );
         assert_eq!(
@@ -189,7 +197,7 @@ mod tests {
                     ..v
                 },
                 &p,
-                0
+                FeatureBits::ZERO
             ),
             Err(INVALID)
         );

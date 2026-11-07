@@ -261,7 +261,7 @@ mod tests {
                     count: 1,
                     priority: 0.5,
                 }],
-                0,
+                FeatureBits::ZERO,
             )
             .unwrap();
             CREATE.set(device.f.vkCreateQueryPool);
@@ -341,9 +341,9 @@ mod tests {
         assert_eq!(result_layout(3, 1 | 4 | 1024, 2, 20, 2).unwrap().0, 36);
         assert_eq!(result_layout(3, 2047, 1, 0, 9).unwrap().0, 88);
         assert_eq!(controls(2, PRECISE_OCCLUSION, 1), Ok(1));
-        assert_eq!(controls(2, 0, 1), Err(UNSUPPORTED));
+        assert_eq!(controls(2, FeatureBits::ZERO, 1), Err(UNSUPPORTED));
         assert_eq!(controls(3, PRECISE_OCCLUSION, 1), Err(INVALID));
-        assert_eq!(controls(3, 0, 0), Ok(0));
+        assert_eq!(controls(3, FeatureBits::ZERO, 0), Ok(0));
         assert_eq!(controls(2, PRECISE_OCCLUSION, 2), Err(UNSUPPORTED));
     }
 }

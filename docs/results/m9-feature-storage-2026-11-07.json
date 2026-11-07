@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "scope": "Private capability storage expands from u128 to two u128 words; public revision and 123 registered feature IDs unchanged.",
+  "host_tests": 123,
+  "native_correspondence_tests": 2,
+  "gpu_tests": 31,
+  "abi_layout_values": 2363,
+  "surface_operations": 198,
+  "boundary_test_bits": [
+    0,
+    63,
+    64,
+    127,
+    128,
+    191,
+    192,
+    255
+  ],
+  "validation_errors": 0,
+  "evidence": {
+    "/tmp/ogpu-feature-storage-tests-final.log": "c962fe2578a627484112ca2aa70c901b71c627412da7b91059aaadfa0984a4f4",
+    "/tmp/ogpu-feature-storage-clippy-final.log": "b90cf23c6bd345c346a5dd78c482806a1d275c3c8264821efcef8e0383776789",
+    "/tmp/ogpu-feature-storage-abi.log": "1a863feaaadefeddd4ba620e4be785a1c66e18ca7367157dbdda986c864d6084",
+    "/tmp/ogpu-feature-storage-surface.log": "d62d6d0be490fb7f4845a7ba9fae849ed6f9c39e0aebe996205f4d7a72da8bb3",
+    "/tmp/ogpu-feature-storage-native.log": "4d6b36ecc05651d4c7c272f8ee52de3d382d8f48d59db0bd8a992a82c1825ef0",
+    "/tmp/ogpu-feature-storage-full-c.log": "1f25e9a02c3f93d0b9e91e452fe7258b4c7dd78d6f2dfe21aea2d5146b5f589b"
+  }
+}

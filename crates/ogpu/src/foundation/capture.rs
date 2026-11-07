@@ -1,6 +1,7 @@
 //! Native ordered primitive capture; callers own payloads, counters and scheduling.
 use super::*;
-pub(super) const FEATURES: FeatureBits = TRANSFORM_FEEDBACK | GEOMETRY_STREAMS;
+pub(super) const FEATURES: FeatureBits =
+    FeatureBits::union(&[TRANSFORM_FEEDBACK, GEOMETRY_STREAMS]);
 pub(super) fn native(
     enabled: FeatureBits,
     next: *mut std::ffi::c_void,
@@ -22,9 +23,9 @@ pub(super) fn snapshot(
         .supports_extension(physical, c"VK_EXT_transform_feedback")
         .map_err(loader_error)?
     {
-        return Ok((0, CaptureLimits::default()));
+        return Ok((FeatureBits::ZERO, CaptureLimits::default()));
     }
-    let mut n = native(0, ptr::null_mut());
+    let mut n = native(FeatureBits::ZERO, ptr::null_mut());
     let mut root = vk::VkPhysicalDeviceFeatures2 {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         pNext: ptr::from_mut(&mut n).cast(),
@@ -47,11 +48,11 @@ pub(super) fn snapshot(
     let bits = if n.transformFeedback != 0 {
         TRANSFORM_FEEDBACK
     } else {
-        0
+        FeatureBits::ZERO
     } | if n.geometryStreams != 0 {
         GEOMETRY_STREAMS
     } else {
-        0
+        FeatureBits::ZERO
     };
     Ok((
         bits,
@@ -168,7 +169,7 @@ mod tests {
             max_buffers: 4,
             ..Default::default()
         };
-        assert_eq!(stream(0, 0, &p, true), Ok(()));
+        assert_eq!(stream(0, FeatureBits::ZERO, &p, true), Ok(()));
         assert_eq!(stream(1, TRANSFORM_FEEDBACK, &p, false), Err(UNSUPPORTED));
         assert_eq!(stream(1, GEOMETRY_STREAMS, &p, false), Ok(()));
         assert_eq!(stream(1, GEOMETRY_STREAMS, &p, true), Err(UNSUPPORTED));

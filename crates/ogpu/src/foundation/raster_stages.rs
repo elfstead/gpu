@@ -326,7 +326,7 @@ mod tests {
                 snapshot,
             };
             for bit in [
-                0,
+                FeatureBits::ZERO,
                 UNRESTRICTED_DEPTH_RANGE,
                 DEPTH_CLAMP_CONTROL,
                 DEPTH_BIAS_CONTROL,
