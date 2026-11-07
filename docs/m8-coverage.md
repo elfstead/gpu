@@ -40,7 +40,7 @@ remains execution debt:
    line/stipple modes, provoking vertex and depth convention](raster-mechanisms.md)
    now have independent capabilities, physical properties, static records and
    direct dynamic controls, including independent depth clip enable. Local
-   [execution evidence](results/m8-raster-mechanisms-2026-11-07.md) separates
+   [execution and clean SDK evidence](results/m8-raster-mechanisms-2026-11-07.md) separates
    supported profiles from unavailable dynamic extra overestimation and stipple
    variants. **Next:** programmable sample positions together with depth-image
    compatibility and transition metadata; complete dynamic vertex input/divisor

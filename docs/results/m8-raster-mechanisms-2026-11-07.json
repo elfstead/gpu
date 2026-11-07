@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 11,
+  "implementation": "92c1184e9b2edd75e9200752aef48cb305f107b9",
+  "source_dirty": false,
+  "runtime_sha256": "090aafb32e46b716375bb24731a0978333edd36657f7e0730d0695f2cf44ecd6",
+  "header_sha256": "7e088d6b67eb3873bb872ee223d824f5316f56908957ccea8837bdfc2cc61aa3",
+  "checks": {
+    "host_tests": 103,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "clippy": "pass",
+    "abi_values": 2255,
+    "surface": {
+      "operations": 162,
+      "records": 147,
+      "constants": 232,
+      "values": 1389
+    },
+    "bindings": "reproduce",
+    "shader_artifacts": "reproduce and validate",
+    "native_raster_mechanisms": {
+      "profiles": 17,
+      "submissions": 34,
+      "pixels": 2176,
+      "rejected_preparations": 12
+    },
+    "new_mechanism_validation_errors": 0,
+    "new_mechanism_validation_warnings": 0,
+    "full_c_fixture_validation_errors": 0,
+    "full_c_fixture_preexisting_unused_output_warnings": 4,
+    "native_library_expected_unsupported_feature_warnings": 4,
+    "installed_public_c": "compute, graphics, 36 textured frames, source graph/runtime resolution/missing-loader rejection",
+    "installed_optimized_fixture": "full C regression with 66 artifacts including new mechanism cases",
+    "native_rust": "isolated build, correspondence, missing loader and headless execution"
+  },
+  "unsupported_native": [
+    "DYNAMIC_EXTRA_OVERESTIMATION",
+    "STIPPLED_RECTANGULAR_LINES",
+    "STIPPLED_SMOOTH_LINES"
+  ],
+  "unverified": [
+    "unsupported native profiles",
+    "nonzero extra overestimation",
+    "other primitive and line shapes/widths",
+    "fully-covered/post-depth-coverage shader inputs",
+    "secondary/generated/multiview combinations",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "unimplemented_followup": [
+    "programmable sample positions and depth-content compatibility/transition metadata",
+    "complete dynamic vertex input/divisor descriptions",
+    "remaining native dynamic raster controls",
+    "extension-specific raster-format inventory",
+    "geometry capture and dynamic patch state"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-raster-mechanisms-sdk/share/ogpu/manifest.json": "0be65a4f8bb71c6e57a0a60727f92ea3e6b1549cc90d9d64caf57ba278a5665c",
+    "/tmp/m8-mechanisms-host.log": "0e028fd1319e85e6e47e9790734ace83db3683ccbb70bf9e76c673f713e489ad",
+    "/tmp/m8-mechanisms-gpu.log": "574d5461fa15e21f30468157b14233a2dcc1b09915181f475bd8a6e09bbbe680",
+    "/tmp/m8-mechanisms-native-tests.log": "d5c35dd936649b055ec6f9f09e5bfa72f6389385dcb5ac5db473613f3158d8d7",
+    "/tmp/m8-mechanisms-clippy.log": "80bcad1adaedcba262cd7b2d542bdaee231fa2971c96a9cf1f73884b55edbb05",
+    "/tmp/m8-mechanisms-abi.log": "599d69e7319630279f8feedd55699be39385c7ab543731d95cfa3aa7dd53694b",
+    "/tmp/m8-mechanisms-surface.log": "2cc2f19db280ce92f2b532ba3794bebc8b0fa3cd626df80dc8bfcb1f7052621f",
+    "/tmp/m8-mechanisms-bindings-check.log": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+    "/tmp/m8-mechanisms-shaders-check.log": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+    "/tmp/m8-mechanisms-install.log": "78c276cbeff410f08e9d1e45bd0d05840a2bc6fa87501cb71abeb6f6702add59",
+    "/tmp/m8-mechanisms-sdk.log": "c789ef08801b86834b01fdc9ad6aee5f4bfda0e480de5af5ac1d986dbe6d92da",
+    "/tmp/m8-mechanisms-rust-sdk.log": "3c6c2fc5ede9f134b36e726320657ef2477f11d3bf1e0e157b667ae390f52b96",
+    "/tmp/m8-mechanisms-installed-fixture.log": "40e0c0e3b0f5e3b1e3541cad94d907a8046a91cd5fa6515c925cc876806cf182",
+    "/tmp/m8-mechanisms-installed-surface.log": "2432970b5f580316d694db998e82d874f3286b4f5a158f801ba93d6417719639",
+    "/tmp/ogpu-run-mechanisms-installed.py": "58155f87fbdfe846547d23e8a3437a51437026ef6a2246540dbacd8469d74139",
+    "/tmp/ogpu-foundation-external-jjm8ne8_/independent textured-scene/run-3dkqpdxq/report.json": "890931a04b37cf4005868b900edb06c1c487bc8a771b98b208294efb37e2c38e",
+    "/tmp/ogpu-rust-external-4c4f7sb9/report.json": "075ec95beef1d65df17487199a96e43471a915572df23ec936362554f1f27d6b"
+  }
+}

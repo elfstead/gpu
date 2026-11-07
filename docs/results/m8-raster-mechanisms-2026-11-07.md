@@ -71,3 +71,21 @@ line shapes/widths, shader built-ins, secondary/generated/multiview composition
 and broader hardware remain unverified. Programmable sample positions and depth
 compatibility, complete dynamic vertex input/divisors and remaining native raster
 controls are still implementation work in the [M8 audit](../m8-coverage.md).
+
+## Clean installed acceptance
+
+Implementation `92c1184e9b2edd75e9200752aef48cb305f107b9`, installed with
+`source_dirty=false` into `/tmp/ogpu-m8-raster-mechanisms-sdk`. Release runtime
+SHA-256: `090aafb32e46b716375bb24731a0978333edd36657f7e0730d0695f2cf44ecd6`.
+
+The full C fixture passes against the installed public header and optimized
+runtime using 66 shader-artifact inputs, including all 17 supported new profiles.
+Exact installed exports match the reviewed surface. Relocated C compute/graphics
+consumers and all 36 textured frames pass, including source-graph isolation,
+runtime identity and missing-loader rejection. The isolated native Rust bundle
+builds and passes correspondence and headless execution below the C boundary.
+
+The [machine-readable receipt](m8-raster-mechanisms-2026-11-07.json) records source,
+header/runtime and evidence hashes. These checks do not add new Wayland/human,
+GGML/libplacebo or external backend acceptance. Continue the remaining mechanism
+batch in the [coverage audit](../m8-coverage.md) before capture/consolidation and M9.

@@ -626,7 +626,8 @@ independent clipping, divisors and list/patch restart; ten supported profiles pa
 locally, with patch restart still unavailable. [Clean installed acceptance](results/m8-raster-controls-2026-11-06.md)
 passes C/native Rust and the optimized fixture. The [raster mechanisms tranche](raster-mechanisms.md)
 now adds conservative coverage, line/stipple modes, provoking vertex, depth
-convention and independent dynamic controls, with [local evidence](results/m8-raster-mechanisms-2026-11-07.md).
+convention and independent dynamic controls, with [clean installed C/native Rust
+and local GPU acceptance](results/m8-raster-mechanisms-2026-11-07.md) at `92c1184`.
 Next complete programmable sample positions with depth-content contracts, dynamic
 vertex input/divisors and remaining raster controls, plus the extension-format
 inventory. Geometry capture/dynamic patch and consolidation follow before M9.
