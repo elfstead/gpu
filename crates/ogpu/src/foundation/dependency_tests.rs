@@ -67,6 +67,21 @@ fn host_edge() -> BarrierScope {
 
 #[test]
 fn capabilities_follow_native_queue_and_feature_scopes() {
+    let conditional = limits(0, COMPUTE, CONDITIONAL_RENDERING);
+    assert_ne!(conditional.wait_stages & CONDITIONAL_STAGE, 0);
+    assert_eq!(
+        limits(0, TRANSFER, CONDITIONAL_RENDERING).wait_stages & CONDITIONAL_STAGE,
+        0
+    );
+    assert_eq!(
+        stage_mask(COMPUTE, false, CONDITIONAL_STAGE, false),
+        Ok(vk::VK_PIPELINE_STAGE_2_CONDITIONAL_RENDERING_BIT_EXT)
+    );
+    assert_eq!(
+        access(CONDITIONAL_READ, CONDITIONAL_STAGE),
+        Ok(vk::VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT)
+    );
+    assert_eq!(access(CONDITIONAL_READ, 4), Err(INVALID));
     let transfer = limits(7, TRANSFER, FeatureBits::ZERO);
     assert_eq!(transfer.domain, 7);
     assert_eq!(transfer.flags, DEPENDENCY_OWNERSHIP | DEPENDENCY_BINARY);
@@ -101,7 +116,8 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                     | CAPTURE_STAGE
                     | ACCELERATION_BUILD_STAGE
                     | ACCELERATION_COPY_STAGE
-                    | STAGE_RAY),
+                    | STAGE_RAY
+                    | CONDITIONAL_STAGE),
         ),
         (
             GRAPHICS | COMPUTE,
@@ -115,7 +131,8 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
                 | TRANSFORM_FEEDBACK
                 | ACCELERATION_STRUCTURE
                 | RAY_MAINTENANCE
-                | RAY_PIPELINE,
+                | RAY_PIPELINE
+                | CONDITIONAL_RENDERING,
             KNOWN_SCOPES & !256,
         ),
     ] {

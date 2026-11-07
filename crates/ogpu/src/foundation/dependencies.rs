@@ -13,7 +13,7 @@ pub(in crate::foundation) fn limits(
     enabled: FeatureBits,
 ) -> DependencyLimits {
     let mut supported = 0;
-    for bit in 0..31 {
+    for bit in 0..32 {
         let scope = 1 << bit;
         if stage_features(enabled, scope).is_ok()
             && stage_mask(flags, enabled & RASTER != 0, scope, true).is_ok()

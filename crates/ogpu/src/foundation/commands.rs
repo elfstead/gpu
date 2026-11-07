@@ -5,6 +5,8 @@ use super::*;
 mod acceleration_commands;
 #[path = "capture_commands.rs"]
 mod capture_commands;
+#[path = "conditional_commands.rs"]
+mod conditional_commands;
 #[path = "generated_commands.rs"]
 mod generated_commands;
 #[path = "ray_commands.rs"]
@@ -72,6 +74,8 @@ pub struct List {
     inherited_query_flags: u32,
     inherited_statistics: u64,
     inherited_heaps: u32,
+    inherited_conditional: bool,
+    conditional: Cell<Option<bool>>,
     secondary_contents: Cell<bool>,
     mode: u32,
     state: Cell<u32>, // 0 invalid, 1 recording, 2 executable, 3 consumed one-shot
@@ -156,7 +160,15 @@ impl Arena {
             } else {
                 0
             };
-            let query_count = 2usize.checked_add(streams).ok_or(OUT_OF_MEMORY)?;
+            let primitives = if d.snapshot.features.enabled & PRIMITIVES_GENERATED_QUERY != 0 {
+                d.snapshot.capture_limits.max_streams as usize
+            } else {
+                0
+            };
+            let query_count = 2usize
+                .checked_add(streams)
+                .and_then(|v| v.checked_add(primitives))
+                .ok_or(OUT_OF_MEMORY)?;
             active_queries
                 .try_reserve_exact(query_count)
                 .map_err(|_| OUT_OF_MEMORY)?;
@@ -171,6 +183,8 @@ impl Arena {
                 inherited_query_flags: 0,
                 inherited_statistics: 0,
                 inherited_heaps: 0,
+                inherited_conditional: false,
+                conditional: Cell::new(None),
                 secondary_contents: Cell::new(false),
                 mode: 0,
                 state: Cell::new(0),
@@ -261,6 +275,7 @@ impl Arena {
         let mut prepared = unsafe { secondary::inheritance(d, self.domain, desc)? };
         let continuation = prepared.rendering.is_some();
         let inherited_heaps = prepared.heap_mask();
+        let inherited_conditional = prepared.conditional_enabled();
         let view_mask = prepared.rendering.as_ref().map_or(0, |r| r.viewMask);
         if continuation {
             stages(d, self.domain, 24, false)?;
@@ -299,6 +314,8 @@ impl Arena {
         slot.inherited_query_flags = inheritance.queryFlags;
         slot.inherited_statistics = u64::from(inheritance.pipelineStatistics);
         slot.inherited_heaps = inherited_heaps;
+        slot.inherited_conditional = inherited_conditional;
+        slot.conditional.set(None);
         slot.index_count.set(None);
         for query in &slot.active_queries {
             query.set(None);
@@ -345,7 +362,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 31) - 1;
+const KNOWN_SCOPES: u64 = (1 << 32) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -376,7 +393,8 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         || mask & (RESOLVE_SCOPE | BLIT_SCOPE) != 0 && flags & GRAPHICS == 0
         || mask & (4 | STAGE_RAY | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE) != 0
             && flags & COMPUTE == 0
-        || mask & (32 | PREPROCESS_STAGE) != 0 && flags & (COMPUTE | GRAPHICS) == 0
+        || mask & (32 | PREPROCESS_STAGE | CONDITIONAL_STAGE) != 0
+            && flags & (COMPUTE | GRAPHICS) == 0
         || mask & (2 | COPY_SCOPE | CLEAR_SCOPE) != 0
             && flags & (COMPUTE | GRAPHICS | TRANSFER) == 0
     {
@@ -415,13 +433,15 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
         vk::VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR,
         vk::VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+        vk::VK_PIPELINE_STAGE_2_CONDITIONAL_RENDERING_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
 fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
-    if mask & STAGE_RAY != 0 && enabled & RAY_PIPELINE == 0
+    if mask & CONDITIONAL_STAGE != 0 && enabled & CONDITIONAL_RENDERING == 0
+        || mask & STAGE_RAY != 0 && enabled & RAY_PIPELINE == 0
         || mask & ACCELERATION_BUILD_STAGE != 0 && enabled & ACCELERATION_STRUCTURE == 0
         || mask & ACCELERATION_COPY_STAGE != 0 && enabled & RAY_MAINTENANCE == 0
         || mask & (TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE) != 0 && enabled & TESSELLATION == 0
@@ -453,7 +473,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 31) - 1) != 0 {
+    if mask & !((1 << 32) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -509,6 +529,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         shaders | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE,
         1 | ACCELERATION_BUILD_STAGE | ACCELERATION_COPY_STAGE,
         1 | STAGE_RAY,
+        1 | GRAPHICS_SCOPE | CONDITIONAL_STAGE,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -542,6 +563,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR,
         vk::VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
         vk::VK_ACCESS_2_SHADER_BINDING_TABLE_READ_BIT_KHR,
+        vk::VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -556,6 +578,9 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
 }
 
 fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u64, Status> {
+    if mask & CONDITIONAL_READ != 0 && d.snapshot.features.enabled & CONDITIONAL_RENDERING == 0 {
+        return Err(UNSUPPORTED);
+    }
     if mask & (ACCELERATION_READ | ACCELERATION_WRITE) != 0
         && d.snapshot.features.enabled & ACCELERATION_STRUCTURE == 0
     {
@@ -583,6 +608,11 @@ fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u
             .ok_or(INVALID)?
             .flags;
         scope &= !1;
+        if flags & (GRAPHICS | COMPUTE) != 0
+            && d.snapshot.features.enabled & CONDITIONAL_RENDERING != 0
+        {
+            scope |= CONDITIONAL_STAGE;
+        }
         if flags & (TRANSFER | COMPUTE | GRAPHICS) != 0 {
             scope |= 2;
         }
@@ -825,7 +855,8 @@ impl List {
     }
     pub(in crate::foundation) fn end(&self) -> Result<(), Status> {
         let result = self.recording().and_then(|d| {
-            if self.capture_active.get()
+            if self.conditional.get().is_some()
+                || self.capture_active.get()
                 || self.rendering.get() != self.continuation
                 || self.active_queries.iter().any(|q| q.get().is_some())
             {
@@ -972,6 +1003,7 @@ impl List {
     pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
         let d = self.recording()?;
         if self.continuation
+            || self.conditional.get() == Some(true)
             || self.capture_active.get()
             || !self.rendering.get()
             || self
@@ -1483,7 +1515,9 @@ impl List {
         let d = self.recording()?;
         stages(d, self.domain, 32, false)?;
         pool.range(d, index, self.view_mask.get().count_ones().max(1))?;
-        if !matches!(pool.kind, 2..=4) || pool.kind != 4 && stream != 0 {
+        if !matches!(pool.kind, 2..=4 | QUERY_PRIMITIVES_GENERATED)
+            || !matches!(pool.kind, 4 | QUERY_PRIMITIVES_GENERATED) && stream != 0
+        {
             return Err(INVALID);
         }
         let queue_flags = d
@@ -1493,14 +1527,32 @@ impl List {
             .find(|q| q.domain == self.domain)
             .ok_or(INVALID)?
             .flags;
-        if (matches!(pool.kind, 2 | 4) || pool.statistics & !1024 != 0)
+        if (matches!(pool.kind, 2 | 4 | QUERY_PRIMITIVES_GENERATED) || pool.statistics & !1024 != 0)
             && queue_flags & GRAPHICS == 0
             || pool.statistics & 1024 != 0 && queue_flags & COMPUTE == 0
         {
             return Err(UNSUPPORTED);
         }
         let native_flags = queries::controls(pool.kind, d.snapshot.features.enabled, flags)?;
-        let slot = if pool.kind == 4 {
+        let slot = if pool.kind == QUERY_PRIMITIVES_GENERATED {
+            if d.snapshot.features.enabled & PRIMITIVES_GENERATED_QUERY == 0
+                || stream != 0 && d.snapshot.features.enabled & PRIMITIVES_GENERATED_STREAMS == 0
+            {
+                return Err(UNSUPPORTED);
+            }
+            if stream >= d.snapshot.capture_limits.max_streams {
+                return Err(INVALID);
+            }
+            let capture_slots = if d.snapshot.features.enabled & TRANSFORM_FEEDBACK != 0 {
+                d.snapshot.capture_limits.max_streams as usize
+            } else {
+                0
+            };
+            2usize
+                .checked_add(capture_slots)
+                .and_then(|v| v.checked_add(stream as usize))
+                .ok_or(INVALID)?
+        } else if pool.kind == 4 {
             if d.snapshot.features.enabled & TRANSFORM_FEEDBACK == 0
                 || d.snapshot.capture_limits.queries == 0
             {
@@ -1527,8 +1579,13 @@ impl List {
                 return Err(INVALID);
             }
             unsafe {
-                if pool.kind == 4 {
-                    (d.capture_commands.query_begin.ok_or(UNSUPPORTED)?)(
+                if matches!(pool.kind, 4 | QUERY_PRIMITIVES_GENERATED) {
+                    let command = if pool.kind == 4 {
+                        d.capture_commands.query_begin
+                    } else {
+                        d.execution_controls.query_begin
+                    };
+                    (command.ok_or(UNSUPPORTED)?)(
                         self.command,
                         pool.handle,
                         index,
@@ -1554,13 +1611,13 @@ impl List {
                 return Err(INVALID);
             }
             unsafe {
-                if pool.kind == 4 {
-                    (d.capture_commands.query_end.ok_or(UNSUPPORTED)?)(
-                        self.command,
-                        pool.handle,
-                        index,
-                        stream,
-                    );
+                if matches!(pool.kind, 4 | QUERY_PRIMITIVES_GENERATED) {
+                    let command = if pool.kind == 4 {
+                        d.capture_commands.query_end
+                    } else {
+                        d.execution_controls.query_end
+                    };
+                    (command.ok_or(UNSUPPORTED)?)(self.command, pool.handle, index, stream);
                 } else {
                     (d.f.vkCmdEndQuery.unwrap())(self.command, pool.handle, index);
                 }
@@ -2523,7 +2580,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 31, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 32, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

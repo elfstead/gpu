@@ -43,6 +43,7 @@ fn attachment_format(d: &Device, format: u32, aspect: u32) -> Result<vk::VkForma
 #[derive(Default)]
 pub(super) struct PreparedInheritance {
     pub native: vk::VkCommandBufferInheritanceInfo,
+    conditional: Option<vk::VkCommandBufferInheritanceConditionalRenderingInfoEXT>,
     mapping: local_read::PreparedMapping,
     pub rendering: Option<vk::VkCommandBufferInheritanceRenderingInfo>,
     resource: Option<vk::VkBindHeapInfoEXT>,
@@ -50,6 +51,11 @@ pub(super) struct PreparedInheritance {
     heaps: vk::VkCommandBufferInheritanceDescriptorHeapInfoEXT,
 }
 impl PreparedInheritance {
+    pub fn conditional_enabled(&self) -> bool {
+        self.conditional
+            .as_ref()
+            .is_some_and(|c| c.conditionalRenderingEnable != 0)
+    }
     pub fn heap_mask(&self) -> u32 {
         u32::from(self.resource.is_some()) | (u32::from(self.sampler.is_some()) << 1)
     }
@@ -69,6 +75,10 @@ impl PreparedInheritance {
                 pSamplerHeapBindInfo: self.sampler.as_ref().map_or(ptr::null(), ptr::from_ref),
             };
             self.native.pNext = ptr::from_ref(&self.heaps).cast();
+        }
+        if let Some(c) = &mut self.conditional {
+            c.pNext = self.native.pNext;
+            self.native.pNext = ptr::from_ref(c).cast();
         }
         &self.native
     }
@@ -101,11 +111,30 @@ pub(super) unsafe fn inheritance(
     if desc.level != 1 {
         return Err(INVALID);
     }
-    let input = unsafe { executable_record::<Inheritance>(desc.inheritance, INHERITANCE)? };
+    let input = unsafe { local_read::parent::<Inheritance>(desc.inheritance, INHERITANCE)? };
     if input.occlusion > 1 || input.query_flags & !1 != 0 {
         return Err(UNSUPPORTED);
     }
     let enabled = d.snapshot.features.enabled;
+    if !input.header.next.is_null() {
+        let c = unsafe {
+            executable_record::<ConditionalInheritance>(input.header.next, CONDITIONAL_INHERITANCE)?
+        };
+        if c.enable > 1 || c.reserved != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if c.enable != 0 && enabled & INHERITED_CONDITIONAL_RENDERING == 0 {
+            return Err(UNSUPPORTED);
+        }
+        // A disabled record needs no native extension enabled.
+        if c.enable != 0 {
+            prepared.conditional = Some(vk::VkCommandBufferInheritanceConditionalRenderingInfoEXT {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,
+                conditionalRenderingEnable: 1,
+                ..Default::default()
+            });
+        }
+    }
     if (input.occlusion != 0 || input.query_flags != 0) && enabled & INHERITED_QUERIES == 0
         || input.statistics != 0 && enabled & PIPELINE_STATISTICS == 0
         || input.statistics & !d.snapshot.query_limits.statistics != 0
@@ -186,6 +215,9 @@ impl List {
             .cast::<vk::VkCommandBuffer>();
         for (i, pointer) in lists.iter().enumerate() {
             let child = unsafe { pointer.as_ref() }.ok_or(INVALID)?;
+            if self.conditional.get().is_some() && !child.inherited_conditional {
+                return Err(INVALID);
+            }
             if child.device != self.device
                 || child.domain != self.domain
                 || child.level != 1
@@ -276,6 +308,23 @@ mod tests {
         prepared.sampler = None;
         prepared.rendering = None;
         assert!(prepared.link().pNext.is_null());
+        prepared.conditional = Some(vk::VkCommandBufferInheritanceConditionalRenderingInfoEXT {
+            conditionalRenderingEnable: 1,
+            ..Default::default()
+        });
+        assert!(prepared.conditional_enabled());
+        prepared.resource = Some(vk::VkBindHeapInfoEXT::default());
+        let mut moved = prepared;
+        let head = moved.link().pNext;
+        assert_eq!(
+            head,
+            ptr::from_ref(moved.conditional.as_ref().unwrap()).cast()
+        );
+        assert_eq!(
+            moved.conditional.as_ref().unwrap().pNext,
+            ptr::from_ref(&moved.heaps).cast()
+        );
+        assert!(moved.heaps.pNext.is_null());
     }
     #[test]
     fn secondary_scratch_layouts() {

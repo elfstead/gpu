@@ -429,3 +429,4 @@ next SparseOpaqueImageBinds ogpu_next_sparse_opaque_image_binds image count rese
 next SparseImageBind ogpu_next_sparse_image_bind aspect mip layer reserved offset extent physical
 next SparseImageBinds ogpu_next_sparse_image_binds image count reserved binds
 next SparseSubmit ogpu_next_sparse_submit buffer_count opaque_image_count image_count wait_count signal_count binary_wait_count binary_signal_count flags buffers opaque_images images waits signals binary_waits binary_signals
+next ConditionalInheritance ogpu_next_conditional_inheritance header enable reserved

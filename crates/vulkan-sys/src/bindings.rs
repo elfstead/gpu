@@ -13434,6 +13434,7 @@ pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_UNKNOWN_TRANSFORM_FEEDB
 pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FLAG_BITS_MAX_ENUM_KHR: VkAddressCommandFlagBitsKHR = 2147483647;
 pub type VkAddressCommandFlagBitsKHR = ::std::os::raw::c_uint;
 pub type VkAddressCommandFlagsKHR = VkFlags;
+pub type VkConditionalRenderingFlagsEXT = VkFlags;
 pub type VkAccelerationStructureCreateFlagsKHR = VkFlags;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
@@ -13887,6 +13888,50 @@ impl Default for VkDrawIndirectCount2InfoKHR {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkConditionalRenderingBeginInfo2EXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub addressRange: VkDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+    pub flags: VkConditionalRenderingFlagsEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkConditionalRenderingBeginInfo2EXT",
+    ][::std::mem::size_of::<VkConditionalRenderingBeginInfo2EXT>() - 40usize];
+    [
+        "Alignment of VkConditionalRenderingBeginInfo2EXT",
+    ][::std::mem::align_of::<VkConditionalRenderingBeginInfo2EXT>() - 8usize];
+    [
+        "Offset of field: VkConditionalRenderingBeginInfo2EXT::sType",
+    ][::std::mem::offset_of!(VkConditionalRenderingBeginInfo2EXT, sType) - 0usize];
+    [
+        "Offset of field: VkConditionalRenderingBeginInfo2EXT::pNext",
+    ][::std::mem::offset_of!(VkConditionalRenderingBeginInfo2EXT, pNext) - 8usize];
+    [
+        "Offset of field: VkConditionalRenderingBeginInfo2EXT::addressRange",
+    ][::std::mem::offset_of!(VkConditionalRenderingBeginInfo2EXT, addressRange)
+        - 16usize];
+    [
+        "Offset of field: VkConditionalRenderingBeginInfo2EXT::addressFlags",
+    ][::std::mem::offset_of!(VkConditionalRenderingBeginInfo2EXT, addressFlags)
+        - 32usize];
+    [
+        "Offset of field: VkConditionalRenderingBeginInfo2EXT::flags",
+    ][::std::mem::offset_of!(VkConditionalRenderingBeginInfo2EXT, flags) - 36usize];
+};
+impl Default for VkConditionalRenderingBeginInfo2EXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkBindTransformFeedbackBuffer2InfoEXT {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -14028,6 +14073,12 @@ pub type PFN_vkCmdDrawIndexedIndirectCount2KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pInfo: *const VkDrawIndirectCount2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdBeginConditionalRendering2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pConditionalRenderingBegin: *const VkConditionalRenderingBeginInfo2EXT,
     ),
 >;
 pub type PFN_vkCmdBindTransformFeedbackBuffers2EXT = ::std::option::Option<
@@ -15098,6 +15149,97 @@ pub type PFN_vkCmdEndQueryIndexedEXT = ::std::option::Option<
         query: u32,
         index: u32,
     ),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceConditionalRenderingFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub conditionalRendering: VkBool32,
+    pub inheritedConditionalRendering: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceConditionalRenderingFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceConditionalRenderingFeaturesEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceConditionalRenderingFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceConditionalRenderingFeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceConditionalRenderingFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceConditionalRenderingFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceConditionalRenderingFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceConditionalRenderingFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceConditionalRenderingFeaturesEXT::conditionalRendering",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConditionalRenderingFeaturesEXT, conditionalRendering
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceConditionalRenderingFeaturesEXT::inheritedConditionalRendering",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceConditionalRenderingFeaturesEXT, inheritedConditionalRendering
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceConditionalRenderingFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferInheritanceConditionalRenderingInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub conditionalRenderingEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferInheritanceConditionalRenderingInfoEXT",
+    ][::std::mem::size_of::<VkCommandBufferInheritanceConditionalRenderingInfoEXT>()
+        - 24usize];
+    [
+        "Alignment of VkCommandBufferInheritanceConditionalRenderingInfoEXT",
+    ][::std::mem::align_of::<VkCommandBufferInheritanceConditionalRenderingInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceConditionalRenderingInfoEXT::sType",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceConditionalRenderingInfoEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceConditionalRenderingInfoEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceConditionalRenderingInfoEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceConditionalRenderingInfoEXT::conditionalRenderingEnable",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceConditionalRenderingInfoEXT, conditionalRenderingEnable
+    ) - 16usize];
+};
+impl Default for VkCommandBufferInheritanceConditionalRenderingInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdEndConditionalRenderingEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer),
 >;
 pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT: VkConservativeRasterizationModeEXT = 0;
 pub const VkConservativeRasterizationModeEXT_VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT: VkConservativeRasterizationModeEXT = 1;
@@ -17833,6 +17975,60 @@ pub type PFN_vkCmdSetColorWriteEnableEXT = ::std::option::Option<
         pColorWriteEnables: *const VkBool32,
     ),
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub primitivesGeneratedQuery: VkBool32,
+    pub primitivesGeneratedQueryWithRasterizerDiscard: VkBool32,
+    pub primitivesGeneratedQueryWithNonZeroStreams: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT>()
+        - 32usize];
+    [
+        "Alignment of VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT::primitivesGeneratedQuery",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT, primitivesGeneratedQuery
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT::primitivesGeneratedQueryWithRasterizerDiscard",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT,
+        primitivesGeneratedQueryWithRasterizerDiscard
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT::primitivesGeneratedQueryWithNonZeroStreams",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT,
+        primitivesGeneratedQueryWithNonZeroStreams
+    ) - 24usize];
+};
+impl Default for VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const VkAccelerationStructureCompatibilityKHR_VK_ACCELERATION_STRUCTURE_COMPATIBILITY_COMPATIBLE_KHR: VkAccelerationStructureCompatibilityKHR = 0;
 pub const VkAccelerationStructureCompatibilityKHR_VK_ACCELERATION_STRUCTURE_COMPATIBILITY_INCOMPATIBLE_KHR: VkAccelerationStructureCompatibilityKHR = 1;
 pub const VkAccelerationStructureCompatibilityKHR_VK_ACCELERATION_STRUCTURE_COMPATIBILITY_MAX_ENUM_KHR: VkAccelerationStructureCompatibilityKHR = 2147483647;

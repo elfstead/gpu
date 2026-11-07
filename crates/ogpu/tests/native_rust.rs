@@ -22,6 +22,8 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        conditional_begin,
+        conditional_end,
         image_sparse_requirements,
         sparse_scratch_requirements,
         queue_bind_sparse,

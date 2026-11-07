@@ -39,6 +39,12 @@ pub mod feature_ids {
     pub const SPARSE_ALIAS: u32 = 140;
     pub const SHADER_SPARSE_RESIDENCY: u32 = 141;
     pub const SHADER_MIN_LOD: u32 = 142;
+    pub const CONDITIONAL_RENDERING: u32 = 143;
+    pub const INHERITED_CONDITIONAL_RENDERING: u32 = 144;
+    pub const PRIMITIVES_GENERATED_QUERY: u32 = 145;
+    pub const PRIMITIVES_GENERATED_DISCARD: u32 = 146;
+    pub const PRIMITIVES_GENERATED_STREAMS: u32 = 147;
+
     pub const ACCELERATION_STRUCTURE: u32 = 124;
     pub const RAY_QUERY: u32 = 125;
     pub const RAY_PIPELINE: u32 = 126;
@@ -809,6 +815,11 @@ pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(),
         return Err(INVALID);
     }
     for (dynamic, base) in [
+        (INHERITED_CONDITIONAL_RENDERING, CONDITIONAL_RENDERING),
+        (
+            PRIMITIVES_GENERATED_DISCARD | PRIMITIVES_GENERATED_STREAMS,
+            PRIMITIVES_GENERATED_QUERY,
+        ),
         (
             RAY_QUERY | RAY_PIPELINE | ACCELERATION_INDIRECT_BUILD | RAY_MAINTENANCE,
             ACCELERATION_STRUCTURE,
@@ -2704,4 +2715,19 @@ pub struct SparseSubmit {
     pub signals: *const Point,
     pub binary_waits: *const *mut super::Binary,
     pub binary_signals: *const *mut super::Binary,
+}
+
+/// Predicate reads consume the first aligned u32 in a borrowed memory span.
+pub const CONDITIONAL_USAGE: u64 = 1 << 14;
+pub const CONDITIONAL_STAGE: u64 = 1 << 31;
+pub const CONDITIONAL_READ: u64 = 1 << 31;
+pub const CONDITIONAL_INVERTED: u32 = 1;
+pub const QUERY_PRIMITIVES_GENERATED: u32 = 9;
+pub const CONDITIONAL_INHERITANCE: u32 = 150;
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ConditionalInheritance {
+    pub header: Record,
+    pub enable: u32,
+    pub reserved: u32,
 }

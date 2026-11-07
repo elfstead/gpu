@@ -253,7 +253,7 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::SHADER_MIN_LOD;
+const MAX_ID: u32 = feature_ids::PRIMITIVES_GENERATED_STREAMS;
 const _: () = assert!(MAX_ID <= FeatureBits::CAPACITY);
 pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     let mut mask = FeatureBits::ZERO;
@@ -308,6 +308,21 @@ pub(super) fn instance_range(
     }
     Ok(())
 }
+
+pub(super) const CONDITIONAL_RENDERING: FeatureBits =
+    FeatureBits::bit(feature_ids::CONDITIONAL_RENDERING - 1);
+
+pub(super) const INHERITED_CONDITIONAL_RENDERING: FeatureBits =
+    FeatureBits::bit(feature_ids::INHERITED_CONDITIONAL_RENDERING - 1);
+
+pub(super) const PRIMITIVES_GENERATED_QUERY: FeatureBits =
+    FeatureBits::bit(feature_ids::PRIMITIVES_GENERATED_QUERY - 1);
+
+pub(super) const PRIMITIVES_GENERATED_DISCARD: FeatureBits =
+    FeatureBits::bit(feature_ids::PRIMITIVES_GENERATED_DISCARD - 1);
+
+pub(super) const PRIMITIVES_GENERATED_STREAMS: FeatureBits =
+    FeatureBits::bit(feature_ids::PRIMITIVES_GENERATED_STREAMS - 1);
 
 #[cfg(test)]
 mod tests {

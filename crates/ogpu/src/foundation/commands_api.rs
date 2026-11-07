@@ -1668,3 +1668,25 @@ pub unsafe extern "C" fn ogpu_next_trace_rays_indirect_table(
         encode(encoder, |e| e.trace_rays_indirect_table(args));
     }
 }
+
+/// # Safety
+/// Live recording slot and predicate storage; explicit visibility, residency and
+/// stable predicate value throughout native conditional execution.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_conditional_begin(
+    encoder: *mut List,
+    predicate: Span,
+    flags: u32,
+) {
+    unsafe {
+        encode(encoder, |e| e.conditional_begin(predicate, flags));
+    }
+}
+/// # Safety
+/// Matching active predicate in this list and rendering scope.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_conditional_end(encoder: *mut List) {
+    unsafe {
+        encode(encoder, |e| e.conditional_end());
+    }
+}

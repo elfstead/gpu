@@ -50,6 +50,11 @@ impl QueryPool {
                 vk::VkQueryType_VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT
             }
             5..=8 => acceleration::query_type(d, desc.kind)?,
+            QUERY_PRIMITIVES_GENERATED
+                if d.snapshot.features.enabled & PRIMITIVES_GENERATED_QUERY != 0 =>
+            {
+                vk::VkQueryType_VK_QUERY_TYPE_PRIMITIVES_GENERATED_EXT
+            }
             _ => return Err(UNSUPPORTED),
         };
         let info = vk::VkQueryPoolCreateInfo {

@@ -36,7 +36,7 @@ pub struct Memory {
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
-    if usage & !16383 != 0 {
+    if usage & !32767 != 0 {
         return Err(UNSUPPORTED);
     }
     let bits = [
@@ -54,6 +54,7 @@ fn buffer_usage(usage: u64) -> Result<u32, Status> {
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR,
+        vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -105,6 +106,11 @@ impl Device {
     unsafe fn validate_memory(&self, desc: &MemoryDesc) -> Result<(), Status> {
         self.ready()?;
         desc.header.validate::<MemoryDesc>(MEMORY_DESC)?;
+        if desc.usage & CONDITIONAL_USAGE != 0
+            && self.snapshot.features.enabled & CONDITIONAL_RENDERING == 0
+        {
+            return Err(UNSUPPORTED);
+        }
         if desc.usage & USAGE_RAY_TABLE != 0 && self.snapshot.features.enabled & RAY_PIPELINE == 0 {
             return Err(UNSUPPORTED);
         }
@@ -1279,7 +1285,7 @@ mod tests {
     }
     #[test]
     fn buffer_usage_never_silently_drops_bits() {
-        assert_eq!(buffer_usage(16384), Err(UNSUPPORTED));
+        assert_eq!(buffer_usage(32768), Err(UNSUPPORTED));
         assert_ne!(
             buffer_usage(PREPROCESS_USAGE).unwrap()
                 & vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT as u32,

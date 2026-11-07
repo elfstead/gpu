@@ -3890,6 +3890,54 @@ ogpu_next_status ogpu_next_image_sparse_requirements(const ogpu_next_device *, c
 ogpu_next_status ogpu_next_sparse_scratch_requirements(const ogpu_next_device *, uint32_t count, const ogpu_next_sparse_submit *, ogpu_next_host_requirements *);
 ogpu_next_status ogpu_next_queue_bind_sparse(ogpu_next_queue *, uint32_t count, const ogpu_next_sparse_submit *, ogpu_next_submit_outcome *, ogpu_next_host_span);
 
+
+/* Native GPU execution controls. */
+#define OGPU_NEXT_FEATURE_CONDITIONAL_RENDERING UINT32_C(143)
+#define OGPU_NEXT_FEATURE_INHERITED_CONDITIONAL_RENDERING UINT32_C(144)
+#define OGPU_NEXT_FEATURE_PRIMITIVES_GENERATED_QUERY UINT32_C(145)
+#define OGPU_NEXT_FEATURE_PRIMITIVES_GENERATED_DISCARD UINT32_C(146)
+#define OGPU_NEXT_FEATURE_PRIMITIVES_GENERATED_STREAMS UINT32_C(147)
+
+#define OGPU_NEXT_USAGE_CONDITIONAL (UINT64_C(1) << 14)
+#define OGPU_NEXT_STAGE_CONDITIONAL (UINT64_C(1) << 31)
+#define OGPU_NEXT_ACCESS_CONDITIONAL_READ (UINT64_C(1) << 31)
+#define OGPU_NEXT_CONDITIONAL_INVERTED UINT32_C(1)
+#define OGPU_NEXT_QUERY_PRIMITIVES_GENERATED UINT32_C(9)
+#define OGPU_NEXT_CONDITIONAL_INHERITANCE UINT32_C(150)
+typedef struct ogpu_next_conditional_inheritance {
+    ogpu_next_record header;
+    uint32_t enable, reserved;
+} ogpu_next_conditional_inheritance;
+/* INHERITANCE.header.next may name CONDITIONAL_INHERITANCE (enable=0/1,
+ * reserved=0, no further chain). enable=1 requires INHERITED_CONDITIONAL_RENDERING
+ * and permits executing this secondary inside an active parent predicate.
+ * enable=0/absent requires the parent to have no active predicate.
+ *
+ * conditional_begin requires CONDITIONAL_RENDERING and a graphics/compute domain.
+ * The first u32 of predicate (CONDITIONAL usage, >=4 bytes, address aligned to 4)
+ * enables work when nonzero; INVERTED enables it when zero. Keep this value stable
+ * throughout the scope; writes need explicit CONDITIONAL_READ dependencies.
+ * Scopes cannot nest and must begin/end in the same list and rendering scope;
+ * a scope begun outside rendering can contain whole rendering instances.
+ * Predication covers draws (including mesh/indirect/byte-count), compute dispatch
+ * and generated-command execution. Copies, fills, barriers, query operations,
+ * rendering load/store operations, acceleration builds and direct ray dispatch
+ * remain unconditional. It is not a generic command-list branch. Native rules
+ * and state validity still apply to discarded work; no host predicate read,
+ * inserted barrier, hidden dispatch or argument rewrite occurs.
+ *
+ * QUERY_PRIMITIVES_GENERATED returns one count per query (plus requested
+ * availability). It needs PRIMITIVES_GENERATED_QUERY, not active transform feedback
+ * or the TRANSFORM_FEEDBACK feature. query_begin/end stream must be below
+ * CAPTURE_LIMITS.max_streams; nonzero needs PRIMITIVES_GENERATED_STREAMS.
+ * Caller must not draw with rasterizer discard while such a query is active
+ * unless PRIMITIVES_GENERATED_DISCARD is enabled, or select a nonzero rasterization
+ * stream unless PRIMITIVES_GENERATED_STREAMS is enabled. Shader emission to
+ * nonzero streams has its separate GEOMETRY_STREAMS requirement.
+ */
+void ogpu_next_conditional_begin(ogpu_next_encoder *, ogpu_next_span predicate, uint32_t flags);
+void ogpu_next_conditional_end(ogpu_next_encoder *);
+
 #ifdef __cplusplus
 }
 #endif

@@ -73,5 +73,55 @@ translation step before implementing the coherent surface.
 
 M10's primitives and clean SDK are complete within the recorded local scope. The twelve numeric format IDs, metadata and local transfer/clear consumer are
 implemented; three image profiles pass and nine are natively excluded. Typed
-shader/vertex execution remains separate. GPU execution controls are next.
+shader/vertex execution remains separate. GPU conditionals and primitive-generation
+queries are implemented through C and direct Rust. Local primary compute/draw
+predication and primitive queries without transform feedback pass; inherited
+conditional execution is unavailable on this device. The remaining shader profiles,
+launch/matrix audit and artifacts are next.
 The remaining rows are scheduled work, not implemented claims or vague examples.
+
+## GPU execution controls (2026-11-07)
+
+Feature IDs 143–147 independently expose conditional execution, inherited
+conditional execution, primitive-generation queries, query support with rasterizer
+discard, and nonzero query/rasterization streams. Two recording operations borrow
+a four-byte predicate range; an optional inheritance extension preserves the
+existing secondary-record ABI. One new query kind uses the existing pool,
+reset/begin/end/resolve and explicit stream argument. The primitive feature does
+not require enabling transform feedback. Its extension dependency and stream limit
+come from native transform-feedback *extension* metadata, not an active capture.
+
+The public contract names exactly which operations are predicated. Draws, compute
+dispatches and generated-command execution are covered; copies/fills, barriers,
+queries, rendering load/store, acceleration builds and direct ray dispatch remain
+unconditional. Predicate values stay stable within a scope, with explicit
+CONDITIONAL stage/read dependencies. Local scope checks prevent unmatched/nested
+begin/end; discard and rasterization-stream restrictions remain documented unsafe
+caller obligations. No extra work, CPU decision, retention or implicit dependency
+is introduced. Recording has constant-time local checks and one native call;
+query slots are reserved with the arena, not allocated while recording.
+
+The independent [Rust consumer](../examples/foundation_rust/src/bin/controls.rs)
+enables `[RASTER, CONDITIONAL_RENDERING, PRIMITIVES_GENERATED_QUERY,
+PRIMITIVES_GENERATED_DISCARD]`, deliberately excluding TRANSFORM_FEEDBACK. GPU
+fills produce predicates; zero/nonzero and inversion produce four checked compute
+outputs, four primitive counts and four unconditional fill markers, with surrounding
+4096-byte guards and five local rejection cases. Vulkan synchronization validation
+is clean. Conditional inheritance is implemented and its native chain has host
+coverage, but RADV reports that feature unavailable: the consumer's secondary
+execution branch is **not accepted**. Nonzero stream emission, predicated mesh/
+generated work and attachment clears likewise need separate execution evidence.
+
+An explicit `OGPU_CONDITIONAL_RESET_DIAGNOSTIC=1` run reuses a native slot after
+abandoning an open predicate and resetting the pool. It produces one
+`VUID-vkCmdBeginConditionalRendering2EXT-None-13063` diagnostic despite OGPU resetting
+its local scope. Matching VVL 1.4.357 source at
+`e4786f7ce8f1319215eff0d938f4be4651cbb85d` leaves `conditional_rendering_active` out of
+`CommandBuffer::ResetCBState()` (cmd_buffer_state.cpp:305); it is set/cleared only by
+conditional begin/end (2519/2526). This supports a stale validation-state diagnosis.
+The normal negative-case fixture uses separate reserved slots; it does **not**
+establish abandoned-scope same-slot validation acceptance. No workaround or extra
+native end command is inserted into OGPU. The raw diagnostic is kept separately
+from the clean execution receipt.
+
+[Receipt](results/m11-execution-controls-2026-11-07.json).

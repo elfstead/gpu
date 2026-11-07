@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M11 execution controls",
+  "revision": 13,
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10), Mesa 26.2.5",
+  "features_enabled": [
+    1,
+    143,
+    145,
+    146
+  ],
+  "transform_feedback_enabled": false,
+  "accepted": {
+    "primary_predicate_modes": 4,
+    "compute_outputs": 4,
+    "primitive_counts": 4,
+    "unconditional_fill_markers": 4,
+    "guarded_bytes": 4096,
+    "invalid_local_scopes": 5,
+    "validation_errors": 0
+  },
+  "not_accepted": [
+    "inherited conditional execution (native unavailable)",
+    "nonzero stream emission",
+    "predicated mesh/generated commands",
+    "abandoned-scope same-slot validation acceptance"
+  ],
+  "diagnostic": {
+    "env": "OGPU_CONDITIONAL_RESET_DIAGNOSTIC=1",
+    "vuid": "VUID-vkCmdBeginConditionalRendering2EXT-None-13063",
+    "count": 1,
+    "vvl_revision": "e4786f7ce8f1319215eff0d938f4be4651cbb85d",
+    "evidence": "ResetCBState omits conditional_rendering_active; default fixture uses separate slots for malformed scopes; no backend workaround"
+  },
+  "checks": {
+    "host_tests": 135,
+    "native_surface_tests": 2,
+    "c_rust_signatures": 233,
+    "abi_records": 197,
+    "explicit_constants": 430,
+    "layout_values": 2578,
+    "strict_clippy": "pass",
+    "full_c_fixture": "pass, zero validation errors"
+  },
+  "logs": [
+    "/tmp/ogpu-m11-controls-gpu.log",
+    "/tmp/ogpu-m11-controls-reset-diagnostic.log",
+    "/tmp/ogpu-m11-controls-foundation.log",
+    "/tmp/ogpu-m11-controls-host.log",
+    "/tmp/ogpu-m11-controls-surface.log",
+    "/tmp/ogpu-m11-controls-abi.log",
+    "/tmp/ogpu-m11-controls-clippy.log"
+  ]
+}

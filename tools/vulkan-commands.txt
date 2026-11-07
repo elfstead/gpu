@@ -228,3 +228,6 @@ vkImportSemaphoreFdKHR
 vkCmdCopyBuffer2
 vkQueueBindSparse
 vkGetDeviceImageSparseMemoryRequirements
+
+vkCmdBeginConditionalRendering2EXT
+vkCmdEndConditionalRenderingEXT

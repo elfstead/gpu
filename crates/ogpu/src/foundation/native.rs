@@ -30,6 +30,8 @@ pub(super) mod acceleration;
 mod capture;
 #[path = "core_raster.rs"]
 mod core_raster;
+#[path = "execution_controls.rs"]
+mod execution_controls;
 #[path = "extended_raster.rs"]
 mod extended_raster;
 #[path = "raster_profiles.rs"]
@@ -366,6 +368,7 @@ pub(super) fn snapshot(
     features.available |= ray_features;
     let (capture_features, capture_limits) = capture::snapshot(instance, physical, &f)?;
     features.available |= capture_features;
+    features.available |= execution_controls::snapshot(instance, physical, &f)?;
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -902,6 +905,7 @@ pub struct Device {
     extended_commands: extended_raster::Commands,
     profile_commands: raster_profiles::Commands,
     capture_commands: capture::Commands,
+    execution_controls: execution_controls::Commands,
     acceleration_commands: acceleration::Commands,
     ray_commands: ray::Commands,
     sample_commands: sample_locations::Commands,
@@ -971,6 +975,7 @@ impl Device {
             raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
             extended_commands: extended_raster::Commands::load(&adapter.instance, enabled)?,
             capture_commands: capture::Commands::load(&adapter.instance, enabled)?,
+            execution_controls: execution_controls::Commands::load(&adapter.instance, enabled)?,
             acceleration_commands: acceleration::Commands::load(&adapter.instance, enabled)?,
             ray_commands: ray::Commands::load(&adapter.instance, enabled)?,
             profile_commands: raster_profiles::Commands::load(&adapter.instance, enabled)?,
@@ -1226,7 +1231,18 @@ impl Device {
             (RAY_QUERY, c"VK_KHR_ray_query"),
             (ray::PIPELINE_FEATURES, c"VK_KHR_ray_tracing_pipeline"),
             (RAY_MAINTENANCE, c"VK_KHR_ray_tracing_maintenance1"),
-            (capture::FEATURES, c"VK_EXT_transform_feedback"),
+            (
+                capture::FEATURES | execution_controls::PRIMITIVES,
+                c"VK_EXT_transform_feedback",
+            ),
+            (
+                execution_controls::CONDITIONAL,
+                c"VK_EXT_conditional_rendering",
+            ),
+            (
+                execution_controls::PRIMITIVES,
+                c"VK_EXT_primitives_generated_query",
+            ),
             (UNRESTRICTED_DEPTH_RANGE, c"VK_EXT_depth_range_unrestricted"),
             (DEPTH_CLAMP_CONTROL, c"VK_EXT_depth_clamp_control"),
             (raster_profiles::BIAS_FEATURES, c"VK_EXT_depth_bias_control"),
@@ -1257,6 +1273,8 @@ impl Device {
         };
         let mut ray = ray::Native::new(enabled);
         let previous = ray.link(previous.cast_mut(), enabled).cast_const();
+        let mut controls = execution_controls::Native::new(enabled);
+        let previous = controls.link(previous.cast_mut(), enabled).cast_const();
         let capture = capture::native(enabled, previous.cast_mut());
         let previous = if enabled & capture::FEATURES != 0 {
             ptr::from_ref(&capture).cast()

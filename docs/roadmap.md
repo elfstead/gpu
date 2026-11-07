@@ -753,9 +753,10 @@ cluster/device-enqueue execution where native APIs support it, pipeline artifact
 binary interfaces (including ray pipeline libraries and capture/replay capabilities), and remaining numerical/subgroup/matrix profiles. Extend
 generated artifact requirements and implement a hardware matrix variant of the
 bounded ML consumer with explicit layout, accumulation and numerical permissions.
-Audit conditional rendering and primitive-generation query variants here as
-independent execution/counter profiles; capture counters and ordinary indirect
-counts do not establish their equivalence. First use shader/toolchain capability declarations and the existing launch model;
+Conditional rendering and primitive-generation queries now have independent
+execution/counter profiles and bounded primary execution acceptance; inherited
+conditional execution remains locally unavailable. Capture counters and ordinary
+indirect counts do not establish their equivalence. First use shader/toolchain capability declarations and the existing launch model;
 add host records only for a native facility not expressible that way. Do not add
 host tensor operators, graph execution or an automatic precision selector to the core.
 
