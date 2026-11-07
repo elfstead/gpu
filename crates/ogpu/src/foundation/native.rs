@@ -26,6 +26,8 @@ use std::{
 
 #[path = "core_raster.rs"]
 mod core_raster;
+#[path = "extended_raster.rs"]
+mod extended_raster;
 
 #[path = "vertex_input.rs"]
 mod vertex_input;
@@ -726,7 +728,8 @@ pub(super) fn snapshot(
             features.available &= !dynamic;
         }
     }
-    graphics_limits.dynamic_states |= raster_mechanisms::dynamic_mask(features.available);
+    graphics_limits.dynamic_states |= raster_mechanisms::dynamic_mask(features.available)
+        | extended_raster::dynamic_mask(features.available);
     if features.available & DYNAMIC_VERTEX_INPUT != 0 {
         graphics_limits.dynamic_states |= DYNAMIC_VERTEX_INPUT_STATE;
     }
@@ -846,6 +849,7 @@ pub struct Device {
     f: Functions,
     shading_rate_function: vk::PFN_vkCmdSetFragmentShadingRateKHR,
     raster_commands: raster_mechanisms::Commands,
+    extended_commands: extended_raster::Commands,
     sample_commands: sample_locations::Commands,
     vertex_input_command: vk::PFN_vkCmdSetVertexInputEXT,
     mesh_functions: Option<mesh::MeshFunctions>,
@@ -910,6 +914,7 @@ impl Device {
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
             raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
+            extended_commands: extended_raster::Commands::load(&adapter.instance, enabled)?,
             sample_commands: sample_locations::Commands::load(&adapter.instance, enabled)?,
             vertex_input_command: vertex_input::load(&adapter.instance, enabled)?,
             shading_rate_function: if enabled & shading_rate::INPUTS != 0 {
@@ -1138,6 +1143,7 @@ impl Device {
         for (bit, name) in [
             (SAMPLE_LOCATIONS, c"VK_EXT_sample_locations"),
             (DYNAMIC_VERTEX_INPUT, c"VK_EXT_vertex_input_dynamic_state"),
+            (DYNAMIC_LOGIC_OP, c"VK_EXT_extended_dynamic_state2"),
             (CONSERVATIVE_RASTER, c"VK_EXT_conservative_rasterization"),
             (PROVOKING_LAST, c"VK_EXT_provoking_vertex"),
             (DEPTH_NEGATIVE_ONE_TO_ONE, c"VK_EXT_depth_clip_control"),

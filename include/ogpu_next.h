@@ -1844,6 +1844,59 @@ void ogpu_next_set_depth_bounds_enable(ogpu_next_encoder *, uint32_t enable);
  * attachments/clears still execute. Restart enabling does not infer a topology.
  */
 
+/* Optional dynamic raster controls. Each FEATURE_DYNAMIC_* is independently
+ * requested; each DYNAMIC_* ignores its corresponding static field. Existing
+ * value capabilities (DEPTH_CLAMP, NON_SOLID_FILL, ALPHA_TO_ONE, LOGIC_OP,
+ * DUAL_SOURCE_BLEND) are not enabled implicitly. See docs/extended-dynamic-raster.md.
+ * Setter arrays are borrowed for the call. Zero count is a no-op after capability
+ * and attachment-range checks. No scratch or retained host pointers.
+ */
+#define OGPU_NEXT_FEATURE_DYNAMIC_DEPTH_CLAMP UINT32_C(99)
+#define OGPU_NEXT_DYNAMIC_DEPTH_CLAMP (UINT64_C(1) << 33)
+#define OGPU_NEXT_FEATURE_DYNAMIC_POLYGON_MODE UINT32_C(100)
+#define OGPU_NEXT_DYNAMIC_POLYGON_MODE (UINT64_C(1) << 34)
+#define OGPU_NEXT_FEATURE_DYNAMIC_RASTERIZATION_SAMPLES UINT32_C(101)
+#define OGPU_NEXT_DYNAMIC_RASTERIZATION_SAMPLES (UINT64_C(1) << 35)
+#define OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_MASK UINT32_C(102)
+#define OGPU_NEXT_DYNAMIC_SAMPLE_MASK (UINT64_C(1) << 36)
+#define OGPU_NEXT_FEATURE_DYNAMIC_ALPHA_TO_COVERAGE UINT32_C(103)
+#define OGPU_NEXT_DYNAMIC_ALPHA_TO_COVERAGE (UINT64_C(1) << 37)
+#define OGPU_NEXT_FEATURE_DYNAMIC_ALPHA_TO_ONE UINT32_C(104)
+#define OGPU_NEXT_DYNAMIC_ALPHA_TO_ONE (UINT64_C(1) << 38)
+#define OGPU_NEXT_FEATURE_DYNAMIC_LOGIC_OP_ENABLE UINT32_C(105)
+#define OGPU_NEXT_DYNAMIC_LOGIC_OP_ENABLE (UINT64_C(1) << 39)
+#define OGPU_NEXT_FEATURE_DYNAMIC_COLOR_BLEND_ENABLE UINT32_C(106)
+#define OGPU_NEXT_DYNAMIC_COLOR_BLEND_ENABLE (UINT64_C(1) << 40)
+#define OGPU_NEXT_FEATURE_DYNAMIC_COLOR_BLEND_EQUATION UINT32_C(107)
+#define OGPU_NEXT_DYNAMIC_COLOR_BLEND_EQUATION (UINT64_C(1) << 41)
+#define OGPU_NEXT_FEATURE_DYNAMIC_COLOR_WRITE_MASK UINT32_C(108)
+#define OGPU_NEXT_DYNAMIC_COLOR_WRITE_MASK (UINT64_C(1) << 42)
+#define OGPU_NEXT_FEATURE_DYNAMIC_LOGIC_OP UINT32_C(109)
+#define OGPU_NEXT_DYNAMIC_LOGIC_OP (UINT64_C(1) << 43)
+typedef struct ogpu_next_blend_equation {
+    uint32_t src_color, dst_color, color_op, src_alpha, dst_alpha, alpha_op;
+} ogpu_next_blend_equation;
+void ogpu_next_set_depth_clamp(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_polygon_mode(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_rasterization_samples(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_sample_mask(ogpu_next_encoder *, uint32_t samples, uint64_t mask);
+void ogpu_next_set_alpha_to_coverage(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_alpha_to_one(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_logic_op_enable(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_color_blend_enable(ogpu_next_encoder *, uint32_t first, uint32_t count, const uint32_t *values);
+void ogpu_next_set_color_blend_equation(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_blend_equation *values);
+void ogpu_next_set_color_write_mask(ogpu_next_encoder *, uint32_t first, uint32_t count, const uint32_t *values);
+void ogpu_next_set_logic_op(ogpu_next_encoder *, uint32_t value);
+/* Sample counts are powers of two in [1,64]. A dynamic mask supplies bits for
+ * at least the draw sample count; bits above its declared count are ignored.
+ * Dynamic sample count ignores GraphicsState.samples; a static sample_mask still
+ * supplies all 64 bits. Caller proves attachment/format, sample-shading, custom
+ * sample-position and shader compatibility at every draw. Dynamic per-attachment
+ * state must cover every consumed slot. Blending needs blendable formats; dual
+ * source factors need matching shader output and attachment limits. Native state
+ * invalidation and secondary/generated-command obligations remain caller-owned.
+ */
+
 #define OGPU_NEXT_FEATURE_DYNAMIC_VERTEX_INPUT UINT32_C(98)
 #define OGPU_NEXT_DYNAMIC_VERTEX_INPUT (UINT64_C(1) << 24)
 #define OGPU_NEXT_FEATURE_SAMPLE_LOCATIONS UINT32_C(96)

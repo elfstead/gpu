@@ -3,6 +3,17 @@
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
 pub(super) type FeatureBits = u128;
+pub(super) const DYNAMIC_DEPTH_CLAMP: FeatureBits = 1 << 98;
+pub(super) const DYNAMIC_POLYGON_MODE: FeatureBits = 1 << 99;
+pub(super) const DYNAMIC_RASTERIZATION_SAMPLES: FeatureBits = 1 << 100;
+pub(super) const DYNAMIC_SAMPLE_MASK: FeatureBits = 1 << 101;
+pub(super) const DYNAMIC_ALPHA_TO_COVERAGE: FeatureBits = 1 << 102;
+pub(super) const DYNAMIC_ALPHA_TO_ONE: FeatureBits = 1 << 103;
+pub(super) const DYNAMIC_LOGIC_OP_ENABLE: FeatureBits = 1 << 104;
+pub(super) const DYNAMIC_COLOR_BLEND_ENABLE: FeatureBits = 1 << 105;
+pub(super) const DYNAMIC_COLOR_BLEND_EQUATION: FeatureBits = 1 << 106;
+pub(super) const DYNAMIC_COLOR_WRITE_MASK: FeatureBits = 1 << 107;
+pub(super) const DYNAMIC_LOGIC_OP: FeatureBits = 1 << 108;
 pub(super) const DYNAMIC_VERTEX_INPUT: FeatureBits = 1 << 97;
 pub(super) const SAMPLE_LOCATIONS: FeatureBits = 1 << 95;
 pub(super) const DYNAMIC_SAMPLE_LOCATIONS_ENABLE: FeatureBits = 1 << 96;
@@ -117,7 +128,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 98 {
+        if id > 109 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u128 << (id - 1);
@@ -125,7 +136,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=98)
+    (1..=109)
         .filter(|id| mask & (1u128 << (id - 1)) != 0)
         .collect()
 }
@@ -189,7 +200,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [99, 128, u32::MAX] {
+        for id in [110, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

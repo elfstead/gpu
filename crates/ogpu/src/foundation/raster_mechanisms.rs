@@ -9,7 +9,8 @@ pub(super) const DYNAMIC_FEATURES: FeatureBits = DYNAMIC_CONSERVATIVE_MODE
     | DYNAMIC_DEPTH_CONVENTION
     | DYNAMIC_LINE_MODE
     | DYNAMIC_LINE_STIPPLE_ENABLE
-    | DYNAMIC_SAMPLE_LOCATIONS_ENABLE;
+    | DYNAMIC_SAMPLE_LOCATIONS_ENABLE
+    | extended_raster::EDS3_FEATURES;
 pub(super) const DYNAMIC_STATES: &[(u64, vk::VkDynamicState)] = &[
     (
         DYNAMIC_SAMPLE_LOCATIONS_STATE,
@@ -91,6 +92,7 @@ pub(super) struct Native {
     provoking: vk::VkPhysicalDeviceProvokingVertexFeaturesEXT,
     convention: vk::VkPhysicalDeviceDepthClipControlFeaturesEXT,
     dynamic: vk::VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+    dynamic2: vk::VkPhysicalDeviceExtendedDynamicState2FeaturesEXT,
 }
 impl Native {
     pub fn new(enabled: FeatureBits) -> Self {
@@ -105,7 +107,23 @@ impl Native {
                 depthClipControl: u32::from(enabled & DEPTH_NEGATIVE_ONE_TO_ONE != 0),
                 ..Default::default()
             },
+            dynamic2: vk::VkPhysicalDeviceExtendedDynamicState2FeaturesEXT {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,
+                extendedDynamicState2LogicOp: u32::from(enabled & DYNAMIC_LOGIC_OP != 0),
+                ..Default::default()
+            },
             dynamic: vk::VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+                extendedDynamicState3DepthClampEnable: u32::from(enabled & DYNAMIC_DEPTH_CLAMP != 0),
+                extendedDynamicState3PolygonMode: u32::from(enabled & DYNAMIC_POLYGON_MODE != 0),
+                extendedDynamicState3RasterizationSamples: u32::from(enabled & DYNAMIC_RASTERIZATION_SAMPLES != 0),
+                extendedDynamicState3SampleMask: u32::from(enabled & DYNAMIC_SAMPLE_MASK != 0),
+                extendedDynamicState3AlphaToCoverageEnable: u32::from(enabled & DYNAMIC_ALPHA_TO_COVERAGE != 0),
+                extendedDynamicState3AlphaToOneEnable: u32::from(enabled & DYNAMIC_ALPHA_TO_ONE != 0),
+                extendedDynamicState3LogicOpEnable: u32::from(enabled & DYNAMIC_LOGIC_OP_ENABLE != 0),
+                extendedDynamicState3ColorBlendEnable: u32::from(enabled & DYNAMIC_COLOR_BLEND_ENABLE != 0),
+                extendedDynamicState3ColorBlendEquation: u32::from(enabled & DYNAMIC_COLOR_BLEND_EQUATION != 0),
+                extendedDynamicState3ColorWriteMask: u32::from(enabled & DYNAMIC_COLOR_WRITE_MASK != 0),
+
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
                 extendedDynamicState3SampleLocationsEnable: u32::from(enabled & DYNAMIC_SAMPLE_LOCATIONS_ENABLE != 0),
                 extendedDynamicState3ConservativeRasterizationMode: u32::from(
@@ -143,6 +161,10 @@ impl Native {
             self.convention.pNext = next;
             next = ptr::from_mut(&mut self.convention).cast();
         }
+        if selected & DYNAMIC_LOGIC_OP != 0 {
+            self.dynamic2.pNext = next;
+            next = ptr::from_mut(&mut self.dynamic2).cast();
+        }
         if selected & DYNAMIC_FEATURES != 0 {
             self.dynamic.pNext = next;
             next = ptr::from_mut(&mut self.dynamic).cast();
@@ -163,6 +185,7 @@ pub(super) fn snapshot(
         (c"VK_EXT_provoking_vertex", PROVOKING_LAST),
         (c"VK_EXT_depth_clip_control", DEPTH_NEGATIVE_ONE_TO_ONE),
         (c"VK_EXT_extended_dynamic_state3", DYNAMIC_FEATURES),
+        (c"VK_EXT_extended_dynamic_state2", DYNAMIC_LOGIC_OP),
     ] {
         if instance
             .supports_extension(physical, name)
@@ -204,6 +227,40 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut props);
     }
     let mut available = selected & CONSERVATIVE_RASTER;
+    if native.dynamic2.extendedDynamicState2LogicOp != 0 {
+        available |= DYNAMIC_LOGIC_OP;
+    }
+    if native.dynamic.extendedDynamicState3DepthClampEnable != 0 {
+        available |= DYNAMIC_DEPTH_CLAMP;
+    }
+    if native.dynamic.extendedDynamicState3PolygonMode != 0 {
+        available |= DYNAMIC_POLYGON_MODE;
+    }
+    if native.dynamic.extendedDynamicState3RasterizationSamples != 0 {
+        available |= DYNAMIC_RASTERIZATION_SAMPLES;
+    }
+    if native.dynamic.extendedDynamicState3SampleMask != 0 {
+        available |= DYNAMIC_SAMPLE_MASK;
+    }
+    if native.dynamic.extendedDynamicState3AlphaToCoverageEnable != 0 {
+        available |= DYNAMIC_ALPHA_TO_COVERAGE;
+    }
+    if native.dynamic.extendedDynamicState3AlphaToOneEnable != 0 {
+        available |= DYNAMIC_ALPHA_TO_ONE;
+    }
+    if native.dynamic.extendedDynamicState3LogicOpEnable != 0 {
+        available |= DYNAMIC_LOGIC_OP_ENABLE;
+    }
+    if native.dynamic.extendedDynamicState3ColorBlendEnable != 0 {
+        available |= DYNAMIC_COLOR_BLEND_ENABLE;
+    }
+    if native.dynamic.extendedDynamicState3ColorBlendEquation != 0 {
+        available |= DYNAMIC_COLOR_BLEND_EQUATION;
+    }
+    if native.dynamic.extendedDynamicState3ColorWriteMask != 0 {
+        available |= DYNAMIC_COLOR_WRITE_MASK;
+    }
+
     if native.dynamic.extendedDynamicState3SampleLocationsEnable != 0 {
         available |= DYNAMIC_SAMPLE_LOCATIONS_ENABLE;
     }

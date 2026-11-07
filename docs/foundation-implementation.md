@@ -67,7 +67,11 @@ depth images and ordinary/split transition metadata, with coverage/LOAD acceptan
 records with caller scratch and one native setter, including generated-buffer-token
 composition. [Core dynamic raster controls](core-dynamic-raster.md) now cover
 topology/restart, discard, line width and depth bias/bounds with native topology-class
-discovery. Extended raster controls and other M8 mechanisms remain planned.
+discovery. [Extended dynamic raster controls](extended-dynamic-raster.md) now
+add independent capabilities and direct setters for clamp, polygon, multisample
+and blend/logic/write state. Local 1/4-sample, two-target and programmable-position
+composition passes. Viewport arrays, extended depth and other named M8 mechanisms
+remain in the [implementation sequence](m8-coverage.md).
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

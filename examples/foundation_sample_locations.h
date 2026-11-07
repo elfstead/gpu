@@ -41,10 +41,10 @@ static int sample_locations_execution(ogpu_next_device *device,ogpu_next_memory_
     ogpu_next_host_span bs={scratch,br.size};ogpu_next_arena_desc ad={HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena));TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_recording_desc rd={HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
-    uint64_t serial=0,pixels_checked=0;uint32_t tested=0,rejected=0,valid[9]={0};unsigned char reference[9][2][1024];
-    for(uint32_t mode=0;mode<9;++mode) {
-        uint32_t dp=mode==2||mode==3||mode==5,de=mode==4||mode==5,wide=mode==6,right=mode==1||mode==3||mode==5;
-        if((de&&!raster_has(features.enabled,OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE)) || (wide&&(limits.grids[2][0]%2||limits.grids[2][1]%2))) {
+    uint64_t serial=0,pixels_checked=0;uint32_t tested=0,rejected=0,valid[12]={0};unsigned char reference[12][2][1024];
+    for(uint32_t mode=0;mode<12;++mode) {
+        uint32_t dp=mode==2||mode==3||mode==5||mode==11,de=mode==4||mode==5,wide=mode==6,right=mode==1||mode==3||mode==5;
+        if((mode>=9&&!raster_has(features.enabled,OGPU_NEXT_FEATURE_DYNAMIC_RASTERIZATION_SAMPLES)) || (mode==10&&!raster_has(features.enabled,OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_MASK)) || (de&&!raster_has(features.enabled,OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE)) || (wide&&(limits.grids[2][0]%2||limits.grids[2][1]%2))) {
             printf("Sample locations mode %u UNVERIFIED: unsupported native profile.\n",mode);continue;
         }
         ogpu_next_sample_location coords[16];uint32_t cells=wide?4:1;
@@ -56,11 +56,11 @@ static int sample_locations_execution(ogpu_next_device *device,ogpu_next_memory_
         ogpu_next_sample_location_state state={HEADER(ogpu_next_sample_location_state,OGPU_NEXT_SAMPLE_LOCATION_STATE),de?UINT32_MAX:1,0,dp?NULL:&positions};
         ogpu_next_raster_options options={.header=HEADER(ogpu_next_raster_options,OGPU_NEXT_RASTER_OPTIONS),.line_width=1,.max_depth_bounds=1,.sample_mask=UINT64_MAX};options.header.next=&state.header;
         ogpu_next_color_state color={.format=OGPU_NEXT_RGBA8_UNORM,.write_mask=15};
-        ogpu_next_graphics_state gs={.header=HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),.topology=OGPU_NEXT_TRIANGLES,.front_face=OGPU_NEXT_FRONT_CCW,.samples=4,.color_count=1,.colors=&color,
+        ogpu_next_graphics_state gs={.header=HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),.topology=OGPU_NEXT_TRIANGLES,.front_face=OGPU_NEXT_FRONT_CCW,.samples=mode>=9?UINT32_MAX:4,.color_count=1,.colors=&color,
             .depth_format=OGPU_NEXT_D32_FLOAT,.depth_test=1,.depth_write=1,.depth_compare=OGPU_NEXT_COMPARE_LESS,.raster_options=&options.header};
         ogpu_next_shader_requirements req={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),features.enabled,{0},0};
         ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,2,shaders,&gs.header,
-            OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR|(dp?OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS:0)|(de?OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS_ENABLE:0),&req.header,NULL,0,0};
+            OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR|(mode>=9?OGPU_NEXT_DYNAMIC_RASTERIZATION_SAMPLES:0)|(mode==10?OGPU_NEXT_DYNAMIC_SAMPLE_MASK:0)|(dp?OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS:0)|(de?OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS_ENABLE:0),&req.header,NULL,0,0};
         if(mode==0)for(uint32_t bad=0;bad<5;++bad) {
             if(bad==0){positions.count=3;}if(bad==1){positions.grid[0]=0;}if(bad==2){state.enable=2;}if(bad==3){state.reserved=1;}if(bad==4){positions.header.next=&positions.header;}
             ogpu_next_executable *invalid=NULL;REQUIRE(ogpu_next_executable_create(device,&ed,arguments,&invalid)!=OGPU_NEXT_OK);REQUIRE(!invalid);++rejected;
@@ -96,6 +96,8 @@ static int sample_locations_execution(ogpu_next_device *device,ogpu_next_memory_
             ogpu_next_render_desc render={.header=HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),.width=8,.height=8,.layers=1,.samples=4,.color_count=1,.colors=&ca,.depth=&da,.scratch={render_scratch,rr.size}};
             ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,8,8};uint64_t root=address+32*phase;
             ogpu_next_render_begin(e,&render);ogpu_next_bind_executable(e,pipeline[phase]);ogpu_next_set_graphics_state(e,&vp.header);ogpu_next_set_arguments(e,arguments,0,8,&root);
+            if(mode>=9)ogpu_next_set_rasterization_samples(e,4);
+            if(mode==10)ogpu_next_set_sample_mask(e,4,UINT64_MAX);
             if(dp)ogpu_next_set_sample_locations(e,&positions);
             if(de){ogpu_next_set_sample_locations_enable(e,0);ogpu_next_set_sample_locations_enable(e,1);}
             ogpu_next_draw_desc draw={phase?3:6,1,0,0,0};ogpu_next_draw(e,&draw);ogpu_next_render_end(e);
@@ -122,7 +124,7 @@ static int sample_locations_execution(ogpu_next_device *device,ogpu_next_memory_
                 REQUIRE(fabsf(actual-want)<=1e-6f);++pixels_checked;
             }
             REQUIRE(!memcmp((char*)map.data+1280,(char*)map.data+1792,256));
-            memcpy(reference[mode][replay],(char*)map.data+1024,1024);uint32_t prior=mode==2||mode==4||mode==8?0:mode==3||mode==5?1:UINT32_MAX;
+            memcpy(reference[mode][replay],(char*)map.data+1024,1024);uint32_t prior=mode==2||mode==4||mode==8||mode>=9?0:mode==3||mode==5?1:UINT32_MAX;
             if(prior!=UINT32_MAX&&valid[prior])REQUIRE(!memcmp(reference[prior][replay],(char*)map.data+1024,1024));
             REQUIRE(!memcmp(before,map.data,1024));for(uint64_t i=2048;i<md.size;++i)REQUIRE(((unsigned char*)map.data)[i]==0xa5);
         }

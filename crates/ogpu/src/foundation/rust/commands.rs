@@ -143,3 +143,25 @@ record!(fn set_depth_bias_enable(list, enable: u32) |e| e.dynamic_raster_value(D
 record!(fn set_depth_bounds(list, min: f32, max: f32) |e| e.depth_bounds(min, max));
 
 record!(fn set_depth_bounds_enable(list, enable: u32) |e| e.dynamic_raster_value(DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE, enable));
+
+record!(fn set_depth_clamp(list, value: u32) |e| e.extended_raster_value(DYNAMIC_DEPTH_CLAMP_STATE, value));
+
+record!(fn set_polygon_mode(list, value: u32) |e| e.extended_raster_value(DYNAMIC_POLYGON_MODE_STATE, value));
+
+record!(fn set_rasterization_samples(list, value: u32) |e| e.extended_raster_value(DYNAMIC_RASTERIZATION_SAMPLES_STATE, value));
+
+record!(fn set_alpha_to_coverage(list, value: u32) |e| e.extended_raster_value(DYNAMIC_ALPHA_TO_COVERAGE_STATE, value));
+
+record!(fn set_alpha_to_one(list, value: u32) |e| e.extended_raster_value(DYNAMIC_ALPHA_TO_ONE_STATE, value));
+
+record!(fn set_logic_op_enable(list, value: u32) |e| e.extended_raster_value(DYNAMIC_LOGIC_OP_ENABLE_STATE, value));
+
+record!(fn set_logic_op(list, value: u32) |e| e.extended_raster_value(DYNAMIC_LOGIC_OP_STATE, value));
+
+record!(fn set_sample_mask(list, samples: u32, mask: u64) |e| e.sample_mask(samples, mask));
+
+record!(fn set_color_blend_enable(list, first: u32, values: &[u32]) |e| e.color_values(DYNAMIC_COLOR_BLEND_ENABLE_STATE, first, count(values.len())?, values.as_ptr()));
+
+record!(fn set_color_write_mask(list, first: u32, values: &[u32]) |e| e.color_values(DYNAMIC_COLOR_WRITE_MASK_STATE, first, count(values.len())?, values.as_ptr()));
+
+record!(fn set_color_blend_equation(list, first: u32, values: &[BlendEquation]) |e| e.color_equations(first, count(values.len())?, values.as_ptr()));

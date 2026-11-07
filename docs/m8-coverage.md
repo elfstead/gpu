@@ -49,7 +49,10 @@ remains execution debt:
    existing description with caller scratch, including generated-buffer-token
    composition. [Core dynamic raster controls](core-dynamic-raster.md) now add
    topology/class discovery, restart, discard, line width and independent bias/bounds
-   values and enables. **Next:** the extended control groups listed below, then
+   values and enables. [Extended dynamic raster controls](extended-dynamic-raster.md)
+   now cover depth clamp, polygon mode, sample count/mask, alpha coverage/one and
+   per-attachment blend/logic/write state. **Next:** viewport arrays and extended
+   depth/color-write control groups listed below, then
    the pinned registry's extension-specific raster-format inventory. These remain in this batch, not
    silently deferred to M9. No draw-time synthesis or shader substitute for a
    distinct native mechanism.
@@ -74,13 +77,14 @@ belongs in the audit; this list is not a claim to cover every vendor extension.
 
 ## Remaining raster control groups
 
-The next implementation batch covers extended dynamic state for mechanisms already
-represented statically: depth-clamp enable and polygon mode; rasterization sample
-count, sample mask, alpha-to-coverage and alpha-to-one; logic operation/enable and
-per-attachment blend enable/equations/write masks. Preserve independent native
-capabilities and ignored-static-field behavior. Dynamic sample count must also
-remove any compatibility check that assumes the prepared executable's sample
-count is always the draw-time count. No hidden executable permutation cache.
+Extended dynamic state for the already represented mechanisms is implemented:
+depth clamp, polygon mode, rasterization count, sample mask, alpha-to-coverage/one,
+logic operation/enable and per-attachment blend enable/equations/write masks.
+Each capability is independently requested; ignored static fields do not constrain
+native dynamic execution. Dynamic sample count preserves all 64 static mask bits,
+and removes static count assumptions from custom-position preparation. Local
+[acceptance](results/m8-extended-raster-2026-11-07.md) distinguishes ordinary
+1/4-sample output and position composition from untested native combinations.
 
 Before leaving this M8 batch, add or explicitly resolve these ordinary raster gaps:
 

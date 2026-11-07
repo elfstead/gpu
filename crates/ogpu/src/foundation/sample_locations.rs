@@ -190,7 +190,7 @@ pub(super) unsafe fn prepare(
     } else {
         let p = unsafe { state.locations.as_ref() }.ok_or(INVALID)?;
         let result = unsafe { pattern(p, enabled, limits)? };
-        if p.samples != samples {
+        if dynamic & DYNAMIC_RASTERIZATION_SAMPLES_STATE == 0 && p.samples != samples {
             return Err(INVALID);
         }
         result

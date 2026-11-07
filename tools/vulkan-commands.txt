@@ -169,3 +169,15 @@ vkCmdSetDepthBias
 vkCmdSetDepthBiasEnable
 vkCmdSetDepthBounds
 vkCmdSetDepthBoundsTestEnable
+
+vkCmdSetDepthClampEnableEXT
+vkCmdSetPolygonModeEXT
+vkCmdSetRasterizationSamplesEXT
+vkCmdSetSampleMaskEXT
+vkCmdSetAlphaToCoverageEnableEXT
+vkCmdSetAlphaToOneEnableEXT
+vkCmdSetLogicOpEnableEXT
+vkCmdSetColorBlendEnableEXT
+vkCmdSetColorBlendEquationEXT
+vkCmdSetColorWriteMaskEXT
+vkCmdSetLogicOpEXT

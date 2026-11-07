@@ -380,3 +380,5 @@ vk VkPhysicalDeviceSampleLocationsPropertiesEXT sType pNext sampleLocationSample
 vk VkMultisamplePropertiesEXT sType pNext maxSampleLocationGridSize
 
 next DynamicRasterLimits ogpu_next_dynamic_raster_limits unrestricted_topology
+
+next BlendEquation ogpu_next_blend_equation src_color dst_color color_op src_alpha dst_alpha alpha_op

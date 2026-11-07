@@ -255,6 +255,17 @@ mod tests {
             };
             for bit in [
                 0,
+                DYNAMIC_DEPTH_CLAMP,
+                DYNAMIC_POLYGON_MODE,
+                DYNAMIC_RASTERIZATION_SAMPLES,
+                DYNAMIC_ALPHA_TO_COVERAGE,
+                DYNAMIC_ALPHA_TO_ONE,
+                DYNAMIC_LOGIC_OP_ENABLE,
+                DYNAMIC_LOGIC_OP,
+                DYNAMIC_SAMPLE_MASK,
+                DYNAMIC_COLOR_BLEND_ENABLE,
+                DYNAMIC_COLOR_BLEND_EQUATION,
+                DYNAMIC_COLOR_WRITE_MASK,
                 DYNAMIC_VERTEX_INPUT,
                 DYNAMIC_VERTEX_INPUT | VERTEX_DIVISOR,
                 DYNAMIC_VERTEX_INPUT | VERTEX_ZERO_DIVISOR,
@@ -296,7 +307,7 @@ mod tests {
                 }
                 let d = result.unwrap();
                 assert_eq!(d.snapshot.features.enabled, required);
-                if bit == 0 {
+                if bit == 0 || bit & (extended_raster::EDS3_FEATURES | DYNAMIC_LOGIC_OP) != 0 {
                     let ad = ArenaDesc {
                         header: Record::new::<ArenaDesc>(ARENA_DESC),
                         domain: request[0].domain,
@@ -334,6 +345,88 @@ mod tests {
                         list.dynamic_raster_value(DYNAMIC_TOPOLOGY_STATE, 6),
                         Err(UNSUPPORTED)
                     );
+                    for (state, feature, value) in [
+                        (DYNAMIC_DEPTH_CLAMP_STATE, DYNAMIC_DEPTH_CLAMP, 0),
+                        (DYNAMIC_POLYGON_MODE_STATE, DYNAMIC_POLYGON_MODE, 0),
+                        (
+                            DYNAMIC_RASTERIZATION_SAMPLES_STATE,
+                            DYNAMIC_RASTERIZATION_SAMPLES,
+                            4,
+                        ),
+                        (
+                            DYNAMIC_ALPHA_TO_COVERAGE_STATE,
+                            DYNAMIC_ALPHA_TO_COVERAGE,
+                            1,
+                        ),
+                        (DYNAMIC_ALPHA_TO_ONE_STATE, DYNAMIC_ALPHA_TO_ONE, 0),
+                        (DYNAMIC_LOGIC_OP_ENABLE_STATE, DYNAMIC_LOGIC_OP_ENABLE, 0),
+                        (DYNAMIC_LOGIC_OP_STATE, DYNAMIC_LOGIC_OP, 6),
+                    ] {
+                        assert_eq!(
+                            list.extended_raster_value(state, value),
+                            if bit & feature == 0 {
+                                Err(UNSUPPORTED)
+                            } else {
+                                Ok(())
+                            }
+                        );
+                    }
+                    for (state, feature) in [
+                        (DYNAMIC_DEPTH_CLAMP_STATE, DYNAMIC_DEPTH_CLAMP),
+                        (DYNAMIC_POLYGON_MODE_STATE, DYNAMIC_POLYGON_MODE),
+                        (DYNAMIC_ALPHA_TO_ONE_STATE, DYNAMIC_ALPHA_TO_ONE),
+                        (DYNAMIC_LOGIC_OP_ENABLE_STATE, DYNAMIC_LOGIC_OP_ENABLE),
+                    ] {
+                        if bit & feature != 0 {
+                            assert_eq!(list.extended_raster_value(state, 1), Err(UNSUPPORTED));
+                        }
+                    }
+                    assert_eq!(
+                        list.sample_mask(64, 1 << 63),
+                        if bit & DYNAMIC_SAMPLE_MASK == 0 {
+                            Err(UNSUPPORTED)
+                        } else {
+                            Ok(())
+                        }
+                    );
+                    for (state, feature) in [
+                        (DYNAMIC_COLOR_BLEND_ENABLE_STATE, DYNAMIC_COLOR_BLEND_ENABLE),
+                        (DYNAMIC_COLOR_WRITE_MASK_STATE, DYNAMIC_COLOR_WRITE_MASK),
+                    ] {
+                        assert_eq!(
+                            unsafe { list.color_values(state, 0, 0, ptr::null()) },
+                            if bit & feature == 0 {
+                                Err(UNSUPPORTED)
+                            } else {
+                                Ok(())
+                            }
+                        );
+                        if bit & feature != 0 {
+                            assert_eq!(unsafe { list.color_values(state, 0, 1, &0) }, Ok(()));
+                            assert_eq!(
+                                unsafe { list.color_values(state, 0, 1, &99) },
+                                Err(INVALID)
+                            );
+                        }
+                    }
+                    let e = BlendEquation::default();
+                    assert_eq!(
+                        unsafe { list.color_equations(0, 0, ptr::null()) },
+                        if bit & DYNAMIC_COLOR_BLEND_EQUATION == 0 {
+                            Err(UNSUPPORTED)
+                        } else {
+                            Ok(())
+                        }
+                    );
+                    if bit & DYNAMIC_COLOR_BLEND_EQUATION != 0 {
+                        assert_eq!(unsafe { list.color_equations(0, 1, &e) }, Ok(()));
+                        assert_eq!(
+                            unsafe {
+                                list.color_equations(0, 1, &BlendEquation { src_color: 15, ..e })
+                            },
+                            Err(UNSUPPORTED)
+                        );
+                    }
                     list.end().unwrap();
                 }
 

@@ -1205,3 +1205,135 @@ pub unsafe extern "C" fn ogpu_next_set_depth_bounds_enable(encoder: *mut List, e
         });
     }
 }
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_depth_clamp(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_DEPTH_CLAMP_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_polygon_mode(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_POLYGON_MODE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_rasterization_samples(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_RASTERIZATION_SAMPLES_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_alpha_to_coverage(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_ALPHA_TO_COVERAGE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_alpha_to_one(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_ALPHA_TO_ONE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_logic_op_enable(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_LOGIC_OP_ENABLE_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_logic_op(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_LOGIC_OP_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; arrays valid for count.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_sample_mask(encoder: *mut List, samples: u32, mask: u64) {
+    unsafe {
+        encode(encoder, |e| e.sample_mask(samples, mask));
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; arrays valid for count.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_color_blend_enable(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    values: *const u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.color_values(DYNAMIC_COLOR_BLEND_ENABLE_STATE, first, count, values)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; arrays valid for count.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_color_write_mask(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    values: *const u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.color_values(DYNAMIC_COLOR_WRITE_MASK_STATE, first, count, values)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; arrays valid for count.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_color_blend_equation(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    values: *const BlendEquation,
+) {
+    unsafe {
+        encode(encoder, |e| e.color_equations(first, count, values));
+    }
+}

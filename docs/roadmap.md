@@ -638,7 +638,10 @@ fetch schema or pipeline permutations. [Clean installed C/native Rust acceptance
 passes at `1089406`. [Core dynamic raster controls](core-dynamic-raster.md) now add
 eight direct setters and topology-class discovery, with local static/dynamic
 color/depth evidence. [Clean installed C/native Rust acceptance](results/m8-core-dynamic-raster-2026-11-07.md)
-passes at `a16805c`. Next: the [named extended control groups](m8-coverage.md#remaining-raster-control-groups) and the
+passes at `a16805c`. [Extended dynamic raster controls](extended-dynamic-raster.md)
+now add eleven independent capabilities for clamp, polygon, multisample and
+blend/logic/write state, with [local execution evidence](results/m8-extended-raster-2026-11-07.md).
+Next: viewport arrays, extended depth/color-write controls in the [remaining groups](m8-coverage.md#remaining-raster-control-groups) and the
 extension-format inventory. Geometry capture/dynamic patch and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.

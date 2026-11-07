@@ -28,6 +28,17 @@ pub mod image_formats {
 pub const VERSION: u32 = 12;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const DYNAMIC_DEPTH_CLAMP: u32 = 99;
+    pub const DYNAMIC_POLYGON_MODE: u32 = 100;
+    pub const DYNAMIC_RASTERIZATION_SAMPLES: u32 = 101;
+    pub const DYNAMIC_SAMPLE_MASK: u32 = 102;
+    pub const DYNAMIC_ALPHA_TO_COVERAGE: u32 = 103;
+    pub const DYNAMIC_ALPHA_TO_ONE: u32 = 104;
+    pub const DYNAMIC_LOGIC_OP_ENABLE: u32 = 105;
+    pub const DYNAMIC_COLOR_BLEND_ENABLE: u32 = 106;
+    pub const DYNAMIC_COLOR_BLEND_EQUATION: u32 = 107;
+    pub const DYNAMIC_COLOR_WRITE_MASK: u32 = 108;
+    pub const DYNAMIC_LOGIC_OP: u32 = 109;
     pub const DYNAMIC_VERTEX_INPUT: u32 = 98;
     pub const SAMPLE_LOCATIONS: u32 = 96;
     pub const DYNAMIC_SAMPLE_LOCATIONS_ENABLE: u32 = 97;
@@ -2088,3 +2099,26 @@ pub const DYNAMIC_DEPTH_BIAS_STATE: u64 = 1 << 29;
 pub const DYNAMIC_DEPTH_BIAS_ENABLE_STATE: u64 = 1 << 30;
 pub const DYNAMIC_DEPTH_BOUNDS_STATE: u64 = 1 << 31;
 pub const DYNAMIC_DEPTH_BOUNDS_ENABLE_STATE: u64 = 1 << 32;
+
+pub const DYNAMIC_DEPTH_CLAMP_STATE: u64 = 1 << 33;
+pub const DYNAMIC_POLYGON_MODE_STATE: u64 = 1 << 34;
+pub const DYNAMIC_RASTERIZATION_SAMPLES_STATE: u64 = 1 << 35;
+pub const DYNAMIC_SAMPLE_MASK_STATE: u64 = 1 << 36;
+pub const DYNAMIC_ALPHA_TO_COVERAGE_STATE: u64 = 1 << 37;
+pub const DYNAMIC_ALPHA_TO_ONE_STATE: u64 = 1 << 38;
+pub const DYNAMIC_LOGIC_OP_ENABLE_STATE: u64 = 1 << 39;
+pub const DYNAMIC_COLOR_BLEND_ENABLE_STATE: u64 = 1 << 40;
+pub const DYNAMIC_COLOR_BLEND_EQUATION_STATE: u64 = 1 << 41;
+pub const DYNAMIC_COLOR_WRITE_MASK_STATE: u64 = 1 << 42;
+pub const DYNAMIC_LOGIC_OP_STATE: u64 = 1 << 43;
+/// Per-attachment blend equation; enum values match ColorState.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct BlendEquation {
+    pub src_color: u32,
+    pub dst_color: u32,
+    pub color_op: u32,
+    pub src_alpha: u32,
+    pub dst_alpha: u32,
+    pub alpha_op: u32,
+}

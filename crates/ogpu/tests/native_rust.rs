@@ -22,6 +22,17 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        set_depth_clamp,
+        set_polygon_mode,
+        set_rasterization_samples,
+        set_sample_mask,
+        set_alpha_to_coverage,
+        set_alpha_to_one,
+        set_logic_op_enable,
+        set_color_blend_enable,
+        set_color_blend_equation,
+        set_color_write_mask,
+        set_logic_op,
         adapter_query,
         arena_create,
         arena_destroy,

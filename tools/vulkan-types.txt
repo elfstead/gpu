@@ -141,3 +141,6 @@ VkVertexInputBindingDescription2EXT
 VkVertexInputAttributeDescription2EXT
 
 VkPhysicalDeviceExtendedDynamicState3PropertiesEXT
+
+VkPhysicalDeviceExtendedDynamicState2FeaturesEXT
+VkColorBlendEquationEXT

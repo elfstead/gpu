@@ -15752,6 +15752,62 @@ impl Default for VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceExtendedDynamicState2FeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub extendedDynamicState2: VkBool32,
+    pub extendedDynamicState2LogicOp: VkBool32,
+    pub extendedDynamicState2PatchControlPoints: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceExtendedDynamicState2FeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceExtendedDynamicState2FeaturesEXT>()
+        - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceExtendedDynamicState2FeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceExtendedDynamicState2FeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState2FeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState2FeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState2FeaturesEXT::extendedDynamicState2",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT, extendedDynamicState2
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState2FeaturesEXT::extendedDynamicState2LogicOp",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT, extendedDynamicState2LogicOp
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceExtendedDynamicState2FeaturesEXT::extendedDynamicState2PatchControlPoints",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT,
+        extendedDynamicState2PatchControlPoints
+    ) - 24usize];
+};
+impl Default for VkPhysicalDeviceExtendedDynamicState2FeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetLogicOpEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, logicOp: VkLogicOp),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -16041,6 +16097,104 @@ impl Default for VkPhysicalDeviceExtendedDynamicState3PropertiesEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkColorBlendEquationEXT {
+    pub srcColorBlendFactor: VkBlendFactor,
+    pub dstColorBlendFactor: VkBlendFactor,
+    pub colorBlendOp: VkBlendOp,
+    pub srcAlphaBlendFactor: VkBlendFactor,
+    pub dstAlphaBlendFactor: VkBlendFactor,
+    pub alphaBlendOp: VkBlendOp,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkColorBlendEquationEXT",
+    ][::std::mem::size_of::<VkColorBlendEquationEXT>() - 24usize];
+    [
+        "Alignment of VkColorBlendEquationEXT",
+    ][::std::mem::align_of::<VkColorBlendEquationEXT>() - 4usize];
+    [
+        "Offset of field: VkColorBlendEquationEXT::srcColorBlendFactor",
+    ][::std::mem::offset_of!(VkColorBlendEquationEXT, srcColorBlendFactor) - 0usize];
+    [
+        "Offset of field: VkColorBlendEquationEXT::dstColorBlendFactor",
+    ][::std::mem::offset_of!(VkColorBlendEquationEXT, dstColorBlendFactor) - 4usize];
+    [
+        "Offset of field: VkColorBlendEquationEXT::colorBlendOp",
+    ][::std::mem::offset_of!(VkColorBlendEquationEXT, colorBlendOp) - 8usize];
+    [
+        "Offset of field: VkColorBlendEquationEXT::srcAlphaBlendFactor",
+    ][::std::mem::offset_of!(VkColorBlendEquationEXT, srcAlphaBlendFactor) - 12usize];
+    [
+        "Offset of field: VkColorBlendEquationEXT::dstAlphaBlendFactor",
+    ][::std::mem::offset_of!(VkColorBlendEquationEXT, dstAlphaBlendFactor) - 16usize];
+    [
+        "Offset of field: VkColorBlendEquationEXT::alphaBlendOp",
+    ][::std::mem::offset_of!(VkColorBlendEquationEXT, alphaBlendOp) - 20usize];
+};
+impl Default for VkColorBlendEquationEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetDepthClampEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthClampEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetPolygonModeEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, polygonMode: VkPolygonMode),
+>;
+pub type PFN_vkCmdSetRasterizationSamplesEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        rasterizationSamples: VkSampleCountFlagBits,
+    ),
+>;
+pub type PFN_vkCmdSetSampleMaskEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        samples: VkSampleCountFlagBits,
+        pSampleMask: *const VkSampleMask,
+    ),
+>;
+pub type PFN_vkCmdSetAlphaToCoverageEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, alphaToCoverageEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetAlphaToOneEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, alphaToOneEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetLogicOpEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, logicOpEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetColorBlendEnableEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstAttachment: u32,
+        attachmentCount: u32,
+        pColorBlendEnables: *const VkBool32,
+    ),
+>;
+pub type PFN_vkCmdSetColorBlendEquationEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstAttachment: u32,
+        attachmentCount: u32,
+        pColorBlendEquations: *const VkColorBlendEquationEXT,
+    ),
+>;
+pub type PFN_vkCmdSetColorWriteMaskEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstAttachment: u32,
+        attachmentCount: u32,
+        pColorWriteMasks: *const VkColorComponentFlags,
+    ),
+>;
 pub type PFN_vkCmdSetConservativeRasterizationModeEXT = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,

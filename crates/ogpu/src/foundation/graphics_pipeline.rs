@@ -258,6 +258,15 @@ pub(super) unsafe fn prepare(
         unsafe { *local_read::parent::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
     };
     core_raster::sanitize(&mut options, desc.dynamic_state);
+    let extended_mask = extended_raster::STATES.iter().fold(0, |m, (s, _)| m | s);
+    if desc.dynamic_state
+        & extended_mask
+        & !extended_raster::dynamic_mask(d.snapshot.features.enabled)
+        != 0
+    {
+        return Err(UNSUPPORTED);
+    }
+    extended_raster::sanitize(&mut state, &mut options, desc.dynamic_state);
     if mesh_pipeline && options.primitive_restart != 0 {
         return Err(INVALID);
     }
@@ -363,7 +372,9 @@ pub(super) unsafe fn prepare(
     }
     let front = stencil(&state.stencil_front)?;
     let back = stencil(&state.stencil_back)?;
-    samples(state.samples, sample_mask)?;
+    if desc.dynamic_state & DYNAMIC_RASTERIZATION_SAMPLES_STATE == 0 {
+        samples(state.samples, sample_mask)?;
+    }
     let mut vertex_divisors = Vec::new();
     let (vertex_bindings, vertex_attributes) = if state.vertex_input.is_null() {
         (Vec::new(), Vec::new())
@@ -420,6 +431,7 @@ pub(super) unsafe fn prepare(
         .try_reserve_exact(colors.len())
         .map_err(|_| OUT_OF_MEMORY)?;
     for c in colors {
+        let c = extended_raster::color(*c, desc.dynamic_state);
         if c.write_mask & !15 != 0
             || c.blend > 1
             || c.src_color > 18
@@ -477,10 +489,10 @@ pub(super) unsafe fn prepare(
     // Without explicit enabling, native attachment states must match. Never normalize.
     if d.snapshot.features.enabled & INDEPENDENT_BLEND == 0
         && colors.iter().skip(1).any(|c| {
-            let first = colors[0];
+            let first = extended_raster::color(colors[0], desc.dynamic_state);
             ColorState {
                 format: first.format,
-                ..*c
+                ..extended_raster::color(*c, desc.dynamic_state)
             } != first
         })
     {
@@ -733,7 +745,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 34];
+    let mut dynamic_states = [0; 45];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
@@ -770,6 +782,7 @@ pub(super) unsafe fn prepare(
     for &(mask, state) in raster_mechanisms::DYNAMIC_STATES
         .iter()
         .chain(core_raster::STATES)
+        .chain(extended_raster::STATES)
     {
         if desc.dynamic_state & mask != 0 {
             dynamic_states[dynamic_count] = state;

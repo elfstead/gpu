@@ -1671,6 +1671,98 @@ fn indirect_record_size(stride: u32, count: u32, record: u32) -> Result<u64, Sta
     })
 }
 
+impl List {
+    pub(in crate::foundation) fn extended_raster_value(
+        &self,
+        field: u64,
+        value: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        extended_raster::scalar(field, value, d.snapshot.features.enabled)?;
+        let command = match field {
+            DYNAMIC_DEPTH_CLAMP_STATE => d.extended_commands.depth_clamp,
+            DYNAMIC_POLYGON_MODE_STATE => d.extended_commands.polygon_mode,
+            DYNAMIC_RASTERIZATION_SAMPLES_STATE => d.extended_commands.rasterization_samples,
+            DYNAMIC_ALPHA_TO_COVERAGE_STATE => d.extended_commands.alpha_to_coverage,
+            DYNAMIC_ALPHA_TO_ONE_STATE => d.extended_commands.alpha_to_one,
+            DYNAMIC_LOGIC_OP_ENABLE_STATE => d.extended_commands.logic_op_enable,
+            DYNAMIC_LOGIC_OP_STATE => d.extended_commands.logic_op,
+            _ => return Err(INVALID),
+        };
+        unsafe {
+            command.ok_or(UNSUPPORTED)?(self.command, value);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn sample_mask(
+        &self,
+        samples_count: u32,
+        mask: u64,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let command = d.extended_commands.sample_mask.ok_or(UNSUPPORTED)?;
+        samples(samples_count, 127)?;
+        let words = [mask as u32, (mask >> 32) as u32];
+        unsafe {
+            command(self.command, samples_count, words.as_ptr());
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn color_values(
+        &self,
+        field: u64,
+        first: u32,
+        count: u32,
+        values: *const u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let (command, max) = match field {
+            DYNAMIC_COLOR_BLEND_ENABLE_STATE => (d.extended_commands.color_blend_enable, 1),
+            DYNAMIC_COLOR_WRITE_MASK_STATE => (d.extended_commands.color_write_mask, 15),
+            _ => return Err(INVALID),
+        };
+        let command = command.ok_or(UNSUPPORTED)?;
+        extended_raster::attachment_range(first, count, d.snapshot.graphics_limits.max_colors)?;
+        let values = unsafe { slice(values, count)? };
+        if values.iter().any(|&v| v > max) {
+            return Err(INVALID);
+        }
+        if count != 0 {
+            unsafe {
+                command(self.command, first, count, values.as_ptr());
+            }
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn color_equations(
+        &self,
+        first: u32,
+        count: u32,
+        values: *const BlendEquation,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let command = d
+            .extended_commands
+            .color_blend_equation
+            .ok_or(UNSUPPORTED)?;
+        extended_raster::attachment_range(first, count, d.snapshot.graphics_limits.max_colors)?;
+        let values = unsafe { slice(values, count)? };
+        for v in values {
+            extended_raster::equation(v, d.snapshot.features.enabled)?;
+        }
+        if count != 0 {
+            unsafe {
+                command(self.command, first, count, values.as_ptr().cast());
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
