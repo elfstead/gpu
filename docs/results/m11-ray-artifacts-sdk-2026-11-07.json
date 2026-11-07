@@ -1,0 +1,33 @@
+{
+  "source": {
+    "revision": "da3a573bff75e2da7388acbde607abff12d0e904",
+    "source_dirty": false,
+    "target": "x86_64-unknown-linux-gnu",
+    "manifest": "examples/foundation_rust/Cargo.toml",
+    "default_features": false,
+    "registry_dependencies": "Cargo.lock pinned; fetch or supply a Cargo cache; not vendored",
+    "linkage": "native Rust source, not the SDK C shared library"
+  },
+  "complete": true,
+  "build": true,
+  "runs": [
+    "headless",
+    "native-interop",
+    "ray-artifacts"
+  ],
+  "human_acceptance": "unverified",
+  "external_environment": {
+    "OGPU_EXTERNAL_SYNC_CONTROL": null
+  },
+  "ray_environment": {
+    "RADV_EXPERIMENTAL": "emulate_rt",
+    "OGPU_RAY_GENERATED": null
+  },
+  "prefix": "/tmp/ogpu-m11-ray-artifacts-sdk",
+  "relocated": "/tmp/ogpu-rust-external-r3ozj4hm",
+  "consumer_binaries_built": 12,
+  "dependency_inputs": "confined to relocated source",
+  "validation_errors": 0,
+  "ray_artifacts": "fresh compilation and fresh-device replay pass; exact outputs and guards",
+  "scope": "explicit driver-emulation diagnostics; native ray hardware remains unaccepted"
+}

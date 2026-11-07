@@ -78,6 +78,9 @@ Remaining acceptance: native ray hardware; mixed replay/new-handle creation;
 nontrivial hit/miss library linkage; binary-backed ray/library execution; other
 native backends. Existing M9 traversal and combined-usage gaps remain independent.
 [Machine-readable receipt](results/m11-ray-artifacts-2026-11-07.json).
+A [clean relocated SDK check](results/m11-ray-artifacts-sdk-2026-11-07.json) at
+`da3a573` builds all twelve consumers and passes headless/native-interop checks
+and both ray-artifact phases under explicitly selected emulation, with clean validation.
 
 Native references: [ray pipeline creation](https://docs.vulkan.org/refpages/latest/refpages/source/VkRayTracingPipelineCreateInfoKHR.html),
 [pipeline library lifetime](https://docs.vulkan.org/spec/latest/chapters/pipelines.html),
