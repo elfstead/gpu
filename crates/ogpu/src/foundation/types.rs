@@ -18,7 +18,7 @@ pub mod image_formats {
                 let mut expected = 1;
                 $(assert_eq!($id, expected); expected += 1;
                   assert!(header.contains(&format!("OGPU_NEXT_{} = {},", stringify!($name), $id)));)*
-                assert_eq!(expected, 191);
+                assert_eq!(expected, 203);
             }
         };
     }

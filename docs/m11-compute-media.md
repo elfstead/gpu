@@ -71,6 +71,7 @@ translation step before implementing the coherent surface.
 
 ## Working status
 
-M10's primitives and clean SDK are complete within the recorded local scope. M11's
-implementation starts with the numeric format and execution-control packages above.
+M10's primitives and clean SDK are complete within the recorded local scope. The twelve numeric format IDs, metadata and local transfer/clear consumer are
+implemented; three image profiles pass and nine are natively excluded. Typed
+shader/vertex execution remains separate. GPU execution controls are next.
 The remaining rows are scheduled work, not implemented claims or vague examples.

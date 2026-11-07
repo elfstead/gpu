@@ -737,6 +737,18 @@ enum {
     OGPU_NEXT_ASTC_10X10_FLOAT_BLOCK = 188,
     OGPU_NEXT_ASTC_12X10_FLOAT_BLOCK = 189,
     OGPU_NEXT_ASTC_12X12_FLOAT_BLOCK = 190,
+    OGPU_NEXT_R64_UINT = 191,
+    OGPU_NEXT_R64_SINT = 192,
+    OGPU_NEXT_R64_FLOAT = 193,
+    OGPU_NEXT_RG64_UINT = 194,
+    OGPU_NEXT_RG64_SINT = 195,
+    OGPU_NEXT_RG64_FLOAT = 196,
+    OGPU_NEXT_RGB64_UINT = 197,
+    OGPU_NEXT_RGB64_SINT = 198,
+    OGPU_NEXT_RGB64_FLOAT = 199,
+    OGPU_NEXT_RGBA64_UINT = 200,
+    OGPU_NEXT_RGBA64_SINT = 201,
+    OGPU_NEXT_RGBA64_FLOAT = 202,
 };
 enum { OGPU_NEXT_IMAGE_1D = 1, OGPU_NEXT_IMAGE_2D = 2, OGPU_NEXT_IMAGE_3D = 3 };
 enum { OGPU_NEXT_ASPECT_COLOR = 1, OGPU_NEXT_ASPECT_DEPTH = 2, OGPU_NEXT_ASPECT_STENCIL = 4 };
@@ -2610,6 +2622,12 @@ enum {
     OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE = 2, OGPU_NEXT_ATTACHMENT_RESOLVE_MIN = 4,
     OGPU_NEXT_ATTACHMENT_RESOLVE_MAX = 8
 };
+/* Clear payload preserves native bits. For a 64-bit component format, bytes
+ * 0..7 and 8..15 encode the R/G 64-bit values (double/int64/uint64 respectively);
+ * memcpy those scalar values into u32 rather than numerically converting them to
+ * 32 bits. This union retains its existing 16-byte size and 4-byte alignment.
+ * Exact format/usage support is queried; a numeric format ID is not a shader
+ * capability or a guarantee that every component width supports attachments. */
 typedef union ogpu_next_clear_value {
     float f32[4]; uint32_t u32[4]; int32_t i32[4];
     struct { float depth; uint32_t stencil; } depth_stencil;

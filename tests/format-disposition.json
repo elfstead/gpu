@@ -2,22 +2,8 @@
   "schema": 1,
   "registry_sha256": "264d0d7350e37d70c82407fb430d085040fc01a9a961d43dec8c2d6ed1dfd183",
   "registry_formats": 297,
-  "implemented_formats": 190,
+  "implemented_formats": 202,
   "remaining": {
-    "m11_component64": [
-      "VK_FORMAT_R64_UINT",
-      "VK_FORMAT_R64_SINT",
-      "VK_FORMAT_R64_SFLOAT",
-      "VK_FORMAT_R64G64_UINT",
-      "VK_FORMAT_R64G64_SINT",
-      "VK_FORMAT_R64G64_SFLOAT",
-      "VK_FORMAT_R64G64B64_UINT",
-      "VK_FORMAT_R64G64B64_SINT",
-      "VK_FORMAT_R64G64B64_SFLOAT",
-      "VK_FORMAT_R64G64B64A64_UINT",
-      "VK_FORMAT_R64G64B64A64_SINT",
-      "VK_FORMAT_R64G64B64A64_SFLOAT"
-    ],
     "m11_planes_padded": [
       "VK_FORMAT_G8B8G8R8_422_UNORM",
       "VK_FORMAT_B8G8R8G8_422_UNORM",

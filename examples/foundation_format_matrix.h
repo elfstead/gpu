@@ -124,6 +124,18 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
         {OGPU_NEXT_A8_UNORM, 1, 1, 0},
         {OGPU_NEXT_A4R4G4B4_UNORM_PACK16, 1, 2, 0},
         {OGPU_NEXT_A4B4G4R4_UNORM_PACK16, 1, 2, 0},
+        {OGPU_NEXT_R64_UINT, 1, 8, 0},
+        {OGPU_NEXT_R64_SINT, 1, 8, 0},
+        {OGPU_NEXT_R64_FLOAT, 1, 8, 0},
+        {OGPU_NEXT_RG64_UINT, 1, 16, 0},
+        {OGPU_NEXT_RG64_SINT, 1, 16, 0},
+        {OGPU_NEXT_RG64_FLOAT, 1, 16, 0},
+        {OGPU_NEXT_RGB64_UINT, 1, 24, 0},
+        {OGPU_NEXT_RGB64_SINT, 1, 24, 0},
+        {OGPU_NEXT_RGB64_FLOAT, 1, 24, 0},
+        {OGPU_NEXT_RGBA64_UINT, 1, 32, 0},
+        {OGPU_NEXT_RGBA64_SINT, 1, 32, 0},
+        {OGPU_NEXT_RGBA64_FLOAT, 1, 32, 0},
     };
     int result = EXIT_FAILURE, pending = 0;
     ogpu_next_format_info *formats = NULL;
@@ -198,6 +210,9 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
             if(!(aspects&aspect)) continue;
             uint64_t bytes=aspect==1 ? cases[i].bytes : aspect==2 ? cases[i].depth_bytes : 1;
             uint64_t alignment=aspect==1 ? bytes : 4;
+            uint32_t component64 = fmt>=OGPU_NEXT_R64_UINT && fmt<=OGPU_NEXT_R64_FLOAT;
+            uint64_t clear_bits = fmt==OGPU_NEXT_R64_FLOAT ? UINT64_C(0x400a000000000000) : UINT64_C(0xfedcba9876543210);
+            for(uint32_t phase=0;phase<1+component64;++phase) {
             uint64_t src=64+(alignment-(address+64)%alignment)%alignment;
             uint64_t dst=4096+(alignment-(address+4096)%alignment)%alignment;
             uint64_t row=7*bytes, slice=4*row, length=slice+2*row+5*bytes;
@@ -209,14 +224,15 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
             ogpu_next_encoder *encoder=NULL; ogpu_next_list *list=NULL;
             TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
             ogpu_next_image_barrier ib={{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},image,{aspects,0,1,0,2},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0,NULL};
-            ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COPY,aspect==1 ? OGPU_NEXT_STAGE_COPY : OGPU_NEXT_STAGE_CLEAR,0,0};
+            ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COPY,aspect==1 && phase==0 ? OGPU_NEXT_STAGE_COPY : OGPU_NEXT_STAGE_CLEAR,0,0};
     ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
     ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&ib};
             common_barrier(encoder,&dep,&dep_scope,dep_scratch);
             ogpu_next_image_copy copy={ {aspect,0,0,2,{0,0,0},{5,3,1}},row,slice,OGPU_NEXT_STATE_COPY_DST,0};
-            if(aspect==1) ogpu_next_copy_to_image(encoder,image,(ogpu_next_span){host,src,length},&copy);
+            if(aspect==1 && phase==0) ogpu_next_copy_to_image(encoder,image,(ogpu_next_span){host,src,length},&copy);
             else {
                 ogpu_next_clear_value clear={0}; clear.depth_stencil.depth=0.0f; clear.depth_stencil.stencil=0x5a;
+                if(phase) memcpy(clear.u32,&clear_bits,sizeof(clear_bits));
                 ogpu_next_subresources range={aspect,0,1,0,2};
                 ogpu_next_clear_image(encoder,image,OGPU_NEXT_STATE_COPY_DST,&range,&clear);
             }
@@ -239,7 +255,7 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
             TRY(ogpu_next_memory_invalidate(all));
             for(unsigned layer=0;layer<2;++layer) for(unsigned y=0;y<3;++y) for(unsigned x=0;x<5*bytes;++x) {
                 uint64_t at=layer*slice+y*row+x;
-                expected[dst+at]=aspect==1 ? expected[src+at] : aspect==4 ? 0x5a : 0;
+                expected[dst+at]=phase ? ((unsigned char *)&clear_bits)[x%8] : aspect==1 ? expected[src+at] : aspect==4 ? 0x5a : 0;
                 /* Unused high byte of 24-bit depth is not defined by a copy. */
                 if(aspect==2 && (fmt==OGPU_NEXT_X8_D24_UNORM_PACK32 || fmt==OGPU_NEXT_D24_UNORM_S8_UINT) && x%4==3)
                     expected[dst+at]=((unsigned char *)mapping.data)[dst+at];
@@ -252,6 +268,8 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
                 REQUIRE(0);
             }
             TRY(ogpu_next_arena_reset(arena));
+            }
+            if(component64) printf("FORMAT64_PASS id=%u upload=1 clear=1 guards=1\n",fmt);
         }
         executed++; if(fmt==OGPU_NEXT_S8_UINT) stencil++;
         ogpu_next_view_destroy(view); view=NULL; ogpu_next_image_destroy(image); image=NULL;

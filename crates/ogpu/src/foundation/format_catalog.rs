@@ -196,6 +196,18 @@ macro_rules! format_catalog {
             ASTC_10X10_FLOAT_BLOCK = 188 => (VkFormat_VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK, 1, 2025, Float, 0, (10, 10, 16)),
             ASTC_12X10_FLOAT_BLOCK = 189 => (VkFormat_VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK, 1, 2026, Float, 0, (12, 10, 16)),
             ASTC_12X12_FLOAT_BLOCK = 190 => (VkFormat_VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK, 1, 2027, Float, 0, (12, 12, 16)),
+            R64_UINT = 191 => (VkFormat_VK_FORMAT_R64_UINT, 1, 64, Uint, 0, (1, 1, 8)),
+            R64_SINT = 192 => (VkFormat_VK_FORMAT_R64_SINT, 1, 64, Sint, 0, (1, 1, 8)),
+            R64_FLOAT = 193 => (VkFormat_VK_FORMAT_R64_SFLOAT, 1, 64, Float, 0, (1, 1, 8)),
+            RG64_UINT = 194 => (VkFormat_VK_FORMAT_R64G64_UINT, 1, 128, Uint, 0, (1, 1, 16)),
+            RG64_SINT = 195 => (VkFormat_VK_FORMAT_R64G64_SINT, 1, 128, Sint, 0, (1, 1, 16)),
+            RG64_FLOAT = 196 => (VkFormat_VK_FORMAT_R64G64_SFLOAT, 1, 128, Float, 0, (1, 1, 16)),
+            RGB64_UINT = 197 => (VkFormat_VK_FORMAT_R64G64B64_UINT, 1, 192, Uint, 0, (1, 1, 24)),
+            RGB64_SINT = 198 => (VkFormat_VK_FORMAT_R64G64B64_SINT, 1, 192, Sint, 0, (1, 1, 24)),
+            RGB64_FLOAT = 199 => (VkFormat_VK_FORMAT_R64G64B64_SFLOAT, 1, 192, Float, 0, (1, 1, 24)),
+            RGBA64_UINT = 200 => (VkFormat_VK_FORMAT_R64G64B64A64_UINT, 1, 256, Uint, 0, (1, 1, 32)),
+            RGBA64_SINT = 201 => (VkFormat_VK_FORMAT_R64G64B64A64_SINT, 1, 256, Sint, 0, (1, 1, 32)),
+            RGBA64_FLOAT = 202 => (VkFormat_VK_FORMAT_R64G64B64A64_SFLOAT, 1, 256, Float, 0, (1, 1, 32)),
         }
     };
 }

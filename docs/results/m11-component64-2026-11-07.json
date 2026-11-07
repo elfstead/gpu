@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-07",
+  "foundation_revision": 13,
+  "catalog_count": 202,
+  "new_ids": [
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200,
+    201,
+    202
+  ],
+  "format_registry_count": 297,
+  "registry_disposition_complete": true,
+  "native_image_profiles": {
+    "passed": [
+      "R64_UINT",
+      "R64_SINT",
+      "R64_FLOAT"
+    ],
+    "unsupported": [
+      "RG64_UINT",
+      "RG64_SINT",
+      "RG64_FLOAT",
+      "RGB64_UINT",
+      "RGB64_SINT",
+      "RGB64_FLOAT",
+      "RGBA64_UINT",
+      "RGBA64_SINT",
+      "RGBA64_FLOAT"
+    ]
+  },
+  "checks": [
+    "two-layer padded upload/readback",
+    "unsigned high-bit full-width clear",
+    "negative signed full-width clear",
+    "double representation clear",
+    "all payload/padding/guard bytes",
+    "unchanged clear ABI"
+  ],
+  "ordinary_matrix": {
+    "executed": 74,
+    "excluded": 60,
+    "unverified": 0
+  },
+  "validation_errors": 0,
+  "host_tests": 134,
+  "tooling_tests": 22,
+  "shader_vertex_acceptance": "separate M11 shader requirements/execution work; not inferred",
+  "logs": [
+    "/tmp/ogpu-m11-formats-host.log",
+    "/tmp/ogpu-m11-formats-clippy.log",
+    "/tmp/ogpu-m11-formats-tools.log",
+    "/tmp/ogpu-m11-formats-validation.log"
+  ]
+}

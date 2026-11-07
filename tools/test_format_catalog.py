@@ -35,7 +35,7 @@ class FormatCatalogTests(unittest.TestCase):
             r"(\w+) = (\d+) => \(VkFormat_(\w+), (\d+), (\d+), (\w+), (\d+), \((\d+), (\d+), (\d+)\)\),"
         )
         entries = pattern.findall(text)
-        self.assertEqual(len(entries), 190)
+        self.assertEqual(len(entries), 202)
         native_classes, ogpu_classes = {}, {}
         compressed = 0
         for name, identity, vk_name, aspects, klass, numeric, depth, x, y, size in entries:

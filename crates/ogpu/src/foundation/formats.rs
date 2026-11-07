@@ -248,7 +248,10 @@ mod tests {
                     if f.class == 3001 {
                         assert_eq!(f.copy_bytes(1), Ok(1));
                     } else {
-                        assert!(matches!(f.class, 8 | 16 | 24 | 32 | 48 | 64 | 96 | 128));
+                        assert!(matches!(
+                            f.class,
+                            8 | 16 | 24 | 32 | 48 | 64 | 96 | 128 | 192 | 256
+                        ));
                         assert_eq!(f.copy_bytes(1), Ok(u64::from(f.class / 8)));
                     }
                 }
@@ -274,6 +277,14 @@ mod tests {
         assert_eq!(format(S8_UINT).unwrap().copy_bytes(2), Err(INVALID));
         assert_eq!(format(S8_UINT).unwrap().copy_bytes(4), Ok(1));
         assert!(format(R32_SINT).unwrap().integer_color());
+        assert_eq!(
+            format(R64_FLOAT).unwrap().class,
+            format(RG32_FLOAT).unwrap().class
+        );
+        assert_eq!(format(RGBA64_UINT).unwrap().copy_bytes(1), Ok(32));
+        assert_eq!(format(RGB64_SINT).unwrap().copy_bytes(1), Ok(24));
+        assert!(format(R64_UINT).unwrap().integer_color());
+
         assert!(!format(R8_SSCALED).unwrap().integer_color());
         assert!(!format(S8_UINT).unwrap().integer_color());
         assert_eq!(

@@ -387,6 +387,9 @@ acceptance are complete. M9 ray tracing follows; private feature storage now spa
 Follow the [M11 implementation brief](m11-compute-media.md): numeric formats and
 GPU execution controls, compute/artifact profiles, plane-aware images, then the
 explicit initial H.264 decode/encode sessions and clean SDK consolidation.
+The twelve [64-bit-component formats](format-inventory.md#64-bit-component-tranche)
+are implemented; local upload/clear/readback passes for R64 UINT/SINT/FLOAT.
+GPU conditionals and primitive-generation queries are next.
 
 M9's [implemented boundary and clean SDK handoff](m9-consolidation.md) are complete
 for the Vulkan/Linux diagnostic scope. The source-only Rust SDK runs all four ray

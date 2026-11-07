@@ -20,7 +20,7 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FORMATS, NULL, 0, sizeof(physical[0]));
     TRY(ogpu_next_adapter_query(adapter, &q));
     uint32_t count = q.count;
-    REQUIRE(count == 190);
+    REQUIRE(count == 202);
     size_t bytes = count * sizeof(*physical);
     physical = malloc(bytes); enabled = malloc(bytes); saved = malloc(bytes);
     REQUIRE(physical && enabled && saved);
