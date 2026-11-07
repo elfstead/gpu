@@ -488,6 +488,30 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
             "shared-exchange.comp",
         ),
         ("foundation-subgroups", "subgroupMain", "compute", "comp"),
+        (
+            "foundation-shader-profiles",
+            "rotateMain",
+            "compute",
+            "rotate.comp",
+        ),
+        (
+            "foundation-shader-profiles",
+            "derivativeLinear",
+            "compute",
+            "linear.comp",
+        ),
+        (
+            "foundation-shader-profiles",
+            "derivativeQuad",
+            "compute",
+            "quad.comp",
+        ),
+        (
+            "foundation-shader-profiles",
+            "narrowPush",
+            "compute",
+            "narrow.comp",
+        ),
         ("foundation-matrix", "matrixMain", "compute", "comp"),
         ("foundation-integer-dot", "dotMain", "compute", "comp"),
         (

@@ -8173,6 +8173,47 @@ impl Default for VkPhysicalDevice16BitStorageFeatures {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVariablePointersFeatures {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub variablePointersStorageBuffer: VkBool32,
+    pub variablePointers: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVariablePointersFeatures",
+    ][::std::mem::size_of::<VkPhysicalDeviceVariablePointersFeatures>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceVariablePointersFeatures",
+    ][::std::mem::align_of::<VkPhysicalDeviceVariablePointersFeatures>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVariablePointersFeatures::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVariablePointersFeatures, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVariablePointersFeatures::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVariablePointersFeatures, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVariablePointersFeatures::variablePointersStorageBuffer",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVariablePointersFeatures, variablePointersStorageBuffer
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceVariablePointersFeatures::variablePointers",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVariablePointersFeatures, variablePointers)
+        - 20usize];
+};
+impl Default for VkPhysicalDeviceVariablePointersFeatures {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceMaintenance3Properties {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -13369,6 +13410,44 @@ pub type PFN_vkCmdSetFragmentShadingRateKHR = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderQuadControlFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderQuadControl: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderQuadControlFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceShaderQuadControlFeaturesKHR>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderQuadControlFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceShaderQuadControlFeaturesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderQuadControlFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderQuadControlFeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderQuadControlFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderQuadControlFeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderQuadControlFeaturesKHR::shaderQuadControl",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderQuadControlFeaturesKHR, shaderQuadControl
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceShaderQuadControlFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkDeferredOperationKHR_T {
     _unused: [u8; 0],
 }
@@ -14137,6 +14216,115 @@ pub type PFN_vkCreateAccelerationStructure2KHR = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderSubgroupUniformControlFlow: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR",
+    ][::std::mem::size_of::<
+        VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR,
+    >() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR",
+    ][::std::mem::align_of::<
+        VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR,
+    >() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR::shaderSubgroupUniformControlFlow",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR,
+        shaderSubgroupUniformControlFlow
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub workgroupMemoryExplicitLayout: VkBool32,
+    pub workgroupMemoryExplicitLayoutScalarBlockLayout: VkBool32,
+    pub workgroupMemoryExplicitLayout8BitAccess: VkBool32,
+    pub workgroupMemoryExplicitLayout16BitAccess: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR>()
+        - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR::workgroupMemoryExplicitLayout",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR,
+        workgroupMemoryExplicitLayout
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR::workgroupMemoryExplicitLayoutScalarBlockLayout",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR,
+        workgroupMemoryExplicitLayoutScalarBlockLayout
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR::workgroupMemoryExplicitLayout8BitAccess",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR,
+        workgroupMemoryExplicitLayout8BitAccess
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR::workgroupMemoryExplicitLayout16BitAccess",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR,
+        workgroupMemoryExplicitLayout16BitAccess
+    ) - 28usize];
+};
+impl Default for VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -14306,6 +14494,48 @@ const _: () = {
     ) - 16usize];
 };
 impl Default for VkPhysicalDeviceShaderUntypedPointersFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderMaximalReconvergence: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR::shaderMaximalReconvergence",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR, shaderMaximalReconvergence
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -14902,6 +15132,95 @@ pub type PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = ::std::option::
         pProperties: *mut VkCooperativeMatrixPropertiesKHR,
     ) -> VkResult,
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub computeDerivativeGroupQuads: VkBool32,
+    pub computeDerivativeGroupLinear: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR::computeDerivativeGroupQuads",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR, computeDerivativeGroupQuads
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR::computeDerivativeGroupLinear",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR, computeDerivativeGroupLinear
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub meshAndTaskShaderDerivatives: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR::meshAndTaskShaderDerivatives",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR,
+        meshAndTaskShaderDerivatives
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {

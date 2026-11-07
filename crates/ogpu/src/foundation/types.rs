@@ -39,6 +39,38 @@ pub mod feature_ids {
     pub const SPARSE_ALIAS: u32 = 140;
     pub const SHADER_SPARSE_RESIDENCY: u32 = 141;
     pub const SHADER_MIN_LOD: u32 = 142;
+    pub const UNIFORM_STORAGE8: u32 = 148;
+    pub const PUSH_STORAGE8: u32 = 149;
+    pub const SCALAR_BLOCK_LAYOUT: u32 = 150;
+    pub const UNIFORM_STANDARD_LAYOUT: u32 = 151;
+    pub const SUBGROUP_BROADCAST_DYNAMIC: u32 = 152;
+    pub const SHADER_TERMINATE: u32 = 153;
+    pub const SHADER_DEMOTE: u32 = 154;
+    pub const SUBGROUP_ROTATE: u32 = 155;
+    pub const SUBGROUP_ROTATE_CLUSTERED: u32 = 156;
+    pub const SHADER_EXPECT_ASSUME: u32 = 157;
+    pub const SHADER_FLOAT_CONTROLS2: u32 = 158;
+    pub const STORAGE_IMAGE_EXTENDED_FORMATS: u32 = 159;
+    pub const STORAGE_IMAGE_READ_WITHOUT_FORMAT: u32 = 160;
+    pub const STORAGE_IMAGE_WRITE_WITHOUT_FORMAT: u32 = 161;
+    pub const STORAGE_IMAGE_MULTISAMPLE: u32 = 162;
+    pub const IMAGE_GATHER_EXTENDED: u32 = 163;
+    pub const SHADER_CLIP_DISTANCE: u32 = 164;
+    pub const SHADER_CULL_DISTANCE: u32 = 165;
+    pub const UNIFORM_STORAGE16: u32 = 166;
+    pub const PUSH_STORAGE16: u32 = 167;
+    pub const INPUT_OUTPUT16: u32 = 168;
+    pub const VARIABLE_POINTERS_STORAGE: u32 = 169;
+    pub const VARIABLE_POINTERS: u32 = 170;
+    pub const SUBGROUP_UNIFORM_CONTROL_FLOW: u32 = 171;
+    pub const MAXIMAL_RECONVERGENCE: u32 = 172;
+    pub const QUAD_CONTROL: u32 = 173;
+    pub const WORKGROUP_EXPLICIT_LAYOUT: u32 = 174;
+    pub const WORKGROUP_SCALAR_LAYOUT: u32 = 175;
+    pub const WORKGROUP_STORAGE8: u32 = 176;
+    pub const WORKGROUP_STORAGE16: u32 = 177;
+    pub const COMPUTE_DERIVATIVE_QUADS: u32 = 178;
+    pub const COMPUTE_DERIVATIVE_LINEAR: u32 = 179;
     pub const CONDITIONAL_RENDERING: u32 = 143;
     pub const INHERITED_CONDITIONAL_RENDERING: u32 = 144;
     pub const PRIMITIVES_GENERATED_QUERY: u32 = 145;
@@ -815,6 +847,7 @@ pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(),
         return Err(INVALID);
     }
     for (dynamic, base) in [
+        (VARIABLE_POINTERS, VARIABLE_POINTERS_STORAGE),
         (INHERITED_CONDITIONAL_RENDERING, CONDITIONAL_RENDERING),
         (
             PRIMITIVES_GENERATED_DISCARD | PRIMITIVES_GENERATED_STREAMS,
@@ -2730,4 +2763,14 @@ pub struct ConditionalInheritance {
     pub header: Record,
     pub enable: u32,
     pub reserved: u32,
+}
+
+/// Physical shader operation stages; does not imply selected feature enablement.
+pub const SHADER_PROFILE_LIMITS: u32 = 34;
+pub const SUBGROUP_ROTATE_OPERATION: u32 = 512;
+pub const SUBGROUP_ROTATE_CLUSTERED_OPERATION: u32 = 1024;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ShaderProfileLimits {
+    pub derivative_stages: u64,
 }

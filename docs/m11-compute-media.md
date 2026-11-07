@@ -76,8 +76,9 @@ implemented; three image profiles pass and nine are natively excluded. Typed
 shader/vertex execution remains separate. GPU conditionals and primitive-generation
 queries are implemented through C and direct Rust. Local primary compute/draw
 predication and primitive queries without transform feedback pass; inherited
-conditional execution is unavailable on this device. The remaining shader profiles,
-launch/matrix audit and artifacts are next.
+conditional execution is unavailable on this device. The selected shader profiles are now implemented (32 independent native enables;
+four bounded artifact consumers pass). Richer launch/matrix mapping and artifacts
+are next; no hardware-matrix acceptance is claimed.
 The remaining rows are scheduled work, not implemented claims or vague examples.
 
 ## GPU execution controls (2026-11-07)
@@ -125,3 +126,55 @@ native end command is inserted into OGPU. The raw diagnostic is kept separately
 from the clean execution receipt.
 
 [Receipt](results/m11-execution-controls-2026-11-07.json).
+
+## Shader capability profiles (2026-11-07)
+
+IDs 148–179 add independent uniform/push/I/O narrow storage, scalar and standard
+uniform layouts, variable pointers, dynamic subgroup broadcast IDs, subgroup
+rotation, uniform control flow, maximal reconvergence, quad control, explicit
+workgroup layouts and narrow workgroup storage, compute derivative groups,
+expect/assume and float-controls-2, terminate/demote, and remaining core image and
+clip/cull shader permissions. Core 16-bit storage-buffer access remains baseline;
+sample-rate interpolation already maps to the existing sample-shading feature.
+There is no second alias for either mechanism.
+
+The existing required-feature list and immutable physical queries carry these
+profiles. `SHADER_PROFILE_LIMITS.derivative_stages` reports compute and, where
+advertised, mesh/task derivative applicability; local value is compute only.
+Subgroup operation discovery now includes native rotate/clustered-rotate bits.
+Layout decorations, derivative groups, convergence modes, numerical permissions
+and correctness of expect/assume assertions remain the artifact author's explicit
+responsibility. OGPU does not rewrite SPIR-V, add barriers, infer alignment,
+choose precision, or allocate shared memory during a launch.
+
+Native extension dependencies do not silently enable shader features. Quad-control
+enables its required maximal-reconvergence extension, but the independent feature
+bits still match the caller's list. Broader variable pointers explicitly require
+the storage-buffer variant, matching native valid usage. Request every capability
+the artifact declares; workgroup scalar/narrow permission does not invent the base
+explicit-layout capability or integer arithmetic capability.
+
+All 32 new features pass individual native device creation with validation on
+local RADV. That is **enablement acceptance**, not shader execution acceptance.
+The [standalone consumer](../examples/foundation_rust/src/bin/shader_profiles.rs)
+executes four Slang 2026.14.1 artifacts:
+
+- subgroup and four-lane-cluster rotation, with lane/width-derived exact references;
+- linear derivative groups, checking derivatives `(1, 2)` for every invocation;
+- 2D quad derivative groups, checking `(1, 8)` for every invocation;
+- byte and halfword push storage, preserving native offsets 8/10 and separately
+  enabling the integer arithmetic used by the artifact.
+
+Each executes 64 invocations with two input values, checks all payload outputs and
+surrounding 4096-byte allocation guards, and rejects the same declared requirements
+on a device that did not enable them. SPIR-V capabilities/modes match the requested
+profiles; synchronization validation is clean. Uniform/I/O narrow storage, scalar/
+standard layouts, variable pointers, uniform/reconvergent/quad control, explicit
+workgroup block accesses, expect/assume, float-controls-2, terminate/demote, image
+operations and clip/cull outputs still need their own execution witnesses.
+
+C/direct-Rust records and constants match. The source SDK includes both M11
+consumers and all embedded shader inputs; its relocated checker exposes
+`--execution-controls --shader-profiles`. Full clean SDK consolidation remains a
+milestone exit, separate from this implementation/consumer batch.
+[Receipt](results/m11-shader-profiles-2026-11-07.json).

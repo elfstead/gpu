@@ -3938,6 +3938,58 @@ typedef struct ogpu_next_conditional_inheritance {
 void ogpu_next_conditional_begin(ogpu_next_encoder *, ogpu_next_span predicate, uint32_t flags);
 void ogpu_next_conditional_end(ogpu_next_encoder *);
 
+/* Shader profiles: separate storage, arithmetic and execution-mode permissions.
+ * Artifact requirements must name every feature used; enabling one does not
+ * rewrite code, infer execution modes, widen types or select precision/layout.
+ * STORAGE16 buffer access is already baseline; the uniform/push/I/O variants
+ * below are independent. VARIABLE_POINTERS requires VARIABLE_POINTERS_STORAGE.
+ * The other combinations follow the native artifact capabilities: for example,
+ * explicit workgroup narrow/scalar layouts also need their base capability when
+ * the shader declares it. Quad control does not implicitly enable maximal
+ * reconvergence or the Vulkan memory model; declare all artifact requirements.
+ */
+#define OGPU_NEXT_FEATURE_UNIFORM_STORAGE8 UINT32_C(148)
+#define OGPU_NEXT_FEATURE_PUSH_STORAGE8 UINT32_C(149)
+#define OGPU_NEXT_FEATURE_SCALAR_BLOCK_LAYOUT UINT32_C(150)
+#define OGPU_NEXT_FEATURE_UNIFORM_STANDARD_LAYOUT UINT32_C(151)
+#define OGPU_NEXT_FEATURE_SUBGROUP_BROADCAST_DYNAMIC UINT32_C(152)
+#define OGPU_NEXT_FEATURE_SHADER_TERMINATE UINT32_C(153)
+#define OGPU_NEXT_FEATURE_SHADER_DEMOTE UINT32_C(154)
+#define OGPU_NEXT_FEATURE_SUBGROUP_ROTATE UINT32_C(155)
+#define OGPU_NEXT_FEATURE_SUBGROUP_ROTATE_CLUSTERED UINT32_C(156)
+#define OGPU_NEXT_FEATURE_SHADER_EXPECT_ASSUME UINT32_C(157)
+#define OGPU_NEXT_FEATURE_SHADER_FLOAT_CONTROLS2 UINT32_C(158)
+#define OGPU_NEXT_FEATURE_STORAGE_IMAGE_EXTENDED_FORMATS UINT32_C(159)
+#define OGPU_NEXT_FEATURE_STORAGE_IMAGE_READ_WITHOUT_FORMAT UINT32_C(160)
+#define OGPU_NEXT_FEATURE_STORAGE_IMAGE_WRITE_WITHOUT_FORMAT UINT32_C(161)
+#define OGPU_NEXT_FEATURE_STORAGE_IMAGE_MULTISAMPLE UINT32_C(162)
+#define OGPU_NEXT_FEATURE_IMAGE_GATHER_EXTENDED UINT32_C(163)
+#define OGPU_NEXT_FEATURE_SHADER_CLIP_DISTANCE UINT32_C(164)
+#define OGPU_NEXT_FEATURE_SHADER_CULL_DISTANCE UINT32_C(165)
+#define OGPU_NEXT_FEATURE_UNIFORM_STORAGE16 UINT32_C(166)
+#define OGPU_NEXT_FEATURE_PUSH_STORAGE16 UINT32_C(167)
+#define OGPU_NEXT_FEATURE_INPUT_OUTPUT16 UINT32_C(168)
+#define OGPU_NEXT_FEATURE_VARIABLE_POINTERS_STORAGE UINT32_C(169)
+#define OGPU_NEXT_FEATURE_VARIABLE_POINTERS UINT32_C(170)
+#define OGPU_NEXT_FEATURE_SUBGROUP_UNIFORM_CONTROL_FLOW UINT32_C(171)
+#define OGPU_NEXT_FEATURE_MAXIMAL_RECONVERGENCE UINT32_C(172)
+#define OGPU_NEXT_FEATURE_QUAD_CONTROL UINT32_C(173)
+#define OGPU_NEXT_FEATURE_WORKGROUP_EXPLICIT_LAYOUT UINT32_C(174)
+#define OGPU_NEXT_FEATURE_WORKGROUP_SCALAR_LAYOUT UINT32_C(175)
+#define OGPU_NEXT_FEATURE_WORKGROUP_STORAGE8 UINT32_C(176)
+#define OGPU_NEXT_FEATURE_WORKGROUP_STORAGE16 UINT32_C(177)
+#define OGPU_NEXT_FEATURE_COMPUTE_DERIVATIVE_QUADS UINT32_C(178)
+#define OGPU_NEXT_FEATURE_COMPUTE_DERIVATIVE_LINEAR UINT32_C(179)
+
+#define OGPU_NEXT_QUERY_SHADER_PROFILE_LIMITS UINT32_C(34)
+#define OGPU_NEXT_SUBGROUP_ROTATE UINT32_C(512)
+#define OGPU_NEXT_SUBGROUP_ROTATE_CLUSTERED UINT32_C(1024)
+typedef struct ogpu_next_shader_profile_limits { uint64_t derivative_stages; } ogpu_next_shader_profile_limits;
+/* Physical shader derivative stages (compute and optionally mesh/task); also
+ * require the selected quads/linear mode feature and shader-stage features.
+ * Subgroup rotate operation bits describe physical support; their feature IDs
+ * independently control device enablement. No enabled capability is inferred. */
+
 #ifdef __cplusplus
 }
 #endif

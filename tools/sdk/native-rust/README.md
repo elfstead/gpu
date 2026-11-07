@@ -66,3 +66,13 @@ requires those optional native profiles in the relocated bundle. Select loader,
 driver and validation externally. The external SyncVal control is explicitly
 selected by `OGPU_EXTERNAL_SYNC_CONTROL=1`; without it, the documented external
 signal-tracking diagnostic remains visible and causes the checker to fail.
+
+## Shader and GPU execution profiles
+
+`controls` checks GPU-produced predicates and independent primitive counts without
+transform feedback. `shader_profiles` checks subgroup/cluster rotation, linear and
+quad compute derivatives, and narrow push storage against exact references. It
+prints per-profile native exclusions; it does not emulate unavailable features.
+Run relocated acceptance with `--execution-controls --shader-profiles` on
+`tools/test-rust-install.py`. [The M11 brief](docs/m11-compute-media.md) distinguishes
+implementation, feature enablement, executed artifacts, and remaining acceptance.

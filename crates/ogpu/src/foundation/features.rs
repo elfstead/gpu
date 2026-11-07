@@ -253,7 +253,7 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::PRIMITIVES_GENERATED_STREAMS;
+const MAX_ID: u32 = feature_ids::COMPUTE_DERIVATIVE_LINEAR;
 const _: () = assert!(MAX_ID <= FeatureBits::CAPACITY);
 pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     let mut mask = FeatureBits::ZERO;
@@ -324,6 +324,64 @@ pub(super) const PRIMITIVES_GENERATED_DISCARD: FeatureBits =
 pub(super) const PRIMITIVES_GENERATED_STREAMS: FeatureBits =
     FeatureBits::bit(feature_ids::PRIMITIVES_GENERATED_STREAMS - 1);
 
+pub(super) const UNIFORM_STORAGE8: FeatureBits =
+    FeatureBits::bit(feature_ids::UNIFORM_STORAGE8 - 1);
+pub(super) const PUSH_STORAGE8: FeatureBits = FeatureBits::bit(feature_ids::PUSH_STORAGE8 - 1);
+pub(super) const SCALAR_BLOCK_LAYOUT: FeatureBits =
+    FeatureBits::bit(feature_ids::SCALAR_BLOCK_LAYOUT - 1);
+pub(super) const UNIFORM_STANDARD_LAYOUT: FeatureBits =
+    FeatureBits::bit(feature_ids::UNIFORM_STANDARD_LAYOUT - 1);
+pub(super) const SUBGROUP_BROADCAST_DYNAMIC: FeatureBits =
+    FeatureBits::bit(feature_ids::SUBGROUP_BROADCAST_DYNAMIC - 1);
+pub(super) const SHADER_TERMINATE: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_TERMINATE - 1);
+pub(super) const SHADER_DEMOTE: FeatureBits = FeatureBits::bit(feature_ids::SHADER_DEMOTE - 1);
+pub(super) const SUBGROUP_ROTATE: FeatureBits = FeatureBits::bit(feature_ids::SUBGROUP_ROTATE - 1);
+pub(super) const SUBGROUP_ROTATE_CLUSTERED: FeatureBits =
+    FeatureBits::bit(feature_ids::SUBGROUP_ROTATE_CLUSTERED - 1);
+pub(super) const SHADER_EXPECT_ASSUME: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_EXPECT_ASSUME - 1);
+pub(super) const SHADER_FLOAT_CONTROLS2: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_FLOAT_CONTROLS2 - 1);
+pub(super) const STORAGE_IMAGE_EXTENDED_FORMATS: FeatureBits =
+    FeatureBits::bit(feature_ids::STORAGE_IMAGE_EXTENDED_FORMATS - 1);
+pub(super) const STORAGE_IMAGE_READ_WITHOUT_FORMAT: FeatureBits =
+    FeatureBits::bit(feature_ids::STORAGE_IMAGE_READ_WITHOUT_FORMAT - 1);
+pub(super) const STORAGE_IMAGE_WRITE_WITHOUT_FORMAT: FeatureBits =
+    FeatureBits::bit(feature_ids::STORAGE_IMAGE_WRITE_WITHOUT_FORMAT - 1);
+pub(super) const STORAGE_IMAGE_MULTISAMPLE: FeatureBits =
+    FeatureBits::bit(feature_ids::STORAGE_IMAGE_MULTISAMPLE - 1);
+pub(super) const IMAGE_GATHER_EXTENDED: FeatureBits =
+    FeatureBits::bit(feature_ids::IMAGE_GATHER_EXTENDED - 1);
+pub(super) const SHADER_CLIP_DISTANCE: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_CLIP_DISTANCE - 1);
+pub(super) const SHADER_CULL_DISTANCE: FeatureBits =
+    FeatureBits::bit(feature_ids::SHADER_CULL_DISTANCE - 1);
+pub(super) const UNIFORM_STORAGE16: FeatureBits =
+    FeatureBits::bit(feature_ids::UNIFORM_STORAGE16 - 1);
+pub(super) const PUSH_STORAGE16: FeatureBits = FeatureBits::bit(feature_ids::PUSH_STORAGE16 - 1);
+pub(super) const INPUT_OUTPUT16: FeatureBits = FeatureBits::bit(feature_ids::INPUT_OUTPUT16 - 1);
+pub(super) const VARIABLE_POINTERS_STORAGE: FeatureBits =
+    FeatureBits::bit(feature_ids::VARIABLE_POINTERS_STORAGE - 1);
+pub(super) const VARIABLE_POINTERS: FeatureBits =
+    FeatureBits::bit(feature_ids::VARIABLE_POINTERS - 1);
+pub(super) const SUBGROUP_UNIFORM_CONTROL_FLOW: FeatureBits =
+    FeatureBits::bit(feature_ids::SUBGROUP_UNIFORM_CONTROL_FLOW - 1);
+pub(super) const MAXIMAL_RECONVERGENCE: FeatureBits =
+    FeatureBits::bit(feature_ids::MAXIMAL_RECONVERGENCE - 1);
+pub(super) const QUAD_CONTROL: FeatureBits = FeatureBits::bit(feature_ids::QUAD_CONTROL - 1);
+pub(super) const WORKGROUP_EXPLICIT_LAYOUT: FeatureBits =
+    FeatureBits::bit(feature_ids::WORKGROUP_EXPLICIT_LAYOUT - 1);
+pub(super) const WORKGROUP_SCALAR_LAYOUT: FeatureBits =
+    FeatureBits::bit(feature_ids::WORKGROUP_SCALAR_LAYOUT - 1);
+pub(super) const WORKGROUP_STORAGE8: FeatureBits =
+    FeatureBits::bit(feature_ids::WORKGROUP_STORAGE8 - 1);
+pub(super) const WORKGROUP_STORAGE16: FeatureBits =
+    FeatureBits::bit(feature_ids::WORKGROUP_STORAGE16 - 1);
+pub(super) const COMPUTE_DERIVATIVE_QUADS: FeatureBits =
+    FeatureBits::bit(feature_ids::COMPUTE_DERIVATIVE_QUADS - 1);
+pub(super) const COMPUTE_DERIVATIVE_LINEAR: FeatureBits =
+    FeatureBits::bit(feature_ids::COMPUTE_DERIVATIVE_LINEAR - 1);
 #[cfg(test)]
 mod tests {
     use super::*;

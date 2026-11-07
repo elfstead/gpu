@@ -392,7 +392,9 @@ are implemented; local upload/clear/readback passes for R64 UINT/SINT/FLOAT.
 GPU conditionals and primitive-generation queries are implemented; the public Rust
 consumer passes primary draw/compute predicates and counters without capture.
 Inheritance is locally unavailable; abandoned-scope reset has a separately recorded
-VVL diagnostic. Remaining shader profiles, launch/matrix audit and artifacts follow.
+VVL diagnostic. Thirty-two remaining shader capability profiles now have exact
+native enablement; four public Rust artifacts pass rotation/derivative/narrow-storage
+checks. Richer launch/matrix mapping and pipeline artifacts follow.
 
 M9's [implemented boundary and clean SDK handoff](m9-consolidation.md) are complete
 for the Vulkan/Linux diagnostic scope. The source-only Rust SDK runs all four ray

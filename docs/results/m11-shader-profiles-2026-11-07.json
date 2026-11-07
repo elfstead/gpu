@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M11 shader profiles",
+  "revision": 13,
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10), Mesa 26.2.5",
+  "feature_ids": {
+    "148": "UNIFORM_STORAGE8",
+    "149": "PUSH_STORAGE8",
+    "150": "SCALAR_BLOCK_LAYOUT",
+    "151": "UNIFORM_STANDARD_LAYOUT",
+    "152": "SUBGROUP_BROADCAST_DYNAMIC",
+    "153": "SHADER_TERMINATE",
+    "154": "SHADER_DEMOTE",
+    "155": "SUBGROUP_ROTATE",
+    "156": "SUBGROUP_ROTATE_CLUSTERED",
+    "157": "SHADER_EXPECT_ASSUME",
+    "158": "SHADER_FLOAT_CONTROLS2",
+    "159": "STORAGE_IMAGE_EXTENDED_FORMATS",
+    "160": "STORAGE_IMAGE_READ_WITHOUT_FORMAT",
+    "161": "STORAGE_IMAGE_WRITE_WITHOUT_FORMAT",
+    "162": "STORAGE_IMAGE_MULTISAMPLE",
+    "163": "IMAGE_GATHER_EXTENDED",
+    "164": "SHADER_CLIP_DISTANCE",
+    "165": "SHADER_CULL_DISTANCE",
+    "166": "UNIFORM_STORAGE16",
+    "167": "PUSH_STORAGE16",
+    "168": "INPUT_OUTPUT16",
+    "169": "VARIABLE_POINTERS_STORAGE",
+    "170": "VARIABLE_POINTERS",
+    "171": "SUBGROUP_UNIFORM_CONTROL_FLOW",
+    "172": "MAXIMAL_RECONVERGENCE",
+    "173": "QUAD_CONTROL",
+    "174": "WORKGROUP_EXPLICIT_LAYOUT",
+    "175": "WORKGROUP_SCALAR_LAYOUT",
+    "176": "WORKGROUP_STORAGE8",
+    "177": "WORKGROUP_STORAGE16",
+    "178": "COMPUTE_DERIVATIVE_QUADS",
+    "179": "COMPUTE_DERIVATIVE_LINEAR"
+  },
+  "individual_native_enablement": {
+    "passed": 32,
+    "excluded": 0,
+    "validation_errors": 0
+  },
+  "derivative_stages": 4,
+  "artifact_execution": {
+    "profiles": [
+      "rotateMain",
+      "derivativeLinear",
+      "derivativeQuad",
+      "narrowPush"
+    ],
+    "invocations_per_profile": 128,
+    "input_values_per_profile": 2,
+    "guarded_allocation_bytes": 4096,
+    "disabled_requirements_rejected": 4,
+    "validation_errors": 0
+  },
+  "not_accepted": "Other new feature semantics have enablement evidence only; no universal shader, cross-driver or matrix acceleration claim. See M11 brief.",
+  "checks": {
+    "host_tests": 136,
+    "native_surface_tests": 2,
+    "c_rust_signatures": 233,
+    "abi_records": 198,
+    "explicit_constants": 465,
+    "layout_values": 2580,
+    "tool_tests": 22,
+    "strict_clippy": "pass",
+    "shader_compiler": "Slang 2026.14.1, spirv-val Vulkan 1.4"
+  },
+  "logs": [
+    "/tmp/ogpu-m11-profiles-enable.log",
+    "/tmp/ogpu-m11-profiles-artifacts.log",
+    "/tmp/ogpu-m11-profiles-host.log",
+    "/tmp/ogpu-m11-profiles-surface.log",
+    "/tmp/ogpu-m11-profiles-abi.log",
+    "/tmp/ogpu-m11-profiles-clippy.log",
+    "/tmp/ogpu-m11-profiles-tools.log"
+  ]
+}

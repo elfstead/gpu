@@ -83,6 +83,7 @@ struct Snapshot {
     dynamic_raster_limits: DynamicRasterLimits,
     viewport_limits: ViewportLimits,
     capture_limits: CaptureLimits,
+    shader_profile_limits: ShaderProfileLimits,
     ray_limits: RayLimits,
     shading_rate_limits: ShadingRateLimits,
     shading_rates: Vec<ShadingRate>,
@@ -166,6 +167,9 @@ impl Snapshot {
                     copy_out(query, &self.dependency_limits)
                 }
                 RAY_LIMITS => copy_out(query, std::slice::from_ref(&self.ray_limits)),
+                SHADER_PROFILE_LIMITS => {
+                    copy_out(query, std::slice::from_ref(&self.shader_profile_limits))
+                }
                 CAPTURE_LIMITS => copy_out(query, std::slice::from_ref(&self.capture_limits)),
                 VIEWPORT_LIMITS => copy_out(query, std::slice::from_ref(&self.viewport_limits)),
                 DYNAMIC_RASTER_LIMITS => {

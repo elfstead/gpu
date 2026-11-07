@@ -36,6 +36,8 @@ mod execution_controls;
 mod extended_raster;
 #[path = "raster_profiles.rs"]
 mod raster_profiles;
+#[path = "shader_profiles.rs"]
+mod shader_profiles;
 pub use acceleration::Acceleration;
 #[path = "ray.rs"]
 mod ray;
@@ -369,6 +371,9 @@ pub(super) fn snapshot(
     let (capture_features, capture_limits) = capture::snapshot(instance, physical, &f)?;
     features.available |= capture_features;
     features.available |= execution_controls::snapshot(instance, physical, &f)?;
+    let (shader_features, shader_profile_limits) =
+        shader_profiles::snapshot(instance, physical, &f)?;
+    features.available |= shader_features;
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -590,7 +595,7 @@ pub(super) fn snapshot(
             max_compute_workgroup_subgroups: subgroup_control.maxComputeWorkgroupSubgroups,
             stages: stages(subgroup.supportedStages),
             required_size_stages: stages(subgroup_control.requiredSubgroupSizeStages),
-            operations: subgroup.supportedOperations & 255,
+            operations: subgroup.supportedOperations & (255 | 512 | 1024),
             quad_all_stages: subgroup.quadOperationsInAllStages,
         };
         if v13.pipelineCreationCacheControl != 0 {
@@ -750,6 +755,39 @@ pub(super) fn snapshot(
             (v13.shaderIntegerDotProduct, INTEGER_DOT),
             (v13.computeFullSubgroups, FULL_SUBGROUPS),
             (v12.shaderSubgroupExtendedTypes, SUBGROUP_EXTENDED_TYPES),
+            (
+                root.features.shaderStorageImageExtendedFormats,
+                STORAGE_IMAGE_EXTENDED_FORMATS,
+            ),
+            (
+                root.features.shaderStorageImageReadWithoutFormat,
+                STORAGE_IMAGE_READ_WITHOUT_FORMAT,
+            ),
+            (
+                root.features.shaderStorageImageWriteWithoutFormat,
+                STORAGE_IMAGE_WRITE_WITHOUT_FORMAT,
+            ),
+            (
+                root.features.shaderStorageImageMultisample,
+                STORAGE_IMAGE_MULTISAMPLE,
+            ),
+            (
+                root.features.shaderImageGatherExtended,
+                IMAGE_GATHER_EXTENDED,
+            ),
+            (root.features.shaderClipDistance, SHADER_CLIP_DISTANCE),
+            (root.features.shaderCullDistance, SHADER_CULL_DISTANCE),
+            (v14.shaderSubgroupRotate, SUBGROUP_ROTATE),
+            (v14.shaderSubgroupRotateClustered, SUBGROUP_ROTATE_CLUSTERED),
+            (v14.shaderExpectAssume, SHADER_EXPECT_ASSUME),
+            (v14.shaderFloatControls2, SHADER_FLOAT_CONTROLS2),
+            (v13.shaderTerminateInvocation, SHADER_TERMINATE),
+            (v13.shaderDemoteToHelperInvocation, SHADER_DEMOTE),
+            (v12.uniformAndStorageBuffer8BitAccess, UNIFORM_STORAGE8),
+            (v12.storagePushConstant8, PUSH_STORAGE8),
+            (v12.scalarBlockLayout, SCALAR_BLOCK_LAYOUT),
+            (v12.uniformBufferStandardLayout, UNIFORM_STANDARD_LAYOUT),
+            (v12.subgroupBroadcastDynamicId, SUBGROUP_BROADCAST_DYNAMIC),
         ] {
             if supported != 0 {
                 features.available |= bit;
@@ -885,6 +923,7 @@ pub(super) fn snapshot(
         dynamic_raster_limits,
         viewport_limits,
         capture_limits,
+        shader_profile_limits,
         ray_limits,
         shading_rate_limits,
         shading_rates,
@@ -1073,6 +1112,10 @@ impl Device {
             ..Default::default()
         };
         let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
+            shaderSubgroupRotate: u32::from(enabled & SUBGROUP_ROTATE != 0),
+            shaderSubgroupRotateClustered: u32::from(enabled & SUBGROUP_ROTATE_CLUSTERED != 0),
+            shaderExpectAssume: u32::from(enabled & SHADER_EXPECT_ASSUME != 0),
+            shaderFloatControls2: u32::from(enabled & SHADER_FLOAT_CONTROLS2 != 0),
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
             maintenance5: 1,
             rectangularLines: u32::from(enabled & RECTANGULAR_LINES != 0),
@@ -1089,6 +1132,8 @@ impl Device {
             ..Default::default()
         };
         let mut v13 = vk::VkPhysicalDeviceVulkan13Features {
+            shaderTerminateInvocation: u32::from(enabled & SHADER_TERMINATE != 0),
+            shaderDemoteToHelperInvocation: u32::from(enabled & SHADER_DEMOTE != 0),
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             synchronization2: 1,
             maintenance4: 1,
@@ -1101,6 +1146,11 @@ impl Device {
             ..Default::default()
         };
         let mut v12 = vk::VkPhysicalDeviceVulkan12Features {
+            uniformAndStorageBuffer8BitAccess: u32::from(enabled & UNIFORM_STORAGE8 != 0),
+            storagePushConstant8: u32::from(enabled & PUSH_STORAGE8 != 0),
+            scalarBlockLayout: u32::from(enabled & SCALAR_BLOCK_LAYOUT != 0),
+            uniformBufferStandardLayout: u32::from(enabled & UNIFORM_STANDARD_LAYOUT != 0),
+            subgroupBroadcastDynamicId: u32::from(enabled & SUBGROUP_BROADCAST_DYNAMIC != 0),
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             bufferDeviceAddress: 1,
             descriptorIndexing: u32::from(enabled & ACCELERATION_STRUCTURE != 0),
@@ -1132,16 +1182,31 @@ impl Device {
             pNext: ptr::from_mut(&mut v12).cast(),
         };
         let mut storage16 = vk::VkPhysicalDevice16BitStorageFeatures {
+            uniformAndStorageBuffer16BitAccess: u32::from(enabled & UNIFORM_STORAGE16 != 0),
+            storagePushConstant16: u32::from(enabled & PUSH_STORAGE16 != 0),
+            storageInputOutput16: u32::from(enabled & INPUT_OUTPUT16 != 0),
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
             storageBuffer16BitAccess: 1,
             pNext: ptr::from_mut(&mut multiview).cast(),
-            ..Default::default()
         };
         let draw_parameters = vk::VkPhysicalDeviceShaderDrawParametersFeatures {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            shaderStorageImageExtendedFormats: u32::from(
+                enabled & STORAGE_IMAGE_EXTENDED_FORMATS != 0,
+            ),
+            shaderStorageImageReadWithoutFormat: u32::from(
+                enabled & STORAGE_IMAGE_READ_WITHOUT_FORMAT != 0,
+            ),
+            shaderStorageImageWriteWithoutFormat: u32::from(
+                enabled & STORAGE_IMAGE_WRITE_WITHOUT_FORMAT != 0,
+            ),
+            shaderStorageImageMultisample: u32::from(enabled & STORAGE_IMAGE_MULTISAMPLE != 0),
+            shaderImageGatherExtended: u32::from(enabled & IMAGE_GATHER_EXTENDED != 0),
+            shaderClipDistance: u32::from(enabled & SHADER_CLIP_DISTANCE != 0),
+            shaderCullDistance: u32::from(enabled & SHADER_CULL_DISTANCE != 0),
             sparseBinding: u32::from(enabled & SPARSE_BINDING != 0),
             sparseResidencyBuffer: u32::from(enabled & SPARSE_BUFFER != 0),
             sparseResidencyImage2D: u32::from(enabled & SPARSE_IMAGE_2D != 0),
@@ -1189,6 +1254,7 @@ impl Device {
             c"VK_KHR_device_address_commands".as_ptr(),
             c"VK_KHR_shader_untyped_pointers".as_ptr(),
         ];
+        shader_profiles::extensions(enabled, &mut extensions);
         if enabled & DEPTH_CLIP != 0 {
             extensions.push(c"VK_EXT_depth_clip_enable".as_ptr());
         }
@@ -1273,6 +1339,8 @@ impl Device {
         };
         let mut ray = ray::Native::new(enabled);
         let previous = ray.link(previous.cast_mut(), enabled).cast_const();
+        let mut shaders = shader_profiles::Native::new(enabled);
+        let previous = shaders.link(previous.cast_mut(), enabled).cast_const();
         let mut controls = execution_controls::Native::new(enabled);
         let previous = controls.link(previous.cast_mut(), enabled).cast_const();
         let capture = capture::native(enabled, previous.cast_mut());

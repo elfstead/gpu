@@ -747,6 +747,9 @@ consumer/validation track, not inferred from single-device import/export.
 
 [Implementation order, initial codec selection and exit evidence](m11-compute-media.md)
 now make each package concrete. M10 consolidation is complete; M11 is active.
+Numeric-format and GPU-control packages are implemented with bounded acceptance.
+The shader-profile package adds 32 individual native permissions; four artifact
+consumers have executed. Remaining per-capability witnesses stay explicit.
 
 **Compute deliverables:** richer shared-memory/launch profiles, cooperative or
 cluster/device-enqueue execution where native APIs support it, pipeline artifact/

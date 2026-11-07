@@ -197,3 +197,12 @@ requires those optional native profiles in the relocated bundle. Select loader,
 driver and validation externally. The external SyncVal control is explicitly
 selected by `OGPU_EXTERNAL_SYNC_CONTROL=1`; without it, the documented external
 signal-tracking diagnostic remains visible and causes the checker to fail.
+
+The `controls` and `shader_profiles` binaries cover M11 GPU predicates/primitive
+queries and shader capabilities. Run with `cargo run --bin controls` or
+`cargo run --bin shader_profiles`; select the loader and validation externally.
+The predicate consumer reports unavailable secondary inheritance explicitly.
+The shader consumer checks two input values for every invocation and rejects its
+artifact requirements on a device without the necessary feature enablement.
+These are bounded consumers, not a promise that every newly exposed capability
+has executed on this GPU. See `docs/m11-compute-media.md` in the repository.
