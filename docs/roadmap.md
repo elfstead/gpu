@@ -3,7 +3,7 @@
 Proposed 2026-09-18; sequence revised 2026-10-30. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
 **C1, C2 and C3 Vulkan/Linux acceptance complete. Active: remaining M8,
-then M9 → M10 → M11. External backend acceptance remains open.** C1–C3
+M9 implementation/diagnostic handoff is complete; M10 is active, followed by M11. External backend and native ray hardware acceptance remain open.** C1–C3
 are defined [below](#minimal-core-revision). Windows correctness fixes can proceed
 independently; unavailable Windows/Mac acceptance does not block later local
 coverage. M6 stays deferred until a Mac is available; M7 remains ongoing.
@@ -686,8 +686,9 @@ and native Rust; the [explicit emulation diagnostic](results/m9-acceleration-que
 passes. Ray pipelines/tables, explicit stack controls and direct/indirect/generated
 trace commands are now implemented; [pipeline diagnostics](results/m9-ray-pipelines-2026-11-07.json)
 pass. [Procedural geometry, any-hit/intersection and batched builds](results/m9-procedural-rays-2026-11-07.json)
-also pass the explicit diagnostic. Clean SDK consolidation remains before M10;
-native hardware acceptance remains open.
+also pass the explicit diagnostic. [Clean SDK and contract consolidation](m9-consolidation.md) complete the scheduled
+Vulkan/Linux implementation/diagnostic checkpoint. Native hardware acceptance
+remains open; M10 is next.
 
 **Deliver:** the non-derivable hardware boundary for acceleration structures and
 ray execution, reusing ordinary memory, arguments, commands and dependencies.
@@ -734,7 +735,7 @@ consumer/validation track, not inferred from single-device import/export.
 
 **Compute deliverables:** richer shared-memory/launch profiles, cooperative or
 cluster/device-enqueue execution where native APIs support it, pipeline artifact/
-binary interfaces, and remaining numerical/subgroup/matrix profiles. Extend
+binary interfaces (including ray pipeline libraries and capture/replay capabilities), and remaining numerical/subgroup/matrix profiles. Extend
 generated artifact requirements and implement a hardware matrix variant of the
 bounded ML consumer with explicit layout, accumulation and numerical permissions.
 Audit conditional rendering and primitive-generation query variants here as

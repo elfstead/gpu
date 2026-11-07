@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-07",
+  "milestone": "M9 Vulkan/Linux implementation and explicit diagnostic handoff",
+  "source_revision": "ea0f268b0bdfe3127518dd839efcfd1c45c8454b",
+  "source_dirty": false,
+  "sdk": "/tmp/ogpu-m9-sdk",
+  "native_rust_handoff": {
+    "source": {
+      "revision": "ea0f268b0bdfe3127518dd839efcfd1c45c8454b",
+      "source_dirty": false,
+      "target": "x86_64-unknown-linux-gnu",
+      "manifest": "examples/foundation_rust/Cargo.toml",
+      "default_features": false,
+      "registry_dependencies": "Cargo.lock pinned; fetch or supply a Cargo cache; not vendored",
+      "linkage": "native Rust source, not the SDK C shared library"
+    },
+    "complete": true,
+    "build": true,
+    "runs": [
+      "headless",
+      "ray",
+      "ray-pipeline",
+      "ray-procedural",
+      "ray-pipeline-procedural"
+    ],
+    "human_acceptance": "unverified",
+    "ray_environment": {
+      "RADV_EXPERIMENTAL": "emulate_rt",
+      "OGPU_RAY_GENERATED": "1"
+    }
+  },
+  "c_handoff": "relocated compute/graphics consumers pass with matched SDK runtime",
+  "ray_total_verified": 96,
+  "ray_validation_errors": 0,
+  "normal_native_ray_profile": "unsupported exit 77, no fallback",
+  "native_ray_hardware_accepted": false,
+  "structural_review": "docs/m9-consolidation.md",
+  "remaining": [
+    "native ray acceleration/performance",
+    "unadvertised indirect AS builds and generated ray pipeline selection",
+    "Metal/DX12 mappings",
+    "combined preprocessing/AS/table backing native reproduction (M10)",
+    "pipeline libraries/capture replay and binary artifacts (M11 capability audit)"
+  ],
+  "logs": [
+    "/tmp/ogpu-m9-sdk-install.log",
+    "/tmp/ogpu-m9-sdk-rust.log",
+    "/tmp/ogpu-m9-sdk-c.log",
+    "/tmp/ogpu-m9-native-unsupported.log",
+    "/tmp/ogpu-rust-external-03xru5i3/report.json"
+  ]
+}

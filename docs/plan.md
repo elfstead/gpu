@@ -1,7 +1,7 @@
 # Working status and next milestone
 
 Updated 2026-11-07. **C1 selection and C2 Vulkan/Linux implementation are complete.
-C3 Vulkan/Linux acceptance is complete; scheduled M8 and its contract consolidation are complete on Vulkan/Linux; M9 is active. External native mappings remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
+C3 Vulkan/Linux acceptance is complete; scheduled M8 and its contract consolidation are complete on Vulkan/Linux; M9 implementation/diagnostic consolidation is complete; M10 is active. External native mappings and native ray acceleration remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
 constraints. [Argument update/reuse A/B](minimal-core-arguments.md) now has selected
@@ -62,7 +62,7 @@ M9 now implements AS operations and ray executables/tables, direct/indirect/gene
 trace commands through C and native Rust. [Explicit emulation diagnostics](results/m9-ray-pipelines-2026-11-07.json)
 pass with two geometry identities and caller-owned preprocessing. Procedural
 geometry/any-hit/intersection and batched builds now pass a [96-ray diagnostic](results/m9-procedural-rays-2026-11-07.json).
-Clean M9 SDK consolidation is next; native ray acceptance remains open.
+[Clean M9 SDK/contract consolidation](m9-consolidation.md) passes at `ea0f268`; M10 is next. Native ray acceptance remains open.
 
 The [current design](design.md) describes the model; the
 [implemented surface](foundation-implementation.md) gives exact profiles and
@@ -382,14 +382,17 @@ to revision 13 with an explicit stream argument on existing query begin/end oper
 acceptance are complete. M9 ray tracing follows; private feature storage now spans
 256 bits without changing the public counted-ID interface. M6 remains incomplete until native development is possible.
 
-## Current: M9 ray tracing
+## Current: M10 memory and interoperability
 
-Follow the [implementation brief](m9-ray-tracing.md): caller-backed acceleration
-structures and explicit build/copy/query operations, independently usable inline
-ray queries, then ray executable groups/tables and direct/indirect execution.
-Normal local RADV does not advertise ray support. Explicit driver-emulated tests
-may diagnose correctness; they never close hardware acceleration acceptance.
-M10 and M11 follow, while M6/native DX12 acceptance remain deferred.
+M9's [implemented boundary and clean SDK handoff](m9-consolidation.md) are complete
+for the Vulkan/Linux diagnostic scope. The source-only Rust SDK runs all four ray
+profiles under explicit emulation; normal local RADV rejects them as unsupported.
+Native acceleration, unadvertised optional profiles and external backends remain open.
+
+Proceed with M10's mixed backing, typed native/external sharing, and virtual/sparse
+memory primitives. Resolve the combined preprocessing/AS/table usage observation
+with a native reproducer. Keep ownership, placement, queue synchronization and
+residency policy explicit. M11 follows; M6/native DX12 acceptance stay deferred.
 
 ## Parallel candidate: native DX12 on Windows
 
