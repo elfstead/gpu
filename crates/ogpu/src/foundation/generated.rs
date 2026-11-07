@@ -518,7 +518,7 @@ impl GeneratedSet {
             return Err(UNSUPPORTED);
         }
         let initial = unsafe { desc.initial.as_ref() }.ok_or(INVALID)?;
-        if !ptr::eq(initial.device, d) || !initial.indirect_bindable {
+        if !ptr::eq(initial.device, d) || !initial.indirect_bindable || initial.library {
             return Err(INVALID);
         }
         let pipeline = vk::VkIndirectExecutionSetPipelineInfoEXT {
@@ -568,6 +568,7 @@ impl GeneratedSet {
                 || w.index >= self.capacity
                 || !ptr::eq(e.device, d)
                 || !e.indirect_bindable
+                || e.library
                 || e.stages != initial.stages
                 || e.view_mask != initial.view_mask
                 || !e.arguments().generated_compatible(initial.arguments())

@@ -11723,6 +11723,7 @@ pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_BUILT_IN_PRIMITIVES_BIT_KHR: VkPipelineCreateFlagBits2 = 4096;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_OPACITY_MICROMAP_BIT_EXT: VkPipelineCreateFlagBits2 = 16777216;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_ALLOW_SPHERES_AND_LINEAR_SWEPT_SPHERES_BIT_NV: VkPipelineCreateFlagBits2 = 8589934592;
+pub const VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR: VkPipelineCreateFlagBits2 = 2048;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_TRIANGLES_BIT_KHR: VkPipelineCreateFlagBits2 = 4096;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_SKIP_AABBS_BIT_KHR: VkPipelineCreateFlagBits2 = 8192;
 pub const VK_PIPELINE_CREATE_2_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR: VkPipelineCreateFlagBits2 = 16384;
@@ -19377,6 +19378,49 @@ pub type PFN_vkCmdSetDepthClampRangeEXT = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipelineLibraryGroupHandles: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT::pipelineLibraryGroupHandles",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT,
+        pipelineLibraryGroupHandles
+    ) - 16usize];
+};
+impl Default for VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -21981,6 +22025,16 @@ pub type PFN_vkCreateRayTracingPipelinesKHR = ::std::option::Option<
         pCreateInfos: *const VkRayTracingPipelineCreateInfoKHR,
         pAllocator: *const VkAllocationCallbacks,
         pPipelines: *mut VkPipeline,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipeline: VkPipeline,
+        firstGroup: u32,
+        groupCount: u32,
+        dataSize: usize,
+        pData: *mut ::std::os::raw::c_void,
     ) -> VkResult,
 >;
 pub type PFN_vkCmdTraceRaysIndirectKHR = ::std::option::Option<

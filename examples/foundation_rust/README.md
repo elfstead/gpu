@@ -228,3 +228,12 @@ The separate `OGPU_BINARY_CAPACITY_DIAGNOSTIC=1` case exercises undersized captu
 VVL 1.4.357 omits threading-object registration on VK_INCOMPLETE and emits known
 raw diagnostics. This case is not part of clean validation acceptance; see the
 M11 artifact contract for evidence and unresolved scope.
+
+
+`ray_artifacts` checks nested ray-library linkage, imported shader indices, stable
+group handles and optional capture/replay on a fresh device. The caller retains
+source libraries and layouts until all derived executables are retired/destroyed.
+It exits 77 when ray libraries are unavailable and never selects emulation.
+`test-rust-install.py --ray-artifacts` requires library execution; the log separates
+optional replay exclusion. Explicit `RADV_EXPERIMENTAL=emulate_rt` results remain
+diagnostics, not native ray-hardware acceptance. See the M11 ray-artifact contract.

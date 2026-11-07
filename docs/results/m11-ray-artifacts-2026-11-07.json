@@ -1,0 +1,116 @@
+{
+  "date": "2026-11-07",
+  "base_revision": "e9cb05e",
+  "scope": "ray library and shader-group handle capture/replay implementation; emulation diagnostics only",
+  "device": "AMD Radeon RX 5700 XT, RADV 26.2.5",
+  "validation": "Vulkan validation layers 1.4.357, synchronization validation enabled",
+  "normal_driver": {
+    "features_195_through_198": "unavailable; public device creation returns UNSUPPORTED",
+    "capture_handle_size": 0
+  },
+  "explicit_emulation": {
+    "environment": {
+      "RADV_EXPERIMENTAL": "emulate_rt"
+    },
+    "features_enabled": [
+      195,
+      196,
+      197
+    ],
+    "feature_unavailable": 198,
+    "capture_handle_size": 56,
+    "library_consumer": [
+      "nested libraries with no local stages/groups",
+      "local group references second imported shader",
+      "stable group handles across links",
+      "fresh-device replay without mixed profile",
+      "three dispatches per phase: exact outputs and guards",
+      "caller retains libraries/layouts until dependents destroyed",
+      "invalid library bind, malformed replay, undersized capture rejected"
+    ],
+    "existing_ray_profiles_passed": 4,
+    "validation_errors": 0
+  },
+  "host": {
+    "unit_passed": 142,
+    "unit_ignored": 37,
+    "surface_tests_passed": 2,
+    "ml_reference_tests_passed": 2,
+    "python_tool_tests_passed": 22,
+    "strict_clippy": "pass",
+    "generated_bindings": "match",
+    "c_operations": 242,
+    "records": 207,
+    "constants": 513,
+    "surface_values": 2079,
+    "abi_values": 2631,
+    "consumer_binaries_built": 12
+  },
+  "full_c_foundation": {
+    "result": "pass",
+    "validation_errors": 0
+  },
+  "rejected_draft_run": {
+    "log": "/tmp/ogpu-m11-ray-library-invalid-early-destruction.log",
+    "reason": "consumer destroyed source libraries before derived executables; violated native lifetime obligation; corrected contract and teardown before accepted rerun",
+    "accepted": false
+  },
+  "remaining": [
+    "native ray hardware acceptance",
+    "mixed replay/new-handle creation",
+    "nontrivial hit/miss library linkage",
+    "binary-backed ray/library execution",
+    "other native backends",
+    "AS/resource-address capture replay is outside this profile"
+  ],
+  "logs": {
+    "host": {
+      "path": "/tmp/ogpu-m11-ray-library-host.log",
+      "sha256": "dca8e87047c55d7cf09e726b85f759ae5e20fd75edd7598429e57ab7b9604cee"
+    },
+    "clippy": {
+      "path": "/tmp/ogpu-m11-ray-library-clippy.log",
+      "sha256": "7fe5837b934bc7373160aeba2a6bb21562da9f07473c9f97a674b38f43d498d8"
+    },
+    "consumer-build": {
+      "path": "/tmp/ogpu-m11-ray-library-consumer-build.log",
+      "sha256": "8485120daf5280224337fe3c6280a7e081f1c663f1485d591aaa402a772d2cc0"
+    },
+    "surface": {
+      "path": "/tmp/ogpu-m11-ray-library-surface.log",
+      "sha256": "c3321a7aab69072c5dd2c862ec95d4c8af0f83e23b641a4a75ac2e07384762d0"
+    },
+    "tools": {
+      "path": "/tmp/ogpu-m11-ray-library-tools.log",
+      "sha256": "11c23ec17bdabf2f9049030f3aa906c50a30be7251f30da638469d4cadbc4746"
+    },
+    "abi": {
+      "path": "/tmp/ogpu-m11-ray-library-abi.log",
+      "sha256": "351499b54d457ee52598a16195e4f701586c6a25d731c95ebe6f64efe31b71ad"
+    },
+    "bindings": {
+      "path": "/tmp/ogpu-m11-ray-library-bindings.log",
+      "sha256": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df"
+    },
+    "enable": {
+      "path": "/tmp/ogpu-m11-ray-library-enable.log",
+      "sha256": "18902e63f670805297d7707aa2368991171f0185451cc0a228493069d5463144"
+    },
+    "emulated-enable": {
+      "path": "/tmp/ogpu-m11-ray-library-emulated-enable.log",
+      "sha256": "b763cf48957f26043687b6dc3e614991b7931b4b0619d76921a81f63f0c79c01"
+    },
+    "emulated-gpu": {
+      "path": "/tmp/ogpu-m11-ray-library-emulated-gpu.log",
+      "sha256": "19d2dd6001877ad433ecb9578d84e8b91461218e9378d2c171374f71fe469a9e"
+    },
+    "foundation": {
+      "path": "/tmp/ogpu-m11-ray-library-foundation.log",
+      "sha256": "b70c480757aab4537f8651efe03167bfd21ba6881b64ab119e16ca4776324f0d"
+    },
+    "regression": {
+      "path": "/tmp/ogpu-m11-ray-library-regression.log",
+      "sha256": "1142ba830e1c92f9cb2f872f509209dcef5ad6cd4503b917993dbf1b189fbf57"
+    }
+  }
+}

@@ -399,7 +399,9 @@ pass without shader-ID rewriting. Extended matrix profiles and fixed/flexible di
 are implemented with local unsupported rejection. The bounded two-layer matrix ML
 consumer and validated artifacts are implemented, with native execution unavailable.
 Native pipeline binaries now pass compute round-trip and graphics recreation;
-ray libraries/capture-replay and native execution-graph profiles precede media.
+[Ray libraries/capture-replay](m11-ray-artifacts.md) are implemented and pass explicit
+emulation diagnostics; native hardware acceptance remains open. Native execution
+graphs are the next implementation package, before plane-aware images and media.
 See the [artifact contract and acceptance gaps](m11-pipeline-artifacts.md). See the
 [concrete mapping packages](m11-launch-mapping.md).
 

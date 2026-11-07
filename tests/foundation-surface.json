@@ -127,6 +127,7 @@
     "ogpu_next_queue_bind_sparse",
     "ogpu_next_queue_native_vulkan",
     "ogpu_next_queue_submit",
+    "ogpu_next_ray_capture_handles",
     "ogpu_next_ray_group_handles",
     "ogpu_next_ray_group_stack_size",
     "ogpu_next_render_begin",
@@ -747,7 +748,16 @@
     "OGPU_NEXT_EXECUTABLE_BINARIES": "EXECUTABLE_BINARIES",
     "OGPU_NEXT_QUERY_PIPELINE_BINARY_LIMITS": "PIPELINE_BINARY_LIMITS",
     "OGPU_NEXT_COMPILE_CAPTURE_BINARY": "COMPILE_CAPTURE_BINARY",
-    "OGPU_NEXT_BINARY_MISSING": "BINARY_MISSING"
+    "OGPU_NEXT_BINARY_MISSING": "BINARY_MISSING",
+    "OGPU_NEXT_FEATURE_RAY_LIBRARIES": "feature_ids::RAY_LIBRARIES",
+    "OGPU_NEXT_FEATURE_RAY_LIBRARY_HANDLES": "feature_ids::RAY_LIBRARY_HANDLES",
+    "OGPU_NEXT_FEATURE_RAY_CAPTURE_REPLAY": "feature_ids::RAY_CAPTURE_REPLAY",
+    "OGPU_NEXT_FEATURE_RAY_CAPTURE_REPLAY_MIXED": "feature_ids::RAY_CAPTURE_REPLAY_MIXED",
+    "OGPU_NEXT_RAY_LIBRARIES_INFO": "RAY_LIBRARIES_INFO",
+    "OGPU_NEXT_RAY_REPLAY_INFO": "RAY_REPLAY_INFO",
+    "OGPU_NEXT_RAY_CAPTURE_HANDLES": "RAY_CAPTURE_HANDLES",
+    "OGPU_NEXT_QUERY_RAY_ARTIFACT_LIMITS": "RAY_ARTIFACT_LIMITS",
+    "OGPU_NEXT_COMPILE_LIBRARY": "COMPILE_LIBRARY"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

@@ -91,6 +91,7 @@ struct Snapshot {
     capture_limits: CaptureLimits,
     shader_profile_limits: ShaderProfileLimits,
     ray_limits: RayLimits,
+    ray_artifact_limits: RayArtifactLimits,
     shading_rate_limits: ShadingRateLimits,
     shading_rates: Vec<ShadingRate>,
     formats: Vec<FormatInfo>,
@@ -167,6 +168,9 @@ impl Snapshot {
                 SUBGROUP_LIMITS => copy_out(query, std::slice::from_ref(&self.subgroup_limits)),
                 FLOAT_CONTROLS => copy_out(query, std::slice::from_ref(&self.float_controls)),
                 MATRIX_TUPLES => copy_out(query, &self.matrix_tuples),
+                RAY_ARTIFACT_LIMITS => {
+                    copy_out(query, std::slice::from_ref(&self.ray_artifact_limits))
+                }
                 PIPELINE_BINARY_LIMITS => {
                     copy_out(query, std::slice::from_ref(&self.pipeline_binary_limits))
                 }

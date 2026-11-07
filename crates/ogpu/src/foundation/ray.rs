@@ -1,8 +1,23 @@
 //! Optional native ray profiles; no scene ownership, traversal or build policy.
 use super::*;
-pub(super) const PIPELINE_FEATURES: FeatureBits =
-    FeatureBits::union(&[RAY_PIPELINE, RAY_INDIRECT, RAY_PRIMITIVE_CULLING]);
+pub(super) struct PipelineMeta {
+    pub library: bool,
+    pub stages: Box<[u32]>,
+    pub groups: Box<[u8]>,
+    pub flags: u32,
+    pub max_recursion: u32,
+    pub max_payload: u32,
+    pub max_attribute: u32,
+}
+pub(super) const PIPELINE_FEATURES: FeatureBits = FeatureBits::union(&[
+    RAY_PIPELINE,
+    RAY_INDIRECT,
+    RAY_PRIMITIVE_CULLING,
+    RAY_CAPTURE_REPLAY,
+    RAY_CAPTURE_REPLAY_MIXED,
+]);
 pub(super) struct Native {
+    group_handles: vk::VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT,
     acceleration: vk::VkPhysicalDeviceAccelerationStructureFeaturesKHR,
     query: vk::VkPhysicalDeviceRayQueryFeaturesKHR,
     pipeline: vk::VkPhysicalDeviceRayTracingPipelineFeaturesKHR,
@@ -11,6 +26,7 @@ pub(super) struct Native {
 impl Native {
     pub fn new(enabled: FeatureBits) -> Self {
         Self {
+            group_handles: vk::VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT { sType:vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_LIBRARY_GROUP_HANDLES_FEATURES_EXT, pipelineLibraryGroupHandles:u32::from(enabled & RAY_LIBRARY_HANDLES!=0), ..Default::default() },
             acceleration: vk::VkPhysicalDeviceAccelerationStructureFeaturesKHR {
                 sType:vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
                 accelerationStructure:u32::from(enabled & ACCELERATION_STRUCTURE!=0),
@@ -21,6 +37,8 @@ impl Native {
             pipeline:vk::VkPhysicalDeviceRayTracingPipelineFeaturesKHR {
                 sType:vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
                 rayTracingPipeline:u32::from(enabled & RAY_PIPELINE!=0),
+                rayTracingPipelineShaderGroupHandleCaptureReplay:u32::from(enabled & RAY_CAPTURE_REPLAY!=0),
+                rayTracingPipelineShaderGroupHandleCaptureReplayMixed:u32::from(enabled & RAY_CAPTURE_REPLAY_MIXED!=0),
                 rayTracingPipelineTraceRaysIndirect:u32::from(enabled & RAY_INDIRECT!=0),
                 rayTraversalPrimitiveCulling:u32::from(enabled & RAY_PRIMITIVE_CULLING!=0),..Default::default()},
             maintenance:vk::VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR {
@@ -34,6 +52,10 @@ impl Native {
         mut next: *mut std::ffi::c_void,
         selected: FeatureBits,
     ) -> *mut std::ffi::c_void {
+        if selected & RAY_LIBRARY_HANDLES != 0 {
+            self.group_handles.pNext = next;
+            next = ptr::from_mut(&mut self.group_handles).cast();
+        }
         if selected & RAY_MAINTENANCE != 0 {
             self.maintenance.pNext = next;
             next = ptr::from_mut(&mut self.maintenance).cast();
@@ -57,12 +79,17 @@ pub(super) fn snapshot(
     instance: &Instance,
     physical: vk::VkPhysicalDevice,
     f: &Functions,
-) -> Result<(FeatureBits, RayLimits), Status> {
+) -> Result<(FeatureBits, RayLimits, RayArtifactLimits), Status> {
     let mut selected = FeatureBits::ZERO;
     for (name, bit) in [
         (c"VK_KHR_acceleration_structure", ACCELERATION_STRUCTURE),
         (c"VK_KHR_ray_query", RAY_QUERY),
         (c"VK_KHR_ray_tracing_pipeline", RAY_PIPELINE),
+        (c"VK_KHR_pipeline_library", RAY_LIBRARIES),
+        (
+            c"VK_EXT_pipeline_library_group_handles",
+            RAY_LIBRARY_HANDLES,
+        ),
         (c"VK_KHR_ray_tracing_maintenance1", RAY_MAINTENANCE),
     ] {
         if instance
@@ -77,7 +104,11 @@ pub(super) fn snapshot(
             .supports_extension(physical, c"VK_KHR_deferred_host_operations")
             .map_err(loader_error)?
     {
-        return Ok((FeatureBits::ZERO, RayLimits::default()));
+        return Ok((
+            FeatureBits::ZERO,
+            RayLimits::default(),
+            RayArtifactLimits::default(),
+        ));
     }
     let mut native = Native::new(FeatureBits::ZERO);
     let mut root = vk::VkPhysicalDeviceFeatures2 {
@@ -89,15 +120,38 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
     }
     if native.acceleration.accelerationStructure == 0 {
-        return Ok((FeatureBits::ZERO, RayLimits::default()));
+        return Ok((
+            FeatureBits::ZERO,
+            RayLimits::default(),
+            RayArtifactLimits::default(),
+        ));
     }
     let mut available = ACCELERATION_STRUCTURE;
+    if native.pipeline.rayTracingPipeline != 0 {
+        available |= selected & RAY_LIBRARIES;
+    }
     for (present, bit) in [
         (
             native.acceleration.accelerationStructureIndirectBuild,
             ACCELERATION_INDIRECT_BUILD,
         ),
         (native.query.rayQuery, RAY_QUERY),
+        (
+            native.group_handles.pipelineLibraryGroupHandles,
+            RAY_LIBRARY_HANDLES,
+        ),
+        (
+            native
+                .pipeline
+                .rayTracingPipelineShaderGroupHandleCaptureReplay,
+            RAY_CAPTURE_REPLAY,
+        ),
+        (
+            native
+                .pipeline
+                .rayTracingPipelineShaderGroupHandleCaptureReplayMixed,
+            RAY_CAPTURE_REPLAY_MIXED,
+        ),
         (native.pipeline.rayTracingPipeline, RAY_PIPELINE),
         (
             native.pipeline.rayTracingPipelineTraceRaysIndirect,
@@ -148,6 +202,10 @@ pub(super) fn snapshot(
             max_hit_attribute_size: rt.maxRayHitAttributeSize,
             reserved: 0,
         },
+        RayArtifactLimits {
+            capture_handle_size: rt.shaderGroupHandleCaptureReplaySize,
+            reserved: [0; 3],
+        },
     ))
 }
 pub(super) const ARGUMENT_STAGES: u64 = ARGUMENT_RAYGEN
@@ -179,6 +237,7 @@ pub(super) fn shader_stage(stage: u32) -> Result<u32, Status> {
     }
 }
 pub(super) struct Commands {
+    pub capture_handles: vk::PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR,
     pub create: vk::PFN_vkCreateRayTracingPipelinesKHR,
     pub handles: vk::PFN_vkGetRayTracingShaderGroupHandlesKHR,
     pub stack: vk::PFN_vkGetRayTracingShaderGroupStackSizeKHR,
@@ -205,6 +264,11 @@ impl Commands {
             }};
         }
         Ok(Self {
+            capture_handles: get!(
+                c"vkGetRayTracingCaptureReplayShaderGroupHandlesKHR",
+                vk::PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR,
+                RAY_CAPTURE_REPLAY
+            ),
             create: get!(
                 c"vkCreateRayTracingPipelinesKHR",
                 vk::PFN_vkCreateRayTracingPipelinesKHR,
@@ -255,7 +319,11 @@ impl Executable {
         if self.stages != STAGE_RAY {
             return Err(INVALID);
         }
-        if count == 0 || first.checked_add(count).ok_or(INVALID)? as usize > self.ray_groups.len() {
+        let meta = self.ray_meta.as_ref().ok_or(INVALID)?;
+        if meta.library && d.snapshot.features.enabled & RAY_LIBRARY_HANDLES == 0 {
+            return Err(UNSUPPORTED);
+        }
+        if count == 0 || first.checked_add(count).ok_or(INVALID)? as usize > meta.groups.len() {
             return Err(INVALID);
         }
         let size = u64::from(count) * u64::from(d.snapshot.ray_limits.group_handle_size);
@@ -276,6 +344,44 @@ impl Executable {
             ))
         }
     }
+    pub(in crate::foundation) unsafe fn ray_capture_handles(
+        &self,
+        first: u32,
+        count: u32,
+        output: HostSpan,
+    ) -> Result<(), Status> {
+        let d = unsafe { &*self.device };
+        d.ready()?;
+        let meta = self.ray_meta.as_ref().ok_or(INVALID)?;
+        if d.snapshot.features.enabled & RAY_CAPTURE_REPLAY == 0
+            || (meta.library && d.snapshot.features.enabled & RAY_LIBRARY_HANDLES == 0)
+        {
+            return Err(UNSUPPORTED);
+        }
+        if meta.flags & RAY_CAPTURE_HANDLES == 0
+            || count == 0
+            || first.checked_add(count).ok_or(INVALID)? as usize > meta.groups.len()
+        {
+            return Err(INVALID);
+        }
+        let size = u64::from(count) * u64::from(d.snapshot.ray_artifact_limits.capture_handle_size);
+        if output.size < size {
+            return Err(CAPACITY);
+        }
+        if output.data.is_null() || size == 0 || size > isize::MAX as u64 {
+            return Err(INVALID);
+        }
+        unsafe {
+            d.result((d.ray_commands.capture_handles.ok_or(UNSUPPORTED)?)(
+                d.handle,
+                self.pipeline,
+                first,
+                count,
+                size as usize,
+                output.data,
+            ))
+        }
+    }
     pub(in crate::foundation) fn ray_group_stack_size(
         &self,
         group: u32,
@@ -286,8 +392,9 @@ impl Executable {
         if self.stages != STAGE_RAY
             || member > 3
             || self
-                .ray_groups
-                .get(group as usize)
+                .ray_meta
+                .as_ref()
+                .and_then(|m| m.groups.get(group as usize))
                 .is_none_or(|m| m & (1 << member) == 0)
         {
             return Err(INVALID);
@@ -301,6 +408,101 @@ impl Executable {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn library_and_replay_permissions_are_explicit_native_fields() {
+        let bits = ACCELERATION_STRUCTURE
+            | RAY_PIPELINE
+            | RAY_LIBRARIES
+            | RAY_LIBRARY_HANDLES
+            | RAY_CAPTURE_REPLAY
+            | RAY_CAPTURE_REPLAY_MIXED;
+        assert_eq!(validate_feature_dependencies(bits), Ok(()));
+        let n = Native::new(bits);
+        assert_eq!(n.group_handles.pipelineLibraryGroupHandles, 1);
+        assert_eq!(
+            n.pipeline.rayTracingPipelineShaderGroupHandleCaptureReplay,
+            1
+        );
+        assert_eq!(
+            n.pipeline
+                .rayTracingPipelineShaderGroupHandleCaptureReplayMixed,
+            1
+        );
+        let n = Native::new(ACCELERATION_STRUCTURE | RAY_PIPELINE);
+        assert_eq!(n.group_handles.pipelineLibraryGroupHandles, 0);
+        assert_eq!(
+            n.pipeline.rayTracingPipelineShaderGroupHandleCaptureReplay,
+            0
+        );
+        assert_eq!(
+            validate_feature_dependencies(
+                ACCELERATION_STRUCTURE | RAY_PIPELINE | RAY_LIBRARY_HANDLES
+            ),
+            Err(INVALID)
+        );
+        assert_eq!(
+            validate_feature_dependencies(
+                ACCELERATION_STRUCTURE | RAY_PIPELINE | RAY_CAPTURE_REPLAY_MIXED
+            ),
+            Err(INVALID)
+        );
+    }
+    #[test]
+    #[ignore = "requires Vulkan; explicit native ray library/replay enablement or unsupported rejection"]
+    fn gpu_ray_artifact_profiles() {
+        let instance = Arc::new(Instance::new().unwrap());
+        let physical = instance
+            .physical_devices()
+            .unwrap()
+            .into_iter()
+            .find(|p| {
+                super::super::snapshot(&instance, *p)
+                    .is_ok_and(|s| s.features.baseline_supported != 0)
+            })
+            .unwrap();
+        let snapshot = super::super::snapshot(&instance, physical).unwrap();
+        let domain = snapshot
+            .queues
+            .iter()
+            .find(|q| q.count > 0 && q.flags & COMPUTE != 0)
+            .unwrap()
+            .domain;
+        println!("RAY_ARTIFACT_LIMITS={:?}", snapshot.ray_artifact_limits);
+        let adapter = Adapter {
+            instance,
+            physical,
+            snapshot,
+        };
+        for optional in [
+            RAY_LIBRARIES,
+            RAY_LIBRARIES | RAY_LIBRARY_HANDLES,
+            RAY_CAPTURE_REPLAY,
+            RAY_CAPTURE_REPLAY | RAY_CAPTURE_REPLAY_MIXED,
+        ] {
+            let bits = ACCELERATION_STRUCTURE | RAY_PIPELINE | optional;
+            let result = crate::foundation::rust::device_create(
+                &adapter,
+                &[QueueRequest {
+                    domain,
+                    count: 1,
+                    priority: 1.0,
+                }],
+                &features::decode(bits),
+            );
+            if bits & !adapter.snapshot.features.available != 0 {
+                assert!(matches!(result, Err(UNSUPPORTED)));
+                println!("RAY_ARTIFACT_UNAVAILABLE={:?}", features::decode(optional));
+            } else {
+                let d = result.unwrap();
+                assert_eq!(unsafe { &*d.as_raw() }.snapshot.features.enabled, bits);
+                unsafe {
+                    crate::foundation::rust::device_destroy(d);
+                }
+                println!("RAY_ARTIFACT_ENABLED={:?}", features::decode(optional));
+            }
+        }
+    }
     #[test]
     fn ray_queries_and_high_word_profiles_enable_independently() {
         assert_eq!(

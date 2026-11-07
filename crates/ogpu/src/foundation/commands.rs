@@ -706,7 +706,7 @@ impl List {
             return Err(INVALID);
         }
         stages(d, self.domain, executable.stages, false)?;
-        if !ptr::eq(executable.device, d) {
+        if !ptr::eq(executable.device, d) || executable.library {
             return Err(INVALID);
         }
         unsafe {

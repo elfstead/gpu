@@ -41,6 +41,8 @@ pub(super) mod pipeline_binaries;
 pub use pipeline_binaries::PipelineBinary;
 #[path = "raster_profiles.rs"]
 mod raster_profiles;
+#[path = "ray_artifacts.rs"]
+mod ray_artifacts;
 #[path = "shader_profiles.rs"]
 mod shader_profiles;
 pub use acceleration::Acceleration;
@@ -372,7 +374,7 @@ pub(super) fn snapshot(
     let mut sample_location_limits = SampleLocationLimits::default();
     let mut dynamic_raster_limits = DynamicRasterLimits::default();
     let mut viewport_limits = ViewportLimits::default();
-    let (ray_features, ray_limits) = ray::snapshot(instance, physical, &f)?;
+    let (ray_features, ray_limits, ray_artifact_limits) = ray::snapshot(instance, physical, &f)?;
     features.available |= ray_features;
     let (capture_features, capture_limits) = capture::snapshot(instance, physical, &f)?;
     features.available |= capture_features;
@@ -940,6 +942,7 @@ pub(super) fn snapshot(
         pipeline_binary_limits,
         matrix_flexible_tuples,
         ray_limits,
+        ray_artifact_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -1284,6 +1287,12 @@ impl Device {
             extensions.push(c"VK_EXT_shader_atomic_float2".as_ptr());
         }
         matrix_profiles::extensions(enabled, &mut extensions);
+        if enabled & RAY_LIBRARIES != 0 {
+            extensions.push(c"VK_KHR_pipeline_library".as_ptr());
+        }
+        if enabled & RAY_LIBRARY_HANDLES != 0 {
+            extensions.push(c"VK_EXT_pipeline_library_group_handles".as_ptr());
+        }
         if enabled & PIPELINE_BINARIES != 0 {
             extensions.push(c"VK_KHR_pipeline_binary".as_ptr());
         }

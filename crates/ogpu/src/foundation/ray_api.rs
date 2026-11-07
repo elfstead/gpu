@@ -30,3 +30,18 @@ pub unsafe extern "C" fn ogpu_next_ray_group_stack_size(
         Ok(())
     })
 }
+
+/// # Safety
+/// Live capture-enabled executable/device; writable disjoint output of declared size.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_ray_capture_handles(
+    executable: *const Executable,
+    first: u32,
+    count: u32,
+    output: HostSpan,
+) -> Status {
+    boundary(|| {
+        let e = unsafe { executable.as_ref() }.ok_or(INVALID)?;
+        unsafe { e.ray_capture_handles(first, count, output) }
+    })
+}

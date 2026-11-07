@@ -14,7 +14,7 @@ impl Drop for Module<'_> {
     }
 }
 fn groups(
-    shaders: &[Shader],
+    shaders: &[u32],
     input: &[RayGroup],
     flags: u32,
 ) -> Result<(Vec<vk::VkRayTracingShaderGroupCreateInfoKHR>, Box<[u8]>), Status> {
@@ -40,10 +40,10 @@ fn groups(
             }
             let s = shaders.get(index as usize).ok_or(INVALID)?;
             let valid = match (g.kind, i) {
-                (0, 0) => matches!(s.stage, SHADER_RAYGEN | SHADER_MISS | SHADER_CALLABLE),
-                (1 | 2, 1) => s.stage == SHADER_CLOSEST_HIT,
-                (1 | 2, 2) => s.stage == SHADER_ANY_HIT,
-                (2, 3) => s.stage == SHADER_INTERSECTION,
+                (0, 0) => matches!(*s, SHADER_RAYGEN | SHADER_MISS | SHADER_CALLABLE),
+                (1 | 2, 1) => *s == SHADER_CLOSEST_HIT,
+                (1 | 2, 2) => *s == SHADER_ANY_HIT,
+                (2, 3) => *s == SHADER_INTERSECTION,
                 _ => false,
             };
             if !valid {
@@ -92,11 +92,11 @@ pub(super) unsafe fn prepare(
     {
         return Err(UNSUPPORTED);
     }
-    let state = unsafe { record::<RayState>(desc.static_state, RAY_STATE)? };
-    if state.flags & !63 != 0 {
+    let state = unsafe { local_read::parent::<RayState>(desc.static_state, RAY_STATE)? };
+    if state.flags & !127 != 0 {
         return Err(UNSUPPORTED);
     }
-    if state.reserved != 0 || state.group_count == 0 || desc.shader_count == 0 {
+    if state.reserved != 0 {
         return Err(INVALID);
     }
     if state.max_recursion > d.snapshot.ray_limits.max_recursion {
@@ -113,14 +113,18 @@ pub(super) unsafe fn prepare(
         return Err(INVALID);
     }
     let shaders = unsafe { array(desc.shaders, desc.shader_count)? };
-    if !shaders.iter().any(|s| s.stage == SHADER_RAYGEN) {
-        return Err(INVALID);
-    }
-    let (groups, members) = groups(
-        shaders,
+    let linkage = unsafe {
+        ray_artifacts::Linkage::new(d, state, shaders, desc.compile_flags & COMPILE_LIBRARY != 0)?
+    };
+    let (mut groups, members) = groups(
+        &linkage.stages,
         unsafe { array(state.groups, state.group_count)? },
         state.flags,
     )?;
+    for (g, p) in groups.iter_mut().zip(&linkage.replay) {
+        g.pShaderGroupCaptureReplayHandle = *p;
+    }
+    let meta = linkage.metadata(state, &members, desc.compile_flags & COMPILE_LIBRARY != 0)?;
     let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
     let mut modules = Vec::new();
     modules
@@ -233,7 +237,11 @@ pub(super) unsafe fn prepare(
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
         flags: bits.iter().enumerate().fold(pipeline_flags, |v, (i, b)| {
             v | if state.flags & (1 << i) != 0 { *b } else { 0 }
-        }),
+        }) | if state.flags & RAY_CAPTURE_HANDLES != 0 {
+            vk::VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR
+        } else {
+            0
+        },
         ..Default::default()
     };
     let stack_state = vk::VkDynamicState_VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR;
@@ -244,6 +252,12 @@ pub(super) unsafe fn prepare(
         ..Default::default()
     };
     let binary_info = binaries.native(ptr::from_ref(&flags).cast());
+    let libraries = vk::VkPipelineLibraryCreateInfoKHR {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR,
+        libraryCount: linkage.libraries.len() as u32,
+        pLibraries: linkage.libraries.as_ptr(),
+        ..Default::default()
+    };
     let info = vk::VkRayTracingPipelineCreateInfoKHR {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
         pNext: binaries.link(&binary_info, ptr::from_ref(&flags).cast()),
@@ -252,6 +266,15 @@ pub(super) unsafe fn prepare(
         groupCount: state.group_count,
         pGroups: groups.as_ptr(),
         maxPipelineRayRecursionDepth: state.max_recursion,
+        pLibraryInfo: if linkage.interface.is_some() {
+            &libraries
+        } else {
+            ptr::null()
+        },
+        pLibraryInterface: linkage
+            .interface
+            .as_ref()
+            .map_or(ptr::null(), ptr::from_ref),
         pDynamicState: if desc.dynamic_state != 0 {
             &dynamic
         } else {
@@ -268,10 +291,11 @@ pub(super) unsafe fn prepare(
         view_mask: 0,
         indirect_bindable: desc.compile_flags & 2 != 0,
         dispatch_origin: false,
+        library: desc.compile_flags & COMPILE_LIBRARY != 0,
         capture_data: pipeline_binaries::capture_state(desc.compile_flags),
         dynamic_state: desc.dynamic_state,
         vertex_bindings: Box::new([]),
-        ray_groups: members,
+        ray_meta: Some(meta),
     });
     if unsafe { action.resolve(d, ptr::from_ref(&info).cast())? } {
         return Ok(result);
@@ -295,23 +319,12 @@ mod tests {
     use super::*;
     #[test]
     fn native_groups_preserve_empty_hits_but_reject_wrong_members_and_flag_promises() {
-        let shader = |stage| Shader {
-            stage,
-            format: 0,
-            code: Bytes {
-                data: ptr::null(),
-                size: 0,
-            },
-            entry: ptr::null(),
-            specialization: ptr::null(),
-            subgroup: ptr::null(),
-        };
         let shaders = [
-            shader(SHADER_RAYGEN),
-            shader(SHADER_MISS),
-            shader(SHADER_CLOSEST_HIT),
-            shader(SHADER_ANY_HIT),
-            shader(SHADER_INTERSECTION),
+            SHADER_RAYGEN,
+            SHADER_MISS,
+            SHADER_CLOSEST_HIT,
+            SHADER_ANY_HIT,
+            SHADER_INTERSECTION,
         ];
         let empty = RayGroup {
             kind: RAY_GROUP_TRIANGLES,

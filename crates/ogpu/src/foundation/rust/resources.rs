@@ -377,3 +377,24 @@ pub unsafe fn ray_group_stack_size(
 ) -> Result<u64> {
     unsafe { executable.get() }.ray_group_stack_size(group, member)
 }
+
+/// # Safety
+/// Live capture-enabled executable/device, disjoint writable output. Native opaque
+/// bytes retain their compatibility/provenance and replay sequencing obligations.
+pub unsafe fn ray_capture_handles(
+    executable: ExecutableHandle,
+    first: u32,
+    count: u32,
+    output: &mut [u8],
+) -> Result<()> {
+    unsafe {
+        executable.get().ray_capture_handles(
+            first,
+            count,
+            HostSpan {
+                data: output.as_mut_ptr().cast(),
+                size: output.len() as u64,
+            },
+        )
+    }
+}

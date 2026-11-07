@@ -4096,6 +4096,49 @@ ogpu_next_status ogpu_next_executable_binary_lookup(ogpu_next_device *device, co
  * destruction; synchronize binary destruction against import use/export. Destruction
  * never waits, and binaries can be destroyed once pipeline creation returns. */
 
+
+/* Native ray library linkage and opaque handle capture/replay, not scene or
+ * shader-table ownership. These records extend RayState.header.next, in either
+ * order, at most one of each. reserved=0. Both compose with executable binaries. */
+#define OGPU_NEXT_FEATURE_RAY_LIBRARIES UINT32_C(195)
+#define OGPU_NEXT_FEATURE_RAY_LIBRARY_HANDLES UINT32_C(196)
+#define OGPU_NEXT_FEATURE_RAY_CAPTURE_REPLAY UINT32_C(197)
+#define OGPU_NEXT_FEATURE_RAY_CAPTURE_REPLAY_MIXED UINT32_C(198)
+
+enum { OGPU_NEXT_RAY_LIBRARIES_INFO = 153, OGPU_NEXT_RAY_REPLAY_INFO = 154, OGPU_NEXT_QUERY_RAY_ARTIFACT_LIMITS = 38, OGPU_NEXT_RAY_CAPTURE_HANDLES = 64, OGPU_NEXT_COMPILE_LIBRARY = 32 };
+typedef struct ogpu_next_ray_artifact_limits { uint32_t capture_handle_size, reserved[3]; } ogpu_next_ray_artifact_limits;
+typedef struct ogpu_next_ray_libraries_info { ogpu_next_record header; uint32_t count, max_payload_size, max_hit_attribute_size, reserved; ogpu_next_executable *const *libraries; } ogpu_next_ray_libraries_info;
+typedef struct ogpu_next_ray_replay_info { ogpu_next_record header; uint32_t count, reserved; const ogpu_next_bytes *handles; } ogpu_next_ray_replay_info;
+ogpu_next_status ogpu_next_ray_capture_handles(const ogpu_next_executable *executable, uint32_t first, uint32_t count, ogpu_next_host_span output);
+/* COMPILE_LIBRARY in ExecutableDesc.compile_flags creates an unbindable library
+ * (currently the ray executable profile). RAY_LIBRARIES_INFO
+ * is required when compiling a library or linking any; count may be zero for an
+ * initial library. Each input is a same-device library with identical recursion,
+ * payload and hit-attribute limits and at least the parent's ray flag promises.
+ * Shader/group arrays may be empty when libraries provide the contents. Library
+ * stages are appended to local stages in list order; local group indices may
+ * reference that complete stage list. Library groups append after local groups.
+ * An executable link must contain a raygen stage, possibly from a library.
+ * Input libraries and their argument layouts must remain alive until all derived
+ * libraries/executables and their uses are destroyed/retired. The caller retains
+ * this dependency graph; OGPU adds no reference counts, automatic retention or waits.
+ * Caller/compiler ensures compatible argument mappings for all linked shaders;
+ * compatible layouts need not be the same object. Libraries cannot be bound or
+ * inserted into generated execution sets. Querying their ordinary/capture handles
+ * requires RAY_LIBRARY_HANDLES; that profile preserves those handles across links.
+ * RAY_CAPTURE_HANDLES in flags enables native opaque handle capture/replay.
+ * ray_capture_handles returns count*capture_handle_size bytes (distinct from live
+ * shader-table group_handle_size). Bytes have native compatibility/provenance;
+ * they are not executable binary data or ordinary shader-table records.
+ * RAY_REPLAY_INFO.count equals LOCAL group_count; each entry is empty (new handle)
+ * or exactly capture_handle_size intact bytes. Nonempty entries require capture
+ * flags. Parent capture flags require capture-enabled input libraries.
+ * The caller obeys native device-wide replay-before-nonreplay creation sequencing
+ * and exclusion when RAY_CAPTURE_REPLAY_MIXED is unavailable; OGPU adds no global
+ * lock/history, and never rewrites shader tables or replays resource addresses.
+ * Libraries, capture records, and opaque bytes remain separate from AS address
+ * capture/replay, which is not implemented by this profile. */
+
 #ifdef __cplusplus
 }
 #endif

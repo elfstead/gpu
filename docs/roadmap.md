@@ -750,7 +750,11 @@ consumer/validation track, not inferred from single-device import/export.
 now make each package concrete. M10 consolidation is complete; M11 is active.
 Numeric-format and GPU-control packages are implemented with bounded acceptance.
 The shader-profile package adds 32 individual native permissions; four artifact
-consumers have executed. Remaining per-capability witnesses stay explicit.
+consumers have executed. Exact matrix profiles and a bounded MLP consumer are
+implemented with local hardware exclusion. Pipeline binaries have local round-trip
+evidence; [ray libraries/capture-replay](m11-ray-artifacts.md) pass explicit
+emulation diagnostics. Native execution graphs are next, followed by plane-aware
+images and the selected codec sessions. Remaining per-capability witnesses stay explicit.
 
 **Compute deliverables:** richer shared-memory/launch profiles, cooperative or
 cluster/device-enqueue execution where native APIs support it, pipeline artifact/

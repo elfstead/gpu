@@ -253,7 +253,15 @@ pub(super) struct FeatureState {
     pub baseline_supported: u32,
     pub device_scope: u32,
 }
-const MAX_ID: u32 = feature_ids::DISABLE_BINARY_INTERNAL_CACHE;
+const MAX_ID: u32 = feature_ids::RAY_CAPTURE_REPLAY_MIXED;
+pub(super) const RAY_LIBRARIES: FeatureBits = FeatureBits::bit(feature_ids::RAY_LIBRARIES - 1);
+pub(super) const RAY_LIBRARY_HANDLES: FeatureBits =
+    FeatureBits::bit(feature_ids::RAY_LIBRARY_HANDLES - 1);
+pub(super) const RAY_CAPTURE_REPLAY: FeatureBits =
+    FeatureBits::bit(feature_ids::RAY_CAPTURE_REPLAY - 1);
+pub(super) const RAY_CAPTURE_REPLAY_MIXED: FeatureBits =
+    FeatureBits::bit(feature_ids::RAY_CAPTURE_REPLAY_MIXED - 1);
+
 pub(super) const PIPELINE_BINARIES: FeatureBits =
     FeatureBits::bit(feature_ids::PIPELINE_BINARIES - 1);
 pub(super) const DISABLE_BINARY_INTERNAL_CACHE: FeatureBits =

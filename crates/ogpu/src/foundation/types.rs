@@ -28,6 +28,11 @@ pub mod image_formats {
 pub const VERSION: u32 = 13;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const RAY_LIBRARIES: u32 = 195;
+    pub const RAY_LIBRARY_HANDLES: u32 = 196;
+    pub const RAY_CAPTURE_REPLAY: u32 = 197;
+    pub const RAY_CAPTURE_REPLAY_MIXED: u32 = 198;
+
     pub const PIPELINE_BINARIES: u32 = 193;
     pub const DISABLE_BINARY_INTERNAL_CACHE: u32 = 194;
     pub const MATRIX_WORKGROUP: u32 = 180;
@@ -866,6 +871,9 @@ pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(),
     for (dynamic, base) in [
         (VARIABLE_POINTERS, VARIABLE_POINTERS_STORAGE),
         (DISABLE_BINARY_INTERNAL_CACHE, PIPELINE_BINARIES),
+        (RAY_LIBRARIES | RAY_CAPTURE_REPLAY, RAY_PIPELINE),
+        (RAY_LIBRARY_HANDLES, RAY_LIBRARIES),
+        (RAY_CAPTURE_REPLAY_MIXED, RAY_CAPTURE_REPLAY),
         (INHERITED_CONDITIONAL_RENDERING, CONDITIONAL_RENDERING),
         (
             PRIMITIVES_GENERATED_DISCARD | PRIMITIVES_GENERATED_STREAMS,
@@ -2872,4 +2880,32 @@ pub struct ExecutableBinaries {
     pub count: u32,
     pub reserved: u32,
     pub binaries: *const *mut super::PipelineBinary,
+}
+
+pub const RAY_LIBRARIES_INFO: u32 = 153;
+pub const RAY_REPLAY_INFO: u32 = 154;
+pub const RAY_ARTIFACT_LIMITS: u32 = 38;
+pub const RAY_CAPTURE_HANDLES: u32 = 64;
+pub const COMPILE_LIBRARY: u32 = 32;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct RayArtifactLimits {
+    pub capture_handle_size: u32,
+    pub reserved: [u32; 3],
+}
+#[repr(C)]
+pub struct RayLibrariesInfo {
+    pub header: Record,
+    pub count: u32,
+    pub max_payload_size: u32,
+    pub max_hit_attribute_size: u32,
+    pub reserved: u32,
+    pub libraries: *const *mut super::Executable,
+}
+#[repr(C)]
+pub struct RayReplayInfo {
+    pub header: Record,
+    pub count: u32,
+    pub reserved: u32,
+    pub handles: *const Bytes,
 }

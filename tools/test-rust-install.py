@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--no-gpu", action="store_true")
     parser.add_argument("--external", action="store_true", help="require Linux opaque-FD memory/timeline roundtrip; select any validation control explicitly in the environment")
     parser.add_argument("--execution-controls", action="store_true", help="require primary predicates and independent primitive queries")
+    parser.add_argument("--ray-artifacts", action="store_true", help="require ray library linkage; capture/replay is capability-dependent and emulation must be selected externally")
     parser.add_argument("--pipeline-artifacts", action="store_true", help="require native binary capture/import and source-free compute equivalence")
     parser.add_argument("--matrix-ml", action="store_true", help="require native 16x16x16 FP16/FP32 matrix MLP execution; unavailable is not acceptance")
     parser.add_argument("--shader-profiles", action="store_true", help="run native rotation/derivative/narrow-storage artifacts; preserve capability exclusions")
@@ -29,7 +30,7 @@ def main():
     parser.add_argument("--ray", action="store_true", help="also require the four ray consumer profiles; emulation must be explicitly selected externally")
     parser.add_argument("--presentation", action="store_true", help="also open bounded Wayland windows")
     args = parser.parse_args()
-    require(not (args.no_gpu and (args.presentation or args.ray or args.external or args.sparse or args.execution_controls or args.shader_profiles or args.matrix_ml or args.pipeline_artifacts)), "GPU consumer options conflict with --no-gpu")
+    require(not (args.no_gpu and (args.presentation or args.ray or args.external or args.sparse or args.execution_controls or args.shader_profiles or args.matrix_ml or args.pipeline_artifacts or args.ray_artifacts)), "GPU consumer options conflict with --no-gpu")
     prefix = args.prefix.resolve()
     manifest = json.loads((prefix / "share/ogpu/manifest.json").read_text())
     description = manifest["native_rust"]
@@ -92,7 +93,7 @@ def main():
         run([cargo, "build", *common, "--release", "--bins"], "build")
         # Cargo's depfiles expose include_bytes! and build.rs-generated inputs as
         # well as Rust modules. No checkout, SDK library, or old target is allowed.
-        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native", "external", "sparse", "ray_native", "controls", "shader_profiles", "matrix_ml", "artifacts"):
+        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native", "external", "sparse", "ray_native", "controls", "shader_profiles", "matrix_ml", "artifacts", "ray_artifacts"):
             text = (target / "release" / (filename + ".d")).read_text()
             dependencies = shlex.split(text.split(": ", 1)[1].split("\n\n", 1)[0].replace("\\\n", ""))
             require(dependencies and all(Path(p).resolve().is_relative_to(bundle) for p in dependencies),
@@ -120,6 +121,10 @@ def main():
         if args.pipeline_artifacts:
             run([str(target / "release/artifacts")], "pipeline-artifacts", marker="PIPELINE_BINARY_PASS", timeout=30)
             report["runs"].append("pipeline-artifacts")
+        report["ray_environment"] = {name: environment.get(name) for name in ("RADV_EXPERIMENTAL", "OGPU_RAY_GENERATED")}
+        if args.ray_artifacts:
+            run([str(target / "release/ray_artifacts")], "ray-artifacts", marker="RAY_LIBRARY_PASS", timeout=90)
+            report["runs"].append("ray-artifacts")
         if args.matrix_ml:
             run([str(target / "release/matrix_ml")], "matrix-ml", marker="MATRIX_ML_PASS", timeout=30)
             report["runs"].append("matrix-ml")
@@ -131,7 +136,6 @@ def main():
             report["runs"].append("sparse")
         ray = str(target / "release/ray")
         run([ray], "ray-missing-loader", env=dict(environment, OGPU_VULKAN_LIBRARY="/missing-ogpu-loader.so"), success=False, timeout=30)
-        report["ray_environment"] = {name: environment.get(name) for name in ("RADV_EXPERIMENTAL", "OGPU_RAY_GENERATED")}
         if args.ray:
             for options in ([], ["--pipeline"], ["--procedural"], ["--pipeline", "--procedural"]):
                 label = "ray" + "".join("-" + o.removeprefix("--") for o in options)

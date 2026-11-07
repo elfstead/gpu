@@ -17,10 +17,11 @@ pub struct Executable {
     pub(super) view_mask: u32,
     pub(super) indirect_bindable: bool,
     pub(super) dispatch_origin: bool,
+    pub(super) library: bool,
     pub(super) capture_data: std::cell::Cell<bool>,
     pub(super) dynamic_state: u64,
     pub(super) vertex_bindings: Box<[u32]>,
-    pub(super) ray_groups: Box<[u8]>,
+    pub(super) ray_meta: Option<Box<ray::PipelineMeta>>,
 }
 impl Drop for Executable {
     fn drop(&mut self) {
@@ -75,7 +76,8 @@ unsafe fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Statu
     Ok(())
 }
 fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64, Status> {
-    if flags & !31 != 0
+    if flags & !63 != 0
+        || (flags & COMPILE_LIBRARY != 0 && enabled & RAY_LIBRARIES == 0)
         || (flags & COMPILE_CAPTURE_BINARY != 0 && enabled & PIPELINE_BINARIES == 0)
         || reserved != 0
         || (flags & 1 != 0 && enabled & CACHE_CONTROL == 0)
@@ -85,6 +87,11 @@ fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64,
         return Err(UNSUPPORTED);
     }
     Ok(vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+        | if flags & COMPILE_LIBRARY != 0 {
+            vk::VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR
+        } else {
+            0
+        }
         | if flags & COMPILE_CAPTURE_BINARY != 0 {
             vk::VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR
         } else {
@@ -155,6 +162,9 @@ impl Executable {
             desc.compile_flags,
             desc.reserved,
         )?;
+        if desc.kind != 3 && desc.compile_flags & COMPILE_LIBRARY != 0 {
+            return Err(INVALID);
+        }
         if desc.kind != 1 && desc.compile_flags & COMPILE_DISPATCH_ORIGIN != 0 {
             return Err(INVALID);
         }
@@ -241,10 +251,11 @@ impl Executable {
             view_mask: 0,
             indirect_bindable: desc.compile_flags & 2 != 0,
             dispatch_origin: desc.compile_flags & COMPILE_DISPATCH_ORIGIN != 0,
+            library: false,
             capture_data: pipeline_binaries::capture_state(desc.compile_flags),
             dynamic_state: 0,
             vertex_bindings: Box::new([]),
-            ray_groups: Box::new([]),
+            ray_meta: None,
         });
         let mapping = layout.mapping_info(
             shader.stage,

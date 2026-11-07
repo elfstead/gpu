@@ -81,8 +81,10 @@ four bounded artifact consumers pass). The [launch/matrix audit](m11-launch-mapp
 origins now pass. Extended matrix profiles and exact fixed/flexible discovery
 are implemented. The bounded accelerated ML consumer is implemented with compiled
 artifacts and explicit local exclusion. [Pipeline binaries](m11-pipeline-artifacts.md)
-now pass local compute round-trip and graphics recreation; ray libraries/capture-replay
-and execution graphs are next; native execution graphs remain an explicit subsequent package. No
+now pass local compute round-trip and graphics recreation.
+[Ray libraries/capture-replay](m11-ray-artifacts.md) are implemented, with clean
+explicit emulation diagnostics and native hardware acceptance open. Native
+execution graphs are next, then plane-aware images and media. No
 hardware-matrix acceptance is claimed.
 The remaining rows are scheduled work, not implemented claims or vague examples.
 
@@ -271,3 +273,12 @@ optional disabling of the native internal cache. Compute output equivalence and
 graphics recreation pass locally. The undersized-capture threading-tracker
 diagnostic is retained separately; ray execution and imported raster output remain
 unaccepted. Ray libraries/capture-replay and execution graphs still precede media.
+
+## Ray artifact package (2026-11-07)
+
+[Contract, lifetime obligations and evidence](m11-ray-artifacts.md) now cover
+explicit libraries, nested/imported-stage linkage, stable handles and opaque
+capture/replay. The caller owns the dependency lifetime graph. Normal local RADV
+rejects unsupported profiles; explicit emulation passes fresh-device replay and
+exact output/guard checks with clean validation. Mixed creation and native ray
+hardware remain unaccepted. This completes the implementation package, not M11.

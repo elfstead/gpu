@@ -5,6 +5,7 @@ fn fixture() -> Snapshot {
         capture_limits: CaptureLimits::default(),
         shader_profile_limits: ShaderProfileLimits::default(),
         ray_limits: RayLimits::default(),
+        ray_artifact_limits: RayArtifactLimits::default(),
         dependency_limits: Vec::new(),
         cache_uuid: [0; 16],
         info: AdapterInfo {

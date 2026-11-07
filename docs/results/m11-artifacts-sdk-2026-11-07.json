@@ -1,0 +1,20 @@
+{
+  "source": "e9cb05e5b8e878b0952dcd0bafc9f1d641c93075",
+  "source_dirty": false,
+  "prefix": "/tmp/ogpu-m11-artifacts-sdk",
+  "relocated": "/tmp/ogpu-rust-external-01omg9ji",
+  "checks": [
+    "eleven independent consumer binaries build",
+    "depfiles confined to relocated source bundle",
+    "native Rust linkage without C SDK/loader linkage",
+    "host and missing-loader checks",
+    "headless",
+    "native interop",
+    "execution controls",
+    "five shader profiles",
+    "pipeline artifacts compute and graphics preparation"
+  ],
+  "validation_errors": 0,
+  "matrix_execution": "unavailable; matrix consumer built and host reference tested, not GPU-accepted",
+  "scope": "intermediate M11 checkpoint, not milestone completion"
+}

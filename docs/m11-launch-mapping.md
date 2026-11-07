@@ -14,8 +14,8 @@ explicit, without a shader rewrite, hidden compilation, extra dispatch or barrie
 | Dynamic workgroup memory | CUDA dynamic shared byte count; Metal indexed threadgroup-memory lengths | Existing scalar `dynamic_shared_bytes` is reserved/unsupported on Vulkan. A scalar alone cannot express Metal's multiple indexed regions; add a counted region extension when implementing that native backend profile |
 | Cooperative grid / clusters | CUDA cooperative launch and explicit cluster launch attributes | Separate scheduling/forward-progress contracts, not inferred from a subgroup size, local shape or shared-memory budget. No native mapping in the current Vulkan backend |
 | GPU-created work | AMDX execution graphs have native node linkage, scratch requirements/initialization and graph dispatch; ordinary generated commands are a separate mechanism | Explicit optional execution-graph profile still to implement; do not call an indirect dispatch loop equivalent |
-| Workgroup/flexible cooperative matrices | NV cooperative-matrix-2 features, tuple granularity, workgroup size and reserved shared-memory properties | Extend capability/tuple discovery and artifact enabling; no host tensor operator or graph runtime needed |
-| Native binary artifacts | Vulkan pipeline binary import/capture/keys; optional pipeline libraries and capture/replay | Separate cold artifact package follows; application owns persistence and compatibility decisions |
+| Workgroup/flexible cooperative matrices | NV cooperative-matrix-2 features, tuple granularity, workgroup size and reserved shared-memory properties | Implemented exact fixed/flexible tuple and limit discovery; bounded matrix MLP artifacts built, native local execution unavailable |
+| Native binary artifacts | Vulkan pipeline binary import/capture/keys; optional pipeline libraries and capture/replay | Binary capture/import and ray library/handle capture-replay implemented; application owns persistence, compatibility and dependency lifetimes |
 
 [Native Vulkan origins](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDispatchBase.html),
 [CUDA launch controls](https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__EXEC.html),
@@ -41,7 +41,7 @@ limit boundaries, zero counts and overflow-sized counts. This is origin acceptan
 not evidence for dynamic memory, grid cooperation or execution graphs.
 [Execution receipt](results/m11-dispatch-origin-2026-11-07.json).
 
-## Concrete remaining implementation packages
+## Concrete implementation packages and status
 
 1. Extend matrix discovery with optional workgroup/flexible-dimension profiles and
    exact native numeric types. Keep fixed tuples and granularity/maximum properties
@@ -66,6 +66,9 @@ not evidence for dynamic memory, grid cooperation or execution graphs.
    freeze the present scalar field into a claimed universal contract. Metal/native
    CUDA implementation and acceptance are separate from Vulkan/Linux progress.
 
-These are remaining tasks, not completed by this audit. In particular, matrix
-profiles, graph dispatch and binaries still precede M11 media consolidation. Lack
-of local hardware is not a reason to erase a native capability or claim it passed.
+Packages 1–3 are now implemented: matrix profiles and the bounded ML consumer
+retain local hardware exclusions; binaries have local compute round-trip evidence;
+[ray libraries and capture/replay](m11-ray-artifacts.md) have explicit emulation
+diagnostics only. Package 4 is next, before plane-aware images and codec sessions.
+Package 5 retains separate backend prerequisites. Lack of local hardware is not a
+reason to erase a native capability or claim it passed.
