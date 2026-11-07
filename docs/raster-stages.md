@@ -92,13 +92,13 @@ silently emulate these stages with CPU work or multiple draws.
 ## Remaining verification and scope
 
 Positive drawing with multiview, point output/explicit point size, line adjacency,
-fan/restart, quad/isoline tessellation, alternative spacing and unequal input/output
-patch sizes remains unverified. So do secondary, generated, local-read, shading-rate
+fan/restart, quad/isoline tessellation and alternative spacing remain unverified.
+Unequal input/output patch sizes now have bounded [dynamic-state evidence](dynamic-tessellation.md). So do secondary, generated, local-read, shading-rate
 combinations, per-stage storage writes and advanced subgroup
 execution. Discovery/enabling and representation are not acceptance of all those
 combinations. [Large points and the raster/fetch controls](raster-controls.md) are
-now implemented. Transform feedback/geometry streams and dynamic patch-size policy
-remain in the M8 coverage audit. Metal/DX12 mappings remain unaccepted.
+now implemented, as are [dynamic patch count and domain origin](dynamic-tessellation.md).
+Transform feedback/geometry streams remain in the M8 coverage audit. Metal/DX12 mappings remain unaccepted.
 
 The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
 composes these stages with generated indexed geometry, texture heaps and mip

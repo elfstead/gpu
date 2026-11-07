@@ -188,3 +188,6 @@ vkCmdSetScissorWithCount
 vkCmdSetDepthClampRangeEXT
 vkCmdSetDepthBias2EXT
 vkCmdSetColorWriteEnableEXT
+
+vkCmdSetPatchControlPointsEXT
+vkCmdSetTessellationDomainOriginEXT

@@ -110,9 +110,11 @@ impl Native {
             dynamic2: vk::VkPhysicalDeviceExtendedDynamicState2FeaturesEXT {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,
                 extendedDynamicState2LogicOp: u32::from(enabled & DYNAMIC_LOGIC_OP != 0),
+                extendedDynamicState2PatchControlPoints: u32::from(enabled & DYNAMIC_PATCH_CONTROL_POINTS != 0),
                 ..Default::default()
             },
             dynamic: vk::VkPhysicalDeviceExtendedDynamicState3FeaturesEXT {
+                extendedDynamicState3TessellationDomainOrigin:u32::from(enabled & DYNAMIC_TESSELLATION_ORIGIN !=0),
                 extendedDynamicState3DepthClampEnable: u32::from(enabled & DYNAMIC_DEPTH_CLAMP != 0),
                 extendedDynamicState3PolygonMode: u32::from(enabled & DYNAMIC_POLYGON_MODE != 0),
                 extendedDynamicState3RasterizationSamples: u32::from(enabled & DYNAMIC_RASTERIZATION_SAMPLES != 0),
@@ -161,7 +163,7 @@ impl Native {
             self.convention.pNext = next;
             next = ptr::from_mut(&mut self.convention).cast();
         }
-        if selected & DYNAMIC_LOGIC_OP != 0 {
+        if selected & (DYNAMIC_LOGIC_OP | DYNAMIC_PATCH_CONTROL_POINTS) != 0 {
             self.dynamic2.pNext = next;
             next = ptr::from_mut(&mut self.dynamic2).cast();
         }
@@ -185,7 +187,10 @@ pub(super) fn snapshot(
         (c"VK_EXT_provoking_vertex", PROVOKING_LAST),
         (c"VK_EXT_depth_clip_control", DEPTH_NEGATIVE_ONE_TO_ONE),
         (c"VK_EXT_extended_dynamic_state3", DYNAMIC_FEATURES),
-        (c"VK_EXT_extended_dynamic_state2", DYNAMIC_LOGIC_OP),
+        (
+            c"VK_EXT_extended_dynamic_state2",
+            DYNAMIC_LOGIC_OP | DYNAMIC_PATCH_CONTROL_POINTS,
+        ),
     ] {
         if instance
             .supports_extension(physical, name)
@@ -227,6 +232,12 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut props);
     }
     let mut available = selected & CONSERVATIVE_RASTER;
+    if native.dynamic2.extendedDynamicState2PatchControlPoints != 0 {
+        available |= DYNAMIC_PATCH_CONTROL_POINTS;
+    }
+    if native.dynamic.extendedDynamicState3TessellationDomainOrigin != 0 {
+        available |= DYNAMIC_TESSELLATION_ORIGIN;
+    }
     if native.dynamic2.extendedDynamicState2LogicOp != 0 {
         available |= DYNAMIC_LOGIC_OP;
     }

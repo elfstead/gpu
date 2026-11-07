@@ -175,3 +175,7 @@ record!(fn set_depth_clamp_range(list,mode:u32,min:f32,max:f32) |e| e.depth_clam
 record!(fn set_depth_bias_control(list,constant:f32,clamp:f32,slope:f32,representation:u32,exact:u32) |e| e.depth_bias_control(constant,clamp,slope,representation,exact));
 
 record!(fn set_color_write_enable(list,enables:&[u32]) |e| e.color_write_enable(count(enables.len())?,enables.as_ptr()));
+
+record!(fn set_patch_control_points(list,value:u32) |e| e.extended_raster_value(DYNAMIC_PATCH_CONTROL_POINTS_STATE,value));
+
+record!(fn set_tessellation_origin(list,value:u32) |e| e.extended_raster_value(DYNAMIC_TESSELLATION_ORIGIN_STATE,value));

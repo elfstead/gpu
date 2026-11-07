@@ -27,6 +27,8 @@ fn native_surface_covers_current_c_operations() {
         set_color_write_enable,
         set_viewports,
         set_scissors,
+        set_patch_control_points,
+        set_tessellation_origin,
         set_depth_clamp,
         set_polygon_mode,
         set_rasterization_samples,

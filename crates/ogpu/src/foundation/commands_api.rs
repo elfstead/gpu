@@ -1412,3 +1412,25 @@ pub unsafe extern "C" fn ogpu_next_set_color_write_enable(
         encode(encoder, |e| e.color_write_enable(count, enables));
     }
 }
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_patch_control_points(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_PATCH_CONTROL_POINTS_STATE, value)
+        });
+    }
+}
+
+/// # Safety
+/// Valid recording encoder with exclusive arena access; dynamic draw obligations apply.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_tessellation_origin(encoder: *mut List, value: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.extended_raster_value(DYNAMIC_TESSELLATION_ORIGIN_STATE, value)
+        });
+    }
+}

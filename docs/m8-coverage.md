@@ -59,12 +59,12 @@ remains execution debt:
    now adds eighteen formats through existing operations and assigns every remaining
    native definition to M11 or an explicit later entry criterion. No draw-time synthesis or shader substitute for a
    distinct native mechanism.
-3. **Resolve geometry capture and dynamic patch state.** Transform feedback,
+3. **Resolve geometry capture; dynamic patch state is implemented.** Transform feedback,
    geometry streams and associated counters/queries need their own native
    capability/profile; address storage writes are not assumed equivalent. Dynamic
-   patch count should use the existing dynamic-state model if it preserves native
-   execution and avoids forced executable permutations. Record backend constraints
-   instead of embedding a stream-management runtime.
+   [patch count and domain origin](dynamic-tessellation.md) now use the existing
+   dynamic-state model with direct native commands and unequal input/output patch
+   evidence. Record capture backend constraints instead of embedding a stream-management runtime.
 4. **Consolidate the contracts and bounded composition evidence.** Integrate local
    reads into a substantial consumer, exercise available depth/MSAA and stage
    combinations, and distinguish artifact-tool limitations from core omissions.

@@ -1,6 +1,7 @@
 //! Optional native extended dynamic raster state. No current-state cache.
 use super::*;
-pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_DEPTH_CLAMP
+pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_TESSELLATION_ORIGIN
+    | DYNAMIC_DEPTH_CLAMP
     | DYNAMIC_POLYGON_MODE
     | DYNAMIC_RASTERIZATION_SAMPLES
     | DYNAMIC_SAMPLE_MASK
@@ -11,6 +12,14 @@ pub(super) const EDS3_FEATURES: FeatureBits = DYNAMIC_DEPTH_CLAMP
     | DYNAMIC_COLOR_BLEND_EQUATION
     | DYNAMIC_COLOR_WRITE_MASK;
 pub(super) const STATES: &[(u64, vk::VkDynamicState)] = &[
+    (
+        DYNAMIC_PATCH_CONTROL_POINTS_STATE,
+        vk::VkDynamicState_VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT,
+    ),
+    (
+        DYNAMIC_TESSELLATION_ORIGIN_STATE,
+        vk::VkDynamicState_VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT,
+    ),
     (
         DYNAMIC_DEPTH_CLAMP_STATE,
         vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT,
@@ -58,6 +67,12 @@ pub(super) const STATES: &[(u64, vk::VkDynamicState)] = &[
 ];
 pub(super) fn dynamic_mask(enabled: FeatureBits) -> u64 {
     let mut mask = 0;
+    if enabled & DYNAMIC_PATCH_CONTROL_POINTS != 0 {
+        mask |= DYNAMIC_PATCH_CONTROL_POINTS_STATE;
+    }
+    if enabled & DYNAMIC_TESSELLATION_ORIGIN != 0 {
+        mask |= DYNAMIC_TESSELLATION_ORIGIN_STATE;
+    }
     if enabled & DYNAMIC_DEPTH_CLAMP != 0 {
         mask |= DYNAMIC_DEPTH_CLAMP_STATE;
     }
@@ -94,6 +109,8 @@ pub(super) fn dynamic_mask(enabled: FeatureBits) -> u64 {
     mask
 }
 pub(super) struct Commands {
+    pub patch_control_points: vk::PFN_vkCmdSetPatchControlPointsEXT,
+    pub tessellation_origin: vk::PFN_vkCmdSetTessellationDomainOriginEXT,
     pub depth_clamp: vk::PFN_vkCmdSetDepthClampEnableEXT,
     pub polygon_mode: vk::PFN_vkCmdSetPolygonModeEXT,
     pub rasterization_samples: vk::PFN_vkCmdSetRasterizationSamplesEXT,
@@ -124,6 +141,16 @@ impl Commands {
             };
         }
         Ok(Self {
+            patch_control_points: load!(
+                DYNAMIC_PATCH_CONTROL_POINTS,
+                c"vkCmdSetPatchControlPointsEXT",
+                vk::PFN_vkCmdSetPatchControlPointsEXT
+            ),
+            tessellation_origin: load!(
+                DYNAMIC_TESSELLATION_ORIGIN,
+                c"vkCmdSetTessellationDomainOriginEXT",
+                vk::PFN_vkCmdSetTessellationDomainOriginEXT
+            ),
             depth_clamp: load!(
                 DYNAMIC_DEPTH_CLAMP,
                 c"vkCmdSetDepthClampEnableEXT",
@@ -240,6 +267,13 @@ pub(super) fn scalar(field: u64, value: u32, enabled: FeatureBits) -> Result<(),
         return Err(UNSUPPORTED);
     }
     let max = match field {
+        DYNAMIC_PATCH_CONTROL_POINTS_STATE => {
+            if value == 0 {
+                return Err(INVALID);
+            }
+            u32::MAX
+        }
+        DYNAMIC_TESSELLATION_ORIGIN_STATE => 1,
         DYNAMIC_POLYGON_MODE_STATE => 2,
         DYNAMIC_LOGIC_OP_STATE => 15,
         DYNAMIC_RASTERIZATION_SAMPLES_STATE => {

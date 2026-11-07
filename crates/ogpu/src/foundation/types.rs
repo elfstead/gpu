@@ -28,6 +28,8 @@ pub mod image_formats {
 pub const VERSION: u32 = 12;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const DYNAMIC_PATCH_CONTROL_POINTS: u32 = 119;
+    pub const DYNAMIC_TESSELLATION_ORIGIN: u32 = 120;
     pub const UNRESTRICTED_DEPTH_RANGE: u32 = 112;
     pub const DEPTH_CLAMP_CONTROL: u32 = 113;
     pub const DEPTH_BIAS_CONTROL: u32 = 114;
@@ -2180,6 +2182,8 @@ pub const DEPTH_BIAS_REPRESENTATION: u32 = 144;
 pub const COLOR_WRITE_STATE: u32 = 145;
 pub const DYNAMIC_DEPTH_CLAMP_RANGE_STATE: u64 = 1 << 46;
 pub const DYNAMIC_COLOR_WRITE_ENABLE_STATE: u64 = 1 << 47;
+pub const DYNAMIC_PATCH_CONTROL_POINTS_STATE: u64 = 1 << 48;
+pub const DYNAMIC_TESSELLATION_ORIGIN_STATE: u64 = 1 << 49;
 pub const CLAMP_VIEWPORT_RANGE: u32 = 0;
 pub const CLAMP_USER_RANGE: u32 = 1;
 pub const BIAS_FORMAT: u32 = 0;

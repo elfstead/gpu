@@ -1825,7 +1825,14 @@ impl List {
         let d = self.recording()?;
         stages(d, self.domain, 24, false)?;
         extended_raster::scalar(field, value, d.snapshot.features.enabled)?;
+        if field == DYNAMIC_PATCH_CONTROL_POINTS_STATE
+            && value > d.snapshot.raster_stage_limits.max_patch_size
+        {
+            return Err(UNSUPPORTED);
+        }
         let command = match field {
+            DYNAMIC_PATCH_CONTROL_POINTS_STATE => d.extended_commands.patch_control_points,
+            DYNAMIC_TESSELLATION_ORIGIN_STATE => d.extended_commands.tessellation_origin,
             DYNAMIC_DEPTH_CLAMP_STATE => d.extended_commands.depth_clamp,
             DYNAMIC_POLYGON_MODE_STATE => d.extended_commands.polygon_mode,
             DYNAMIC_RASTERIZATION_SAMPLES_STATE => d.extended_commands.rasterization_samples,

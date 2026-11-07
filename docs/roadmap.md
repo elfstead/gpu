@@ -647,7 +647,8 @@ and shader routing, with local 1/4-sample output checks.
 [Extended depth/color-write profiles](extended-depth-color.md) now preserve native
 ranges, bias units and independent attachment enables. The [format inventory](format-inventory.md)
 adds eighteen IDs through existing mechanisms and accounts for every pinned native
-definition. Geometry capture/dynamic patch state and consolidation follow before M9.
+definition. [Dynamic patch count/origin](dynamic-tessellation.md) now preserve native
+per-draw selection. Geometry capture and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 

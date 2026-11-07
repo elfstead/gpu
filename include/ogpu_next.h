@@ -1549,7 +1549,8 @@ typedef struct ogpu_next_raster_stage_limits {
  * caller/compiler proves limits and inter-stage/topology compatibility.
  * Chain on graphics_state.header.next, at most once, optionally with one
  * RENDER_MAPPING in either order. Unknown/duplicate/cyclic chains reject.
- * No dynamic patch-size policy, CPU geometry expansion or per-draw stage scan. */
+ * Dynamic patch count/origin ignore their corresponding static fields.
+ * No CPU geometry expansion or per-draw stage scan. */
 typedef struct ogpu_next_tessellation_state {
     ogpu_next_record header;
     uint32_t patch_control_points, domain_origin;
@@ -1860,6 +1861,15 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_FEATURE_DEPTH_BIAS_FLOAT UINT32_C(116)
 #define OGPU_NEXT_FEATURE_DEPTH_BIAS_EXACT UINT32_C(117)
 #define OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE UINT32_C(118)
+#define OGPU_NEXT_FEATURE_DYNAMIC_PATCH_CONTROL_POINTS UINT32_C(119)
+#define OGPU_NEXT_FEATURE_DYNAMIC_TESSELLATION_ORIGIN UINT32_C(120)
+#define OGPU_NEXT_DYNAMIC_PATCH_CONTROL_POINTS (UINT64_C(1) << 48)
+#define OGPU_NEXT_DYNAMIC_TESSELLATION_ORIGIN (UINT64_C(1) << 49)
+/* Independent dynamic input patch size and domain origin. Ignored static fields
+ * in TessellationState need not be valid. Count is 1..max_patch_size; origin is
+ * UPPER_LEFT/LOWER_LEFT. The caller establishes state before each consuming draw. */
+void ogpu_next_set_patch_control_points(ogpu_next_encoder *, uint32_t value);
+void ogpu_next_set_tessellation_origin(ogpu_next_encoder *, uint32_t value);
 
 #define OGPU_NEXT_DEPTH_CLAMP_CONTROL_STATE UINT32_C(143)
 #define OGPU_NEXT_DEPTH_BIAS_REPRESENTATION UINT32_C(144)

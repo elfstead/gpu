@@ -3,6 +3,8 @@
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
 pub(super) type FeatureBits = u128;
+pub(super) const DYNAMIC_PATCH_CONTROL_POINTS: FeatureBits = 1 << 118;
+pub(super) const DYNAMIC_TESSELLATION_ORIGIN: FeatureBits = 1 << 119;
 pub(super) const UNRESTRICTED_DEPTH_RANGE: FeatureBits = 1 << 111;
 pub(super) const DEPTH_CLAMP_CONTROL: FeatureBits = 1 << 112;
 pub(super) const DEPTH_BIAS_CONTROL: FeatureBits = 1 << 113;
@@ -138,7 +140,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 118 {
+        if id > 120 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u128 << (id - 1);
@@ -146,7 +148,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=118)
+    (1..=120)
         .filter(|id| mask & (1u128 << (id - 1)) != 0)
         .collect()
 }
@@ -210,7 +212,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [119, 128, u32::MAX] {
+        for id in [121, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

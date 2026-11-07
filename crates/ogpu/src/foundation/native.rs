@@ -1170,7 +1170,10 @@ impl Device {
             (COLOR_WRITE_ENABLE, c"VK_EXT_color_write_enable"),
             (SAMPLE_LOCATIONS, c"VK_EXT_sample_locations"),
             (DYNAMIC_VERTEX_INPUT, c"VK_EXT_vertex_input_dynamic_state"),
-            (DYNAMIC_LOGIC_OP, c"VK_EXT_extended_dynamic_state2"),
+            (
+                DYNAMIC_LOGIC_OP | DYNAMIC_PATCH_CONTROL_POINTS,
+                c"VK_EXT_extended_dynamic_state2",
+            ),
             (CONSERVATIVE_RASTER, c"VK_EXT_conservative_rasterization"),
             (PROVOKING_LAST, c"VK_EXT_provoking_vertex"),
             (DEPTH_NEGATIVE_ONE_TO_ONE, c"VK_EXT_depth_clip_control"),

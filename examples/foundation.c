@@ -1021,7 +1021,7 @@ int main(int argc, char **argv) {
         REQUIRE(desc.required_features.count <= 128);
         memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
         for (uint32_t f=0; f<features.available.count; ++f)
-            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_COLOR_WRITE_ENABLE)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
+            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_TESSELLATION_ORIGIN)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
         desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);

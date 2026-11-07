@@ -46,8 +46,14 @@ static int raster_stages_execution(ogpu_next_device *device,ogpu_next_memory_des
     ogpu_next_arena_desc ad={HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};TRY(ogpu_next_arena_create(device,&ad,&arena));TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_recording_desc rd={HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     uint64_t serial=0,checked_pixels=0; uint32_t rejected=0;
-    for(uint32_t mode=0;mode<6;++mode) {
-        uint32_t has_tess=mode>=2,has_geometry=mode<2 || mode>=4,adjacent=mode==1;
+    unsigned char patch_reference[4][2][256]={0};
+    for(uint32_t mode=0;mode<22;++mode) {
+        uint32_t extra=mode>=6,profile=extra?(mode-6)/4:0,variant=extra?(mode-6)%4:0;
+        uint32_t dynamic_patch=profile==1||profile==3,dynamic_origin=profile>=2;
+        uint32_t patch_points=extra?3+(variant>>1):3,origin=extra?(variant&1):(mode&1);
+        if(dynamic_patch&&!raster_has(features.enabled,OGPU_NEXT_FEATURE_DYNAMIC_PATCH_CONTROL_POINTS))continue;
+        if(dynamic_origin&&!raster_has(features.enabled,OGPU_NEXT_FEATURE_DYNAMIC_TESSELLATION_ORIGIN))continue;
+        uint32_t has_tess=mode>=2,has_geometry=mode<2 || (mode>=4 && mode<6),adjacent=mode==1;
         if((has_tess&&!tess)||(has_geometry&&!geometry))continue;
         ogpu_next_shader selected[5];uint32_t count=0;selected[count++]=shaders[adjacent?1:0];
         if(has_tess){selected[count++]=shaders[2];selected[count++]=shaders[3];}
@@ -58,10 +64,13 @@ static int raster_stages_execution(ogpu_next_device *device,ogpu_next_memory_des
         if(has_geometry)enables[enable_count++]=OGPU_NEXT_FEATURE_GEOMETRY;
         ogpu_next_shader_requirements requirements={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),{enables,enable_count,0},{0},0};
         ogpu_next_color_state color={.format=OGPU_NEXT_RGBA8_UNORM,.write_mask=15};
-        ogpu_next_tessellation_state ts={HEADER(ogpu_next_tessellation_state,OGPU_NEXT_TESSELLATION_STATE),3,mode&1};
+        ogpu_next_tessellation_state ts={HEADER(ogpu_next_tessellation_state,OGPU_NEXT_TESSELLATION_STATE),dynamic_patch?0:patch_points,dynamic_origin?99:origin};
         ogpu_next_graphics_state gs={.header=HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),.topology=has_tess?OGPU_NEXT_PATCHES:adjacent?OGPU_NEXT_TRIANGLES_ADJACENCY:OGPU_NEXT_TRIANGLES,.front_face=OGPU_NEXT_FRONT_CCW,.samples=1,.color_count=1,.colors=&color};
+        if(extra)gs.cull=OGPU_NEXT_CULL_BACK;
         gs.header.next=has_tess?&ts.header:NULL;
         ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,count,selected,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&requirements.header,NULL,0,0};
+        if(dynamic_patch)ed.dynamic_state|=OGPU_NEXT_DYNAMIC_PATCH_CONTROL_POINTS;
+        if(dynamic_origin)ed.dynamic_state|=OGPU_NEXT_DYNAMIC_TESSELLATION_ORIGIN;
         if(mode==2) {
             for(uint32_t test=0;test<7;++test) {
                 ts.patch_control_points=3;ts.domain_origin=0;ts.header.next=NULL;gs.header.next=&ts.header;gs.topology=OGPU_NEXT_PATCHES;ed.shader_count=count;
@@ -93,8 +102,10 @@ static int raster_stages_execution(ogpu_next_device *device,ogpu_next_memory_des
         ogpu_next_render_desc render={.header=HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),.width=8,.height=8,.layers=1,.samples=1,.color_count=1,.colors=&a,.scratch={render_scratch,rr.size}};
         ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,8,8};
         ogpu_next_render_begin(e,&render);ogpu_next_bind_executable(e,pipeline);ogpu_next_set_graphics_state(e,&vp.header);ogpu_next_set_arguments(e,arguments,0,8,&address);
+        if(dynamic_patch) {ogpu_next_set_patch_control_points(e,1);ogpu_next_set_patch_control_points(e,patch_points);}
+        if(dynamic_origin) {ogpu_next_set_tessellation_origin(e,1-origin);ogpu_next_set_tessellation_origin(e,origin);}
         if(statistics)ogpu_next_query_begin(e,statistics,0,0);
-        ogpu_next_draw_desc draw={adjacent?6u:3u,1,0,0,0};
+        ogpu_next_draw_desc draw={adjacent?6u:patch_points,1,0,0,0};
         if(mode%3==0)ogpu_next_draw(e,&draw);
         else if(mode%3==1){ogpu_next_bind_indices(e,(ogpu_next_span){memory,320,24},OGPU_NEXT_INDEX_U32);ogpu_next_draw_indexed(e,&draw);}
         else {ogpu_next_indirect indirect={{memory,256,16},16,1,{NULL,0,0}};ogpu_next_draw_indirect(e,&indirect);}
@@ -107,12 +118,26 @@ static int raster_stages_execution(ogpu_next_device *device,ogpu_next_memory_des
         TRY(ogpu_next_commands_end(e,&list));uint64_t previous_evaluations=0;
         for(uint32_t replay=0;replay<2;++replay) {
             memset(map.data,0xa5,(size_t)md.size);
-            struct {float v,h,d,g,level;uint32_t mode;} control={3.0f+replay,5,7,11,2.0f+2*replay,mode+1};memcpy(map.data,&control,sizeof(control));
+            struct {float v,h,d,g,level;uint32_t mode;} control={3.0f+replay,5,7,11,2.0f+2*replay,extra?variant+1:mode+1};memcpy(map.data,&control,sizeof(control));
             uint32_t indirect[4]={draw.count,1,0,0},indices[6]={0,1,2,3,4,5};memcpy((char*)map.data+256,indirect,16);memcpy((char*)map.data+320,indices,24);
             TRY(ogpu_next_memory_flush(all));ogpu_next_sync_point signal={{done,++serial},OGPU_NEXT_STAGE_ALL};ogpu_next_submit_desc submit={1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};ogpu_next_submit_outcome outcome={0};pending=1;
             TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&outcome,(ogpu_next_host_span){submit_scratch,sr.size}));TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000)));pending=0;TRY(ogpu_next_memory_invalidate(all));
             uint32_t expected=3+replay+has_tess*12+has_geometry*11;
-            for(uint32_t i=0;i<64;++i) {unsigned char *p=(unsigned char*)map.data+1024+i*4;if(p[0]!=expected)fprintf(stderr,"raster mode %u replay %u pixel %u: %u expected %u\n",mode,replay,i,p[0],expected);REQUIRE(p[0]==expected && p[1]==mode+1 && p[2]==37 && p[3]==255);++checked_pixels;}
+            for(uint32_t i=0;i<64;++i) {
+                unsigned char *p=(unsigned char*)map.data+1024+i*4;
+                if(extra) {
+                    REQUIRE((p[0]==expected && p[1]==control.mode && p[2]==37 && p[3]==255) ||
+                            (p[0]==0 && p[1]==0 && p[2]==0 && p[3]==255));
+                    REQUIRE(memcmp(p,(unsigned char*)map.data+1024,4)==0);
+                } else REQUIRE(p[0]==expected && p[1]==mode+1 && p[2]==37 && p[3]==255);
+                ++checked_pixels;
+            }
+            if(extra) {
+                if(profile==0) {
+                    memcpy(patch_reference[variant][replay],(char*)map.data+1024,256);
+                    if(origin) REQUIRE((patch_reference[variant-1][replay][0]==0)!=(patch_reference[variant][replay][0]==0));
+                } else REQUIRE(memcmp(patch_reference[variant][replay],(char*)map.data+1024,256)==0);
+            }
             if(statistics) {
                 uint64_t *values=(uint64_t*)((char*)map.data+512);
                 for(uint32_t i=0;i<counters;++i)REQUIRE(values[i]>0);

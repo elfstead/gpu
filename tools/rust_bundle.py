@@ -30,7 +30,7 @@ def install(root, staging, copy, revision, dirty):
     put("LICENSE", "LICENSE")
     put("include/ogpu_next.h", "include/ogpu_next.h")
     for name in ("presentation-contract.md", "presentation-acceptance.md",
-                 "extended-depth-color.md", "format-inventory.md", "viewport-arrays.md", "extended-dynamic-raster.md", "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md",
+                 "extended-depth-color.md", "format-inventory.md", "dynamic-tessellation.md", "viewport-arrays.md", "extended-dynamic-raster.md", "core-dynamic-raster.md", "dynamic-vertex-input.md", "sample-locations.md", "raster-mechanisms.md", "raster-controls.md",
                  "results/p1-swapchain-lifecycle-2026-10-15.md",
                  "results/p1-interactive-scene-2026-10-16.md"):
         put(f"docs/{name}", f"docs/{name}")

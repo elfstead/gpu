@@ -72,6 +72,25 @@ pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Stat
     }
     Ok(result)
 }
+pub(super) fn dynamic_tessellation(
+    mut state: Option<TessellationState>,
+    dynamic: u64,
+    enabled: FeatureBits,
+) -> Result<Option<TessellationState>, Status> {
+    let mask = DYNAMIC_PATCH_CONTROL_POINTS_STATE | DYNAMIC_TESSELLATION_ORIGIN_STATE;
+    if dynamic & mask & !extended_raster::dynamic_mask(enabled) != 0 {
+        return Err(UNSUPPORTED);
+    }
+    if let Some(s) = &mut state {
+        if dynamic & DYNAMIC_PATCH_CONTROL_POINTS_STATE != 0 {
+            s.patch_control_points = 1;
+        }
+        if dynamic & DYNAMIC_TESSELLATION_ORIGIN_STATE != 0 {
+            s.domain_origin = 0;
+        }
+    }
+    Ok(state)
+}
 pub(super) fn tessellation(
     stages: u64,
     topology: u32,
@@ -153,6 +172,34 @@ mod tests {
                 1
             ),
             Ok(())
+        );
+    }
+    #[test]
+    fn dynamic_patch_fields_ignore_only_selected_static_values() {
+        let s = TessellationState {
+            header: Record::new::<TessellationState>(TESSELLATION_STATE),
+            patch_control_points: 0,
+            domain_origin: 99,
+        };
+        let both = DYNAMIC_PATCH_CONTROL_POINTS_STATE | DYNAMIC_TESSELLATION_ORIGIN_STATE;
+        let enabled = DYNAMIC_PATCH_CONTROL_POINTS | DYNAMIC_TESSELLATION_ORIGIN;
+        assert!(dynamic_tessellation(Some(s), both, DYNAMIC_PATCH_CONTROL_POINTS).is_err());
+        let p = RasterStageLimits {
+            max_patch_size: 32,
+            ..Default::default()
+        };
+        let state = dynamic_tessellation(Some(s), both, enabled).unwrap();
+        assert!(tessellation(8 | TESS_STAGES, PATCHES, state, &p).is_ok());
+        let state =
+            dynamic_tessellation(Some(s), DYNAMIC_PATCH_CONTROL_POINTS_STATE, enabled).unwrap();
+        assert!(tessellation(8 | TESS_STAGES, PATCHES, state, &p).is_err());
+        assert_eq!(
+            extended_raster::scalar(DYNAMIC_PATCH_CONTROL_POINTS_STATE, 0, enabled),
+            Err(INVALID)
+        );
+        assert_eq!(
+            extended_raster::scalar(DYNAMIC_TESSELLATION_ORIGIN_STATE, 2, enabled),
+            Err(INVALID)
         );
     }
     #[test]
@@ -278,6 +325,8 @@ mod tests {
                 DEPTH_BIAS_CONTROL | DEPTH_BIAS_UNORM,
                 DEPTH_BIAS_CONTROL | DEPTH_BIAS_EXACT,
                 COLOR_WRITE_ENABLE,
+                DYNAMIC_PATCH_CONTROL_POINTS,
+                DYNAMIC_TESSELLATION_ORIGIN,
                 MULTI_VIEWPORT,
                 SHADER_OUTPUT_VIEWPORT_INDEX,
                 MULTI_VIEWPORT | SHADER_OUTPUT_VIEWPORT_INDEX,
@@ -342,7 +391,9 @@ mod tests {
                             | UNRESTRICTED_DEPTH_RANGE
                             | DEPTH_CLAMP_CONTROL
                             | raster_profiles::BIAS_FEATURES
-                            | COLOR_WRITE_ENABLE)
+                            | COLOR_WRITE_ENABLE
+                            | DYNAMIC_PATCH_CONTROL_POINTS
+                            | DYNAMIC_TESSELLATION_ORIGIN)
                         != 0
                 {
                     let ad = ArenaDesc {
@@ -383,6 +434,16 @@ mod tests {
                         Err(UNSUPPORTED)
                     );
                     for (state, feature, value) in [
+                        (
+                            DYNAMIC_PATCH_CONTROL_POINTS_STATE,
+                            DYNAMIC_PATCH_CONTROL_POINTS,
+                            3,
+                        ),
+                        (
+                            DYNAMIC_TESSELLATION_ORIGIN_STATE,
+                            DYNAMIC_TESSELLATION_ORIGIN,
+                            1,
+                        ),
                         (DYNAMIC_DEPTH_CLAMP_STATE, DYNAMIC_DEPTH_CLAMP, 0),
                         (DYNAMIC_POLYGON_MODE_STATE, DYNAMIC_POLYGON_MODE, 0),
                         (

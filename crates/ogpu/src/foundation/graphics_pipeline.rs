@@ -234,7 +234,11 @@ pub(super) unsafe fn prepare(
     let tessellation = raster_stages::tessellation(
         stage_mask,
         state.topology,
-        extensions.tessellation,
+        raster_stages::dynamic_tessellation(
+            extensions.tessellation,
+            desc.dynamic_state,
+            d.snapshot.features.enabled,
+        )?,
         &d.snapshot.raster_stage_limits,
     )?;
     if matches!(state.topology, 6..=9) && d.snapshot.features.enabled & GEOMETRY == 0 {
@@ -781,7 +785,7 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 47];
+    let mut dynamic_states = [0; 49];
     dynamic_states[0] = if desc.dynamic_state & DYNAMIC_VIEWPORT_COUNT_STATE != 0 {
         vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT
     } else {

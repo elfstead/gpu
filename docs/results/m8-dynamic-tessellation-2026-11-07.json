@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "host_tests": 119,
+  "native_correspondence_tests": 2,
+  "native_library_tests": 31,
+  "full_raster_stages": {
+    "profiles": 22,
+    "submissions": 44,
+    "pixels": 2816,
+    "rejected_preparations": 7
+  },
+  "validation_errors": 0,
+  "existing_warnings": 4,
+  "clippy": "pass",
+  "surface": {
+    "operations": 192,
+    "records": 160,
+    "constants": 301,
+    "values": 1536
+  },
+  "evidence": {
+    "/tmp/ogpu-dynamic-tess-bindings.log": "e1733206e80b79b51c7c44b82e908a1d808799bb65858d35d9869db12fca7b75",
+    "/tmp/ogpu-dynamic-tess-clippy.log": "9976bbc3f270e7a7f3e5130b733ab0f3b95bc041fbd8110357b20044f272b335",
+    "/tmp/ogpu-dynamic-tess-gpu-fixed.log": "ca4355aa160e79967c2025fbe1943e44ae3c16d6ab9856319788fadbf66e74f8",
+    "/tmp/ogpu-dynamic-tess-gpu.log": "ff364ffe01f02d88bad1288e41ef81754a4aa8092eb12aa335d795b318f94770",
+    "/tmp/ogpu-dynamic-tess-host-fixed.log": "4a7b51efd2c0709c5bfaa8051c6b4a3423425aa616fee574e70c1cca68de2e87",
+    "/tmp/ogpu-dynamic-tess-host.log": "b982347f892d3b5ffce0efd888aab224d1e2ade73c898dc2ec764a95e2aedd80",
+    "/tmp/ogpu-dynamic-tess-native.log": "3c31acc0852baf9ffd75f3394a2a3a2be2942735f92af5df135977396f141ed6",
+    "/tmp/ogpu-dynamic-tess-surface.log": "274ab6f15cc0493ae5177aa69f48d5ca4996b323a15daba22765e3d8edd319a7"
+  }
+}

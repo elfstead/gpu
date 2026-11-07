@@ -15966,6 +15966,9 @@ impl Default for VkPhysicalDeviceExtendedDynamicState2FeaturesEXT {
         }
     }
 }
+pub type PFN_vkCmdSetPatchControlPointsEXT = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, patchControlPoints: u32),
+>;
 pub type PFN_vkCmdSetLogicOpEXT = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, logicOp: VkLogicOp),
 >;
@@ -16441,6 +16444,12 @@ pub type PFN_vkCmdSetColorWriteMaskEXT = ::std::option::Option<
         firstAttachment: u32,
         attachmentCount: u32,
         pColorWriteMasks: *const VkColorComponentFlags,
+    ),
+>;
+pub type PFN_vkCmdSetTessellationDomainOriginEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        domainOrigin: VkTessellationDomainOrigin,
     ),
 >;
 pub type PFN_vkCmdSetConservativeRasterizationModeEXT = ::std::option::Option<
