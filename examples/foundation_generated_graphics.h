@@ -2,7 +2,7 @@
  * Producer, compaction policy, storage and expected image belong to the consumer. */
 static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain, char **paths, uint32_t state_tokens) {
     int result = EXIT_FAILURE, pending = 0;
-    FILE *file = NULL; void *code[3] = {NULL}, *bs = NULL, *rs = NULL, *ss = NULL;
+    FILE *file = NULL; void *code[3] = {NULL}, *bs = NULL, *rs = NULL, *ss = NULL, *vs = NULL;
     ogpu_next_argument_layout *producer_arguments = NULL, *draw_arguments = NULL;
     ogpu_next_executable *static_pipeline = NULL, *producer = NULL, *pipelines[2] = {NULL};
     ogpu_next_generated_layout *layout = NULL; ogpu_next_generated_set *set = NULL;
@@ -20,6 +20,11 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
     if (state_tokens && (limits.tokens & ((UINT64_C(1)<<OGPU_NEXT_GENERATED_VERTEX_BUFFER) | (UINT64_C(1)<<OGPU_NEXT_GENERATED_INDEX_BUFFER)))
         != ((UINT64_C(1)<<OGPU_NEXT_GENERATED_VERTEX_BUFFER) | (UINT64_C(1)<<OGPU_NEXT_GENERATED_INDEX_BUFFER))) {
         printf("GENERATED_GRAPHICS_STATE_UNVERIFIED native buffer state tokens unavailable; no fallback.\n"); return EXIT_SUCCESS;
+    }
+    uint32_t has_dynamic_input = 0;
+    for(uint32_t i=0;i<features.enabled.count;++i) has_dynamic_input |= features.enabled.ids[i]==OGPU_NEXT_FEATURE_DYNAMIC_VERTEX_INPUT;
+    if (state_tokens == 2 && !has_dynamic_input) {
+        puts("GENERATED_GRAPHICS_DYNAMIC_INPUT_UNVERIFIED native dynamic input unavailable.");return EXIT_SUCCESS;
     }
     uint32_t selections = (limits.pipeline_binding_stages & stages) == stages ? 2 : 1;
     if (selections == 1) printf("GENERATED_GRAPHICS_SELECTION_UNVERIFIED native executable selection unavailable; fixed-executable cases remain.\n");
@@ -52,14 +57,14 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
     ogpu_next_vertex_binding vertex_binding = {3,0,OGPU_NEXT_VERTEX_RATE_VERTEX};
     ogpu_next_vertex_attribute attribute = {0,3,OGPU_NEXT_RG32_FLOAT,0};
     ogpu_next_vertex_input input = {HEADER(ogpu_next_vertex_input,OGPU_NEXT_VERTEX_INPUT),1,1,&vertex_binding,&attribute};
-    if (state_tokens) gs.vertex_input = &input.header;
+    if (state_tokens == 1) gs.vertex_input = &input.header;
     uint32_t variant = 0;
     ogpu_next_specialization_entry entry = {9,0,4};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization,OGPU_NEXT_SPECIALIZATION),1,0,&entry,{&variant,4}};
     shaders[1].specialization = &spec.header;
     ogpu_next_shader_requirements graphics_req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),FIXTURE_FEATURES(FIXTURE_BIT(OGPU_NEXT_FEATURE_RASTER)),{0,0,0},0};
     ed = (ogpu_next_executable_desc){HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
-        2,shaders+1,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR | (state_tokens ? OGPU_NEXT_DYNAMIC_VERTEX_STRIDE : 0),&graphics_req.header,NULL,selections == 2 ? OGPU_NEXT_COMPILE_INDIRECT_BINDABLE : 0,0};
+        2,shaders+1,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR | (state_tokens ? OGPU_NEXT_DYNAMIC_VERTEX_STRIDE : 0) | (state_tokens == 2 ? OGPU_NEXT_DYNAMIC_VERTEX_INPUT : 0),&graphics_req.header,NULL,selections == 2 ? OGPU_NEXT_COMPILE_INDIRECT_BINDABLE : 0,0};
     for (variant = 0; variant < 2; ++variant) TRY(ogpu_next_executable_create(device,&ed,draw_arguments,&pipelines[variant]));
     if (state_tokens) {
         ed.dynamic_state &= ~OGPU_NEXT_DYNAMIC_VERTEX_STRIDE;
@@ -82,6 +87,8 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
     TRY(ogpu_next_image_bind(image,(ogpu_next_span){backing,0,requirements.size}));
     ogpu_next_view_desc vd = {HEADER(ogpu_next_view_desc,OGPU_NEXT_VIEW_DESC),OGPU_NEXT_RGBA8_UNORM,
         OGPU_NEXT_VIEW_2D,OGPU_NEXT_IMAGE_COLOR_ATTACHMENT,{0},range}; TRY(ogpu_next_view_create(image,&vd,&view));
+    ogpu_next_host_requirements vi = {0};
+    if (state_tokens == 2) { TRY(ogpu_next_vertex_input_scratch_requirements(1,1,&vi));REQUIRE(vi.alignment<=_Alignof(max_align_t));vs=malloc((size_t)vi.size);REQUIRE(vs); }
     ogpu_next_host_requirements br = {0}, rr = {0}, sr = {0};
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr));
     TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.signal_count=1},&sr));
@@ -126,6 +133,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
                 ogpu_next_generated_work invalid = work; invalid.executable = static_pipeline;
                 REQUIRE(ogpu_next_generated_requirements(device,&invalid,&check) == OGPU_NEXT_INVALID);
                 REQUIRE(memcmp(&check,&untouched,sizeof(check)) == 0);
+                if (state_tokens == 1) {
                 ogpu_next_generated_layout *wrong_binding = NULL;
                 tokens[4].target = 4; /* Valid device slot, absent from this executable. */
                 TRY(ogpu_next_generated_layout_create(device,&ld,&wrong_binding));
@@ -133,6 +141,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
                 ogpu_next_status rejected = ogpu_next_generated_requirements(device,&invalid,&check);
                 ogpu_next_generated_layout_destroy(wrong_binding); tokens[4].target = 3;
                 REQUIRE(rejected == OGPU_NEXT_INVALID && memcmp(&check,&untouched,sizeof(check)) == 0);
+                }
             }
             for (uint32_t run = 0; run < (nested ? 7u : 5u); ++run) {
                 uint32_t n = columns[run];
@@ -171,6 +180,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
                 ogpu_next_dependency dep = {1,0,0,0,&scope,NULL,NULL};
                 common_barrier(encoder,&dep,&scope,scratch);
                 ogpu_next_bind_executable(encoder,pipelines[0]); ogpu_next_set_graphics_state(encoder,&vp.header);
+                if (state_tokens == 2) ogpu_next_set_vertex_input(encoder,&input,(ogpu_next_host_span){vs,vi.size});
                 if (indexed && !state_tokens) ogpu_next_bind_indices(encoder,(ogpu_next_span){memory,7168,52},OGPU_NEXT_INDEX_U32);
                 uint32_t zero[4] = {0,0,0,nested}; ogpu_next_set_arguments(encoder,draw_arguments,0,sizeof(zero),zero);
                 ogpu_next_generated_batch batch = {work,{memory,0,3072},storage,run == 3 ? (ogpu_next_span){NULL,0,0} : (ogpu_next_span){memory,3072,4}};
@@ -257,6 +267,7 @@ static int generated_graphics(ogpu_next_device *device, ogpu_next_memory_desc md
                 if (state_tokens && indexed && !separate && run == 0) {
                     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
                     ogpu_next_bind_executable(encoder,pipelines[0]); ogpu_next_set_graphics_state(encoder,&vp.header);
+                if (state_tokens == 2) ogpu_next_set_vertex_input(encoder,&input,(ogpu_next_host_span){vs,vi.size});
                     ogpu_next_set_arguments(encoder,draw_arguments,0,sizeof(zero),zero);
                     ogpu_next_bind_indices(encoder,(ogpu_next_span){memory,7168,52},OGPU_NEXT_INDEX_U32);
                     ogpu_next_render_begin(encoder,&render); ogpu_next_generated_execute(encoder,&batch,0);
@@ -283,6 +294,6 @@ cleanup:
     ogpu_next_argument_layout_destroy(producer_arguments); ogpu_next_argument_layout_destroy(draw_arguments);
     if (file) fclose(file);
     for (uint32_t i = 0; i < 3; ++i) free(code[i]);
-    free(bs); free(rs); free(ss);
+    free(bs); free(rs); free(ss); free(vs);
     return result;
 }

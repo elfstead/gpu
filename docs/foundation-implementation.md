@@ -63,7 +63,9 @@ independent clip enable. [Local execution](results/m8-raster-mechanisms-2026-11-
 checks static/dynamic equivalence and coverage without adding draw-time tracking.
 Revision 12 now implements [sample positions](sample-locations.md), compatible
 depth images and ordinary/split transition metadata, with coverage/LOAD acceptance.
-Complete dynamic input and other M8 mechanisms remain planned.
+[Complete dynamic input/divisors](dynamic-vertex-input.md) now reuse existing fetch
+records with caller scratch and one native setter, including generated-buffer-token
+composition. Remaining raster controls and other M8 mechanisms remain planned.
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

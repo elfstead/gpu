@@ -84,8 +84,8 @@ pass. See the [acceptance receipt](results/m8-raster-controls-2026-11-06.md).
 
 Point/line/adjacency restart execution, point output from other stages, polygon
 point mode, generated/secondary/multiview combinations and external backend
-execution remain separate evidence work. Dynamic divisor/input descriptions and
-remaining dynamic raster controls remain unimplemented profiles. Independent
+execution remain separate evidence work. [Complete dynamic divisor/input descriptions](dynamic-vertex-input.md) are now
+implemented with caller scratch. Remaining dynamic raster controls still need work. Independent
 dynamic clipping and several distinct [raster mechanisms](raster-mechanisms.md)
 are now implemented; see the [coverage audit](m8-coverage.md) for remaining work.
 

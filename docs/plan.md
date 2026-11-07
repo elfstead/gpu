@@ -358,9 +358,10 @@ profiles pass; [clean installed C/native Rust acceptance](results/m8-raster-cont
 also passes. Native patch restart remains unavailable. [Conservative rasterization,
 line/stipple controls, provoking vertex and depth convention](raster-mechanisms.md)
 now include independent dynamic controls and local execution evidence. [Sample positions](sample-locations.md) now add explicit patterns and depth-content
-transition metadata, including split dependencies, in revision 12. Next implement
-complete dynamic vertex input/divisors, remaining raster controls and the
-extension-format inventory. Geometry capture,
+transition metadata, including split dependencies, in revision 12.
+[Complete dynamic vertex input/divisors](dynamic-vertex-input.md) now use the existing
+description and caller scratch, including generated-command composition. Next
+implement remaining raster controls and the extension-format inventory. Geometry capture,
 dynamic patch and contract/composition consolidation follow before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows

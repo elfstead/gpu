@@ -1,4 +1,5 @@
 //! Cold graphics preparation; no attachment owners or command-time state compilation.
+use super::vertex_input::vertex_layout;
 use super::*;
 
 struct Module<'a> {
@@ -157,6 +158,13 @@ pub(super) unsafe fn prepare(
     let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
     let mut state =
         unsafe { *local_read::parent::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
+    if desc.dynamic_state & DYNAMIC_VERTEX_INPUT_STATE != 0 {
+        if d.snapshot.features.enabled & DYNAMIC_VERTEX_INPUT == 0 {
+            return Err(UNSUPPORTED);
+        }
+        // Native dynamic input ignores the entire static description, including pointers.
+        state.vertex_input = ptr::null();
+    }
     features::view_mask(
         d.snapshot.features.enabled,
         &d.snapshot.graphics_limits,
@@ -401,28 +409,11 @@ pub(super) unsafe fn prepare(
             });
         }
         for attribute in attributes {
-            let format = images::format(attribute.format)?;
-            if format.aspects != 1 {
-                return Err(INVALID);
-            }
-            let mut properties = vk::VkFormatProperties::default();
-            unsafe {
-                (d.f.vkGetPhysicalDeviceFormatProperties.unwrap())(
-                    d.physical,
-                    format.native,
-                    &mut properties,
-                );
-            }
-            if properties.bufferFeatures
-                & vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT
-                == 0
-            {
-                return Err(UNSUPPORTED);
-            }
+            let format = vertex_input::format(attribute.format, &d.snapshot.formats)?;
             native_attributes.push(vk::VkVertexInputAttributeDescription {
                 location: attribute.location,
                 binding: attribute.binding,
-                format: format.native,
+                format,
                 offset: attribute.offset,
             });
         }
@@ -750,11 +741,15 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [0; 25];
+    let mut dynamic_states = [0; 26];
     dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
     dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
     for (mask, state) in [
+        (
+            DYNAMIC_VERTEX_INPUT_STATE,
+            vk::VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_EXT,
+        ),
         (2, vk::VkDynamicState_VK_DYNAMIC_STATE_BLEND_CONSTANTS),
         (4, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_REFERENCE),
         (8, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK),
@@ -866,42 +861,6 @@ pub(super) unsafe fn prepare(
         ))?;
     }
     Ok(result)
-}
-
-fn vertex_layout(
-    limits: &GraphicsLimits,
-    bindings: &[VertexBinding],
-    attributes: &[VertexAttribute],
-) -> Result<(), Status> {
-    for (index, binding) in bindings.iter().enumerate() {
-        if binding.rate > 1
-            || bindings[..index]
-                .iter()
-                .any(|b| b.binding == binding.binding)
-        {
-            return Err(INVALID);
-        }
-        if binding.binding >= limits.max_vertex_bindings
-            || binding.stride > limits.max_vertex_stride
-        {
-            return Err(UNSUPPORTED);
-        }
-    }
-    for (index, attribute) in attributes.iter().enumerate() {
-        if !bindings.iter().any(|b| b.binding == attribute.binding)
-            || attributes[..index]
-                .iter()
-                .any(|a| a.location == attribute.location)
-        {
-            return Err(INVALID);
-        }
-        if attribute.location >= limits.max_vertex_attributes
-            || attribute.offset > limits.max_vertex_attribute_offset
-        {
-            return Err(UNSUPPORTED);
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

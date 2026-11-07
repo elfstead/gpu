@@ -653,10 +653,11 @@ impl Device {
         // Native state compatibility is a cold pairing check, never a per-draw scan.
         if !layout.vertex_bindings.is_empty()
             && (e.dynamic_state & DYNAMIC_VERTEX_STRIDE == 0
-                || layout
-                    .vertex_bindings
-                    .iter()
-                    .any(|binding| !e.vertex_bindings.contains(binding)))
+                || e.dynamic_state & DYNAMIC_VERTEX_INPUT_STATE == 0
+                    && layout
+                        .vertex_bindings
+                        .iter()
+                        .any(|binding| !e.vertex_bindings.contains(binding)))
         {
             return Err(INVALID);
         }

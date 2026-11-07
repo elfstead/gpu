@@ -28,6 +28,7 @@ pub mod image_formats {
 pub const VERSION: u32 = 12;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const DYNAMIC_VERTEX_INPUT: u32 = 98;
     pub const SAMPLE_LOCATIONS: u32 = 96;
     pub const DYNAMIC_SAMPLE_LOCATIONS_ENABLE: u32 = 97;
     pub const CONSERVATIVE_RASTER: u32 = 80;
@@ -218,6 +219,7 @@ pub const GENERATED_MESH_COUNT: u32 = 10;
 pub const GENERATED_VERTEX_BUFFER: u32 = 11;
 pub const GENERATED_INDEX_BUFFER: u32 = 12;
 pub const DYNAMIC_VERTEX_STRIDE: u64 = 4096;
+pub const DYNAMIC_VERTEX_INPUT_STATE: u64 = 1 << 24;
 pub const VERTEX_BIND_STRIDE: u32 = 1;
 pub const GENERATED_EXPLICIT_PREPROCESS: u32 = 1;
 pub const GENERATED_UNORDERED: u32 = 2;

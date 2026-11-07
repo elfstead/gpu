@@ -158,3 +158,5 @@ vkCmdSetLineStipple
 vkGetPhysicalDeviceMultisamplePropertiesEXT
 vkCmdSetSampleLocationsEXT
 vkCmdSetSampleLocationsEnableEXT
+
+vkCmdSetVertexInputEXT

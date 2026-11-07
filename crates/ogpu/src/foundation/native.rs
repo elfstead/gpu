@@ -24,6 +24,10 @@ use std::{
     },
 };
 
+#[path = "vertex_input.rs"]
+mod vertex_input;
+pub(super) use vertex_input::requirements as vertex_input_scratch;
+
 #[path = "sample_locations.rs"]
 mod sample_locations;
 
@@ -455,6 +459,7 @@ pub(super) fn snapshot(
             polygon_mode_point_size: local_properties.polygonModePointSize,
         };
         features.available |= raster_controls::snapshot(instance, physical, &f)?;
+        features.available |= vertex_input::snapshot(instance, physical, &f)?;
         let (mechanisms, mechanism_limits) = raster_mechanisms::snapshot(
             instance,
             physical,
@@ -708,6 +713,9 @@ pub(super) fn snapshot(
         }
     }
     graphics_limits.dynamic_states |= raster_mechanisms::dynamic_mask(features.available);
+    if features.available & DYNAMIC_VERTEX_INPUT != 0 {
+        graphics_limits.dynamic_states |= DYNAMIC_VERTEX_INPUT_STATE;
+    }
     let (mesh_features, mesh_limits) = mesh::snapshot(instance, physical, &f)?;
     let (shading_features, shading_rate_limits, shading_rates) =
         shading_rate::snapshot(instance, physical, &f)?;
@@ -824,6 +832,7 @@ pub struct Device {
     shading_rate_function: vk::PFN_vkCmdSetFragmentShadingRateKHR,
     raster_commands: raster_mechanisms::Commands,
     sample_commands: sample_locations::Commands,
+    vertex_input_command: vk::PFN_vkCmdSetVertexInputEXT,
     mesh_functions: Option<mesh::MeshFunctions>,
     generated_functions: Option<generated::GeneratedFunctions>,
     pub(super) snapshot: Snapshot,
@@ -887,6 +896,7 @@ impl Device {
             f: Functions::load(&adapter.instance)?,
             raster_commands: raster_mechanisms::Commands::load(&adapter.instance, enabled)?,
             sample_commands: sample_locations::Commands::load(&adapter.instance, enabled)?,
+            vertex_input_command: vertex_input::load(&adapter.instance, enabled)?,
             shading_rate_function: if enabled & shading_rate::INPUTS != 0 {
                 shading_rate::load(&adapter.instance)?
             } else {
@@ -1112,6 +1122,7 @@ impl Device {
 
         for (bit, name) in [
             (SAMPLE_LOCATIONS, c"VK_EXT_sample_locations"),
+            (DYNAMIC_VERTEX_INPUT, c"VK_EXT_vertex_input_dynamic_state"),
             (CONSERVATIVE_RASTER, c"VK_EXT_conservative_rasterization"),
             (PROVOKING_LAST, c"VK_EXT_provoking_vertex"),
             (DEPTH_NEGATIVE_ONE_TO_ONE, c"VK_EXT_depth_clip_control"),
@@ -1124,6 +1135,12 @@ impl Device {
                 extensions.push(name.as_ptr());
             }
         }
+        let vertex_input = vertex_input::features(enabled, previous.cast_mut());
+        let previous = if enabled & DYNAMIC_VERTEX_INPUT != 0 {
+            ptr::from_ref(&vertex_input).cast()
+        } else {
+            previous
+        };
         let mut mechanisms = raster_mechanisms::Native::new(enabled);
         let previous = mechanisms.link(previous.cast_mut(), enabled).cast_const();
         let mut raster_controls = raster_controls::Native::new(enabled);

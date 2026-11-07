@@ -121,6 +121,7 @@
     "ogpu_next_set_stencil_reference",
     "ogpu_next_set_stencil_test",
     "ogpu_next_set_stencil_write_mask",
+    "ogpu_next_set_vertex_input",
     "ogpu_next_split_acquire",
     "ogpu_next_split_create",
     "ogpu_next_split_destroy",
@@ -134,6 +135,7 @@
     "ogpu_next_timeline_signal_host",
     "ogpu_next_timeline_wait",
     "ogpu_next_timestamp",
+    "ogpu_next_vertex_input_scratch_requirements",
     "ogpu_next_vertex_scratch_requirements",
     "ogpu_next_view_create",
     "ogpu_next_view_destroy",
@@ -406,7 +408,9 @@
     "OGPU_NEXT_SAMPLE_LOCATION_STATE": "SAMPLE_LOCATION_STATE",
     "OGPU_NEXT_IMAGE_SAMPLE_LOCATIONS_DEPTH": "IMAGE_SAMPLE_LOCATIONS_DEPTH",
     "OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS": "DYNAMIC_SAMPLE_LOCATIONS_STATE",
-    "OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS_ENABLE": "DYNAMIC_SAMPLE_LOCATIONS_ENABLE_STATE"
+    "OGPU_NEXT_DYNAMIC_SAMPLE_LOCATIONS_ENABLE": "DYNAMIC_SAMPLE_LOCATIONS_ENABLE_STATE",
+    "OGPU_NEXT_FEATURE_DYNAMIC_VERTEX_INPUT": "feature_ids::DYNAMIC_VERTEX_INPUT",
+    "OGPU_NEXT_DYNAMIC_VERTEX_INPUT": "DYNAMIC_VERTEX_INPUT_STATE"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

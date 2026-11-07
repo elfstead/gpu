@@ -117,6 +117,8 @@ fn native_surface_covers_current_c_operations() {
         set_line_mode,
         set_line_stipple_enable,
         set_line_stipple,
+        set_vertex_input,
+        vertex_input_scratch_requirements,
         set_sample_locations,
         set_sample_locations_enable,
         set_render_locations,

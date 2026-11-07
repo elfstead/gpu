@@ -15441,6 +15441,147 @@ impl Default for VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub vertexInputDynamicState: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT::vertexInputDynamicState",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT, vertexInputDynamicState
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkVertexInputBindingDescription2EXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub binding: u32,
+    pub stride: u32,
+    pub inputRate: VkVertexInputRate,
+    pub divisor: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkVertexInputBindingDescription2EXT",
+    ][::std::mem::size_of::<VkVertexInputBindingDescription2EXT>() - 32usize];
+    [
+        "Alignment of VkVertexInputBindingDescription2EXT",
+    ][::std::mem::align_of::<VkVertexInputBindingDescription2EXT>() - 8usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription2EXT::sType",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription2EXT, sType) - 0usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription2EXT::pNext",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription2EXT, pNext) - 8usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription2EXT::binding",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription2EXT, binding) - 16usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription2EXT::stride",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription2EXT, stride) - 20usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription2EXT::inputRate",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription2EXT, inputRate) - 24usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription2EXT::divisor",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription2EXT, divisor) - 28usize];
+};
+impl Default for VkVertexInputBindingDescription2EXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkVertexInputAttributeDescription2EXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub location: u32,
+    pub binding: u32,
+    pub format: VkFormat,
+    pub offset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkVertexInputAttributeDescription2EXT",
+    ][::std::mem::size_of::<VkVertexInputAttributeDescription2EXT>() - 32usize];
+    [
+        "Alignment of VkVertexInputAttributeDescription2EXT",
+    ][::std::mem::align_of::<VkVertexInputAttributeDescription2EXT>() - 8usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription2EXT::sType",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription2EXT, sType) - 0usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription2EXT::pNext",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription2EXT, pNext) - 8usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription2EXT::location",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription2EXT, location) - 16usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription2EXT::binding",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription2EXT, binding) - 20usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription2EXT::format",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription2EXT, format) - 24usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription2EXT::offset",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription2EXT, offset) - 28usize];
+};
+impl Default for VkVertexInputAttributeDescription2EXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetVertexInputEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        vertexBindingDescriptionCount: u32,
+        pVertexBindingDescriptions: *const VkVertexInputBindingDescription2EXT,
+        vertexAttributeDescriptionCount: u32,
+        pVertexAttributeDescriptions: *const VkVertexInputAttributeDescription2EXT,
+    ),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDepthClipControlFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,

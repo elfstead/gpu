@@ -1808,6 +1808,8 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
 #define OGPU_NEXT_DYNAMIC_LINE_STIPPLE_ENABLE (UINT64_C(1) << 20)
 #define OGPU_NEXT_DYNAMIC_LINE_STIPPLE (UINT64_C(1) << 21)
 
+#define OGPU_NEXT_FEATURE_DYNAMIC_VERTEX_INPUT UINT32_C(98)
+#define OGPU_NEXT_DYNAMIC_VERTEX_INPUT (UINT64_C(1) << 24)
 #define OGPU_NEXT_FEATURE_SAMPLE_LOCATIONS UINT32_C(96)
 #define OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE UINT32_C(97)
 #define OGPU_NEXT_QUERY_SAMPLE_LOCATION_LIMITS UINT32_C(26)
@@ -1979,6 +1981,24 @@ typedef struct ogpu_next_vertex_input {
     const ogpu_next_vertex_binding *bindings;
     const ogpu_next_vertex_attribute *attributes;
 } ogpu_next_vertex_input;
+/* Complete dynamic input uses the same description, including optional divisors.
+ * Requires FEATURE_DYNAMIC_VERTEX_INPUT and DYNAMIC_VERTEX_INPUT on consuming
+ * executables; their static vertex_input is ignored without dereferencing it.
+ * Counts-only scratch query. Inputs and disjoint writable scratch are borrowed
+ * only through set_vertex_input. No allocation, compilation or retained layout.
+ * The command replaces all descriptions; omitted locations become undefined.
+ * Divisor zero additionally needs both VERTEX_DIVISOR and VERTEX_ZERO_DIVISOR on
+ * this native dynamic path. Other fetch/format/divisor limits remain unchanged.
+ * If DYNAMIC_VERTEX_STRIDE is also selected, a later bind_vertices with
+ * VERTEX_BIND_STRIDE overrides that binding's stride; otherwise use the stride
+ * supplied here. Applications establish valid state after static pipelines and
+ * before draws, including inherited/generated work, and prove shader interface,
+ * memory bounds/alignment and first-instance compatibility. No state tracker.
+ */
+ogpu_next_status ogpu_next_vertex_input_scratch_requirements(uint32_t bindings,
+    uint32_t attributes, ogpu_next_host_requirements *out);
+void ogpu_next_set_vertex_input(ogpu_next_encoder *, const ogpu_next_vertex_input *,
+    ogpu_next_host_span scratch);
 /* vertex_input=NULL means no fixed-function input (vertex pulling remains legal).
  * Otherwise VERTEX_INPUT describes explicit unique binding IDs and unique attribute
  * locations; each attribute references a listed binding. Sparse binding IDs are
@@ -2335,8 +2355,9 @@ typedef struct ogpu_next_generated_index_buffer {
  * memory; caller owns bounds, alignment and pending lifetime. index_type uses
  * queried generated_limits.index_u16/index_u32 (not INDEX_U16/INDEX_U32).
  * These are the backend's GPU wire values; no CPU/GPU format translation is added.
- * Vertex tokens require DYNAMIC_VERTEX_STRIDE and declared target bindings in all
- * paired executables. The cold requirements query checks the initial executable;
+ * Vertex tokens require DYNAMIC_VERTEX_STRIDE. Targets must be declared in static
+ * input or established by the caller with DYNAMIC_VERTEX_INPUT before generated
+ * work. The cold requirements query checks the initial executable;
  * set members must preserve that state contract. Ray tokens and shader-object
  * selection remain unimplemented. Indexed work without an index token uses bound
  * indices. Layout stages name one exact compute/vertex/mesh executable family.

@@ -1017,7 +1017,7 @@ int main(int argc, char **argv) {
         REQUIRE(desc.required_features.count <= 128);
         memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
         for (uint32_t f=0; f<features.available.count; ++f)
-            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_SAMPLE_LOCATIONS_ENABLE)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
+            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_DYNAMIC_VERTEX_INPUT)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
         desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
@@ -1118,6 +1118,7 @@ int main(int argc, char **argv) {
     REQUIRE(mesh_execution(device, memory_desc, graphics_domain, &argv[38]) == EXIT_SUCCESS);
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 0) == EXIT_SUCCESS);
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 1) == EXIT_SUCCESS);
+    REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 2) == EXIT_SUCCESS);
     REQUIRE(local_read_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[49]) == EXIT_SUCCESS);
     REQUIRE(raster_stages_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[52]) == EXIT_SUCCESS);
     REQUIRE(raster_controls_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[59]) == EXIT_SUCCESS);

@@ -988,6 +988,35 @@ impl List {
         self.viewport_set.set(true);
         Ok(())
     }
+    pub(in crate::foundation) unsafe fn vertex_input(
+        &self,
+        input: &VertexInput,
+        scratch: HostSpan,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let command = d.vertex_input_command.ok_or(UNSUPPORTED)?;
+        let (bindings, attributes) = unsafe {
+            vertex_input::pack(
+                input,
+                d.snapshot.features.enabled,
+                &d.snapshot.graphics_limits,
+                &d.snapshot.raster_control_limits,
+                &d.snapshot.formats,
+                scratch,
+            )?
+        };
+        unsafe {
+            command(
+                self.command,
+                input.binding_count,
+                bindings,
+                input.attribute_count,
+                attributes,
+            );
+        }
+        Ok(())
+    }
     pub(in crate::foundation) unsafe fn sample_locations(
         &self,
         p: &SampleLocations,

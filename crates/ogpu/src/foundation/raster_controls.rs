@@ -109,24 +109,20 @@ pub(super) unsafe fn depth_clip(
         depthClipEnable: state.enable, ..Default::default()
     }))
 }
-pub(super) unsafe fn divisors(
+pub(super) unsafe fn divisor_entries<'a>(
     header: *const Record,
     bindings: &[VertexBinding],
     enabled: FeatureBits,
     limits: &RasterControlLimits,
-) -> Result<Vec<vk::VkVertexInputBindingDivisorDescription>, Status> {
+) -> Result<&'a [VertexDivisor], Status> {
     if header.is_null() {
-        return Ok(Vec::new());
+        return Ok(&[]);
     }
     let state = unsafe { record::<VertexDivisors>(header, VERTEX_DIVISORS)? };
     if state.reserved != 0 || state.count as usize > bindings.len() {
         return Err(INVALID);
     }
     let entries = unsafe { array(state.entries, state.count)? };
-    let mut result = Vec::new();
-    result
-        .try_reserve_exact(entries.len())
-        .map_err(|_| OUT_OF_MEMORY)?;
     for (i, entry) in entries.iter().enumerate() {
         if !bindings
             .iter()
@@ -141,6 +137,21 @@ pub(super) unsafe fn divisors(
         {
             return Err(UNSUPPORTED);
         }
+    }
+    Ok(entries)
+}
+pub(super) unsafe fn divisors(
+    header: *const Record,
+    bindings: &[VertexBinding],
+    enabled: FeatureBits,
+    limits: &RasterControlLimits,
+) -> Result<Vec<vk::VkVertexInputBindingDivisorDescription>, Status> {
+    let entries = unsafe { divisor_entries(header, bindings, enabled, limits)? };
+    let mut result = Vec::new();
+    result
+        .try_reserve_exact(entries.len())
+        .map_err(|_| OUT_OF_MEMORY)?;
+    for entry in entries {
         result.push(vk::VkVertexInputBindingDivisorDescription {
             binding: entry.binding,
             divisor: entry.divisor,

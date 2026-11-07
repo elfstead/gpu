@@ -97,8 +97,8 @@ explicit barrier and split transitions, LOAD preservation, replay and guards.
 Unavailable counts, fixed-pattern devices, shading-rate, secondary/continuation,
 multiview and external backends remain separate acceptance work.
 
-M8 next implements complete dynamic vertex input/divisor descriptions, remaining
-native dynamic raster controls and the extension-format inventory, followed by
+[Complete dynamic vertex input/divisors](dynamic-vertex-input.md) are now implemented.
+M8 next implements remaining native dynamic raster controls and the extension-format inventory, followed by
 capture/dynamic patch and consolidation. See the [coverage audit](m8-coverage.md).
 
 Native semantics follow the pinned registry and the primary

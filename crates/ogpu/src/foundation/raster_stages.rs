@@ -254,6 +254,9 @@ mod tests {
                 snapshot,
             };
             for bit in [
+                DYNAMIC_VERTEX_INPUT,
+                DYNAMIC_VERTEX_INPUT | VERTEX_DIVISOR,
+                DYNAMIC_VERTEX_INPUT | VERTEX_ZERO_DIVISOR,
                 SAMPLE_LOCATIONS,
                 SAMPLE_LOCATIONS | DYNAMIC_SAMPLE_LOCATIONS_ENABLE,
                 CONSERVATIVE_RASTER,
@@ -292,6 +295,10 @@ mod tests {
                 }
                 let d = result.unwrap();
                 assert_eq!(d.snapshot.features.enabled, required);
+                assert_eq!(
+                    d.vertex_input_command.is_some(),
+                    required & DYNAMIC_VERTEX_INPUT != 0
+                );
                 assert_eq!(
                     d.snapshot.raster_stage_limits,
                     adapter.snapshot.raster_stage_limits

@@ -1082,3 +1082,39 @@ pub unsafe extern "C" fn ogpu_next_set_sample_locations_enable(encoder: *mut Lis
         encode(encoder, |e| e.sample_locations_enable(enable));
     }
 }
+
+/// # Safety
+/// Writable disjoint output. Counts only; does not inspect input arrays.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_vertex_input_scratch_requirements(
+    bindings: u32,
+    attributes: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        unsafe {
+            out.write(rust::vertex_input_scratch_requirements(
+                bindings, attributes,
+            )?);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Live exclusive encoder; readable input and nested arrays, disjoint writable scratch.
+/// Shader/fetch compatibility and native dynamic-state lifetime are caller obligations.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_vertex_input(
+    encoder: *mut List,
+    input: *const VertexInput,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.vertex_input(input.as_ref().ok_or(INVALID)?, scratch)
+        });
+    }
+}

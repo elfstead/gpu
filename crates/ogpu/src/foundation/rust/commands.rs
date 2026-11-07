@@ -118,3 +118,12 @@ record!(fn set_line_stipple(list, factor:u32, pattern:u32) |e| e.line_stipple(fa
 
 record!(fn set_sample_locations(list, locations: &SampleLocations) |e| e.sample_locations(locations));
 record!(fn set_sample_locations_enable(list, enable: u32) |e| e.sample_locations_enable(enable));
+
+/// Counts-only scratch query; no device or input arrays required.
+pub fn vertex_input_scratch_requirements(
+    bindings: u32,
+    attributes: u32,
+) -> Result<HostRequirements> {
+    native::vertex_input_scratch(bindings, attributes)
+}
+record!(fn set_vertex_input(list, input: &VertexInput, scratch: HostSpan) |e| e.vertex_input(input, scratch));
