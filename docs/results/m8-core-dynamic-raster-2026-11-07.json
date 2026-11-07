@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "foundation_revision": 12,
+  "implementation": "a16805c9cf08362c1f1a1688d3b207bc3a90b0ac",
+  "source_dirty": false,
+  "runtime_sha256": "167a0782abfb51f6761e12ffe2ac622e467b6217b789f43a831f4bf17e3e51da",
+  "header_sha256": "921163c25c0628003358dadc8bb1e10ac1ae6a69c69f388f38d9be3a77b577a2",
+  "checks": {
+    "host_tests": 111,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "tool_tests": 21,
+    "clippy": "pass",
+    "abi_values": 2306,
+    "surface": {
+      "operations": 174,
+      "records": 152,
+      "constants": 251,
+      "values": 1437
+    },
+    "bindings": "reproduce",
+    "shader_artifacts": "reproduce and validate",
+    "core_dynamic_raster": {
+      "profiles": 10,
+      "submissions": 40,
+      "color_depth_pixel_pairs": 2560,
+      "rejected_recordings": 8,
+      "unrestricted_topology": false,
+      "cross_class_profile": "unavailable"
+    },
+    "validation_errors": 0,
+    "new_profile_validation_warnings": 0,
+    "full_fixture_preexisting_unused_output_warnings": 4,
+    "installed_optimized_fixture": "full C regression, 70 artifact inputs, static/dynamic raster comparisons",
+    "installed_exports": "exact match",
+    "native_rust": "isolated source bundle: build, correspondence, missing loader and headless execution"
+  },
+  "review_corrections": [
+    "removed static line-width range rejection; static/dynamic values now preserve native supported-width selection"
+  ],
+  "unverified": [
+    "cross-class topology execution",
+    "constant-term depth-bias rendering",
+    "other depth formats",
+    "advanced stage/secondary/generated dynamic-raster composition",
+    "other hardware",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "not_repeated": [
+    "external GGML/libplacebo acceptance",
+    "presentation/human acceptance"
+  ],
+  "next_implementation": [
+    "extended dynamic depth-clamp/polygon/multisample/blend/logic controls",
+    "multiple viewport/scissor and extended depth profiles",
+    "extension-format inventory",
+    "geometry capture and dynamic patch/domain state",
+    "M8 consolidation"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-core-raster-sdk/share/ogpu/manifest.json": "a57c257725ac0da59be82b0e10b7f151bbdbd2e843ae96361d6c379c07dc9b45",
+    "/tmp/ogpu-rust-external-0_jen39r/report.json": "3893f68bc4158d8858a8e37de9af2895fdd0efa52a111427ec4662d3da575479",
+    "/tmp/ogpu-run-core-raster-installed.py": "95982d38d527e98652bead96da0ea42ee820878ff02b782fcc01ae11d14c2807",
+    "/tmp/m8-core-raster-host.log": "84ebbddaf7ad639c6ff92ccb407b695247d0e0a40e9f87006e1f67116b281318",
+    "/tmp/m8-core-raster-native.log": "5b3e50f567ed30e3d6852274ce4c6318ea67cf7131ee12abeac83f78b9747174",
+    "/tmp/m8-core-raster-clippy.log": "bd358491d8895ba8c405ceecd288b7568ecb15fd7c2c55c69bdd95e174226713",
+    "/tmp/m8-core-raster-abi.log": "6386e92abb0409f64c71a12d094c8cdbe2057addbe4d05cde8ed7d8d921b8ea4",
+    "/tmp/m8-core-raster-surface.log": "bb9a16794ac03a3642a89b2f97f2d35e04020ce244ce8b0e957fb7cf3a68417e",
+    "/tmp/m8-core-raster-bindings-check.log": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+    "/tmp/m8-core-raster-shaders-check.log": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+    "/tmp/m8-core-raster-tools.log": "a7bfcd79f170fc1e357fc884ac54eb48498e89604f5b87a58d6a06608f3f4cbe",
+    "/tmp/m8-core-raster-gpu.log": "4078ae27a62dc61b43db5e80f70fed123fb5a8a200d069a02621aeb8ae41325d",
+    "/tmp/m8-core-raster-install.log": "51a8f5fe7c3592c0e657fe2df57a2410944e96b194cdd41b0d4396feca427947",
+    "/tmp/m8-core-raster-installed-fixture.log": "1558e2b8d61247222587e876f5759d7683c84b65d67c8195557759f660579f5c",
+    "/tmp/m8-core-raster-installed-surface.log": "1a3eb282813cb6dd12a59d75f14fd71c80b0c379acb012d23292f9400d79fa08",
+    "/tmp/m8-core-raster-rust-sdk.log": "25314981c6924839daceb05e416394c7f9133ef68c47ac1779bec1c2f621932a"
+  }
+}

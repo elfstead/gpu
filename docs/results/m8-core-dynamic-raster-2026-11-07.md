@@ -76,3 +76,19 @@ stage/secondary/generated combinations, other hardware and Metal/DX12 remain
 unverified. No new performance, presentation/human or external ML/video consumer
 acceptance is claimed. M8 continues with the [named extended raster control groups](../m8-coverage.md#remaining-raster-control-groups),
 format inventory, geometry capture/dynamic patch state and final consolidation.
+
+## Clean installed acceptance
+
+Implementation `a16805c9cf08362c1f1a1688d3b207bc3a90b0ac` installed with
+`source_dirty=false` into `/tmp/ogpu-m8-core-raster-sdk`. Runtime SHA-256:
+`167a0782abfb51f6761e12ffe2ac622e467b6217b789f43a831f4bf17e3e51da`.
+
+The optimized C fixture passes against the installed header/runtime with 70 shader
+artifact inputs, including all ten supported new raster profiles. Exact exports
+match the reviewed surface. The separately relocated native Rust source bundle
+builds and passes correspondence, missing-loader rejection and headless execution
+without linking the C SDK. The new contract is included in both SDK documentation
+and the source bundle. No validation scope beyond the limits above is implied.
+
+The [machine-readable receipt](m8-core-dynamic-raster-2026-11-07.json) records exact
+source/runtime identity, counts and evidence hashes.
