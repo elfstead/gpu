@@ -68,3 +68,55 @@ the driver's chosen address. Local RADV passes synchronization validation.
 [Native aliasing rules](https://docs.vulkan.org/spec/latest/chapters/resources.html#resources-memory-aliasing)
 remain caller obligations. Arbitrary image-byte preservation through a buffer alias
 is not promised. The next tranche is typed native interoperability.
+
+## Native handoff tranche — implemented
+
+Typed Vulkan exports/imports now cover devices, queues (borrowed export), memory,
+images, timelines and binary semaphores. Discovery may borrow an external instance;
+a device may be borrowed or adopted. Resource adoption is component-specific:
+allocation and buffer ownership are independent. Ownership transfers only after
+successful validation/construction; imported images retain caller-specified state,
+with no transition or implicit synchronization. Ordinary destruction releases the
+wrapper and only the explicitly adopted native objects, without waiting.
+
+Linear imports distinguish allocation and buffer offsets. A buffer-only import
+needs no `VkDeviceMemory` registration, mapping or allocation query. Mapping uses
+the allocation origin; native address commands use the buffer origin. These
+imports currently promise fully bound, nonsparse objects and exact metadata.
+The memory behind an imported image remains the native caller's responsibility.
+
+The public `native` Rust consumer creates buffer/image/semaphore objects through
+Vulkan, imports them through a separately borrowed discovery/device, records a
+native producer and OGPU consumer, and hands off with timeline plus binary signals.
+It checks 32 words, 64 pixels and guards. Buffer and allocation origins deliberately
+differ; a buffer-only wrapper is destroyed/reimported before consumption. Imported
+resource ownership is adopted, native image memory stays separately owned, and the
+original device remains usable after destroying its borrowed OGPU wrapper. Local
+RADV synchronization validation passes without a CPU producer-to-consumer transfer.
+Final readback is solely an assertion of results. This is same-device sharing;
+it does not yet establish external OS handles or peer-device execution.
+
+### Native device creation contract
+
+Imports assert a native Vulkan 1.4-capable device and the same mandatory enabling
+as the normal constructor: `storageBuffer16BitAccess`, `bufferDeviceAddress`,
+`timelineSemaphore`, `synchronization2`, `maintenance4`, `maintenance5`,
+`descriptorHeap`, `deviceAddressCommands`, and `shaderUntypedPointers`. The three
+extension names are `VK_EXT_descriptor_heap`, `VK_KHR_device_address_commands`,
+and `VK_KHR_shader_untyped_pointers`. Queues use ordinary, unprotected creation.
+Optional OGPU IDs assert the corresponding native enabling in the
+[constructor](../crates/ogpu/src/foundation/native.rs); extra native features and
+extensions may coexist without an OGPU abstraction. Import cannot introspect
+already-enabled native features, so inaccurate declarations violate its unsafe
+contract. A borrowed instance must belong to the selected Vulkan loader and outlive
+all resulting children. Its API ceiling and surface-extension flags are explicit.
+
+### External-handle composition to verify next
+
+The native boundary may already express platform-specific external memory and
+semaphore transport without additional core variants: enable native extensions
+when creating the caller-owned device, query exact handle capabilities/identity,
+export/import OS handles natively, then wrap the resulting objects once. The next
+consumer must demonstrate the zero-copy synchronization/ownership path before this
+is accepted as the M10 external-handle disposition. This is a proposed composition,
+not evidence that FD, Win32, modifiers or cross-process profiles already pass.

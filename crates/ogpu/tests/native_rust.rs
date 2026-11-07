@@ -22,6 +22,18 @@ fn native_surface_covers_current_c_operations() {
         )* };
     }
     operations!(
+        discovery_import_vulkan,
+        device_import_vulkan,
+        device_native_vulkan,
+        queue_native_vulkan,
+        memory_native_vulkan,
+        image_native_vulkan,
+        timeline_native_vulkan,
+        binary_native_vulkan,
+        memory_import_vulkan,
+        image_import_vulkan,
+        timeline_import_vulkan,
+        binary_import_vulkan,
         memory_info_query,
         ray_group_handles,
         ray_group_stack_size,

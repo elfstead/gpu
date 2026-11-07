@@ -216,7 +216,19 @@
     "presentation.surface_query",
     "presentation.surface_wayland_create",
     "presentation.surface_win32_create",
-    "ogpu_next_memory_info_query"
+    "ogpu_next_memory_info_query",
+    "ogpu_next_device_native_vulkan",
+    "ogpu_next_queue_native_vulkan",
+    "ogpu_next_memory_native_vulkan",
+    "ogpu_next_image_native_vulkan",
+    "ogpu_next_timeline_native_vulkan",
+    "ogpu_next_binary_native_vulkan",
+    "ogpu_next_memory_import_vulkan",
+    "ogpu_next_image_import_vulkan",
+    "ogpu_next_timeline_import_vulkan",
+    "ogpu_next_binary_import_vulkan",
+    "ogpu_next_discovery_import_vulkan",
+    "ogpu_next_device_import_vulkan"
   ],
   "constants": {
     "OGPU_NEXT_VERSION": "VERSION",
@@ -605,7 +617,11 @@
     "OGPU_NEXT_ARGUMENT_CALLABLE": "ARGUMENT_CALLABLE",
     "OGPU_NEXT_GENERATED_TRACE_RAYS": "GENERATED_TRACE_RAYS",
     "OGPU_NEXT_MEMORY_ALLOW_IMAGES": "MEMORY_ALLOW_IMAGES",
-    "OGPU_NEXT_QUERY_PLACEMENT_LIMITS": "PLACEMENT_LIMITS"
+    "OGPU_NEXT_QUERY_PLACEMENT_LIMITS": "PLACEMENT_LIMITS",
+    "OGPU_NEXT_NATIVE_BORROW": "NATIVE_BORROW",
+    "OGPU_NEXT_NATIVE_OWN": "NATIVE_OWN",
+    "OGPU_NEXT_NATIVE_OWN_BUFFER": "NATIVE_OWN_BUFFER",
+    "OGPU_NEXT_VULKAN_INSTANCE_WAYLAND": "VULKAN_INSTANCE_WAYLAND"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

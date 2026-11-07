@@ -5,6 +5,7 @@ use super::*;
 pub struct Binary {
     pub(super) device: *const Device,
     pub(super) handle: vk::VkSemaphore,
+    pub(super) owned: bool,
 }
 impl Binary {
     pub(in crate::foundation) fn create(d: &Device) -> Result<Box<Self>, Status> {
@@ -22,11 +23,18 @@ impl Binary {
                 &mut handle,
             ))?;
         }
-        Ok(Box::new(Self { device: d, handle }))
+        Ok(Box::new(Self {
+            device: d,
+            handle,
+            owned: true,
+        }))
     }
 }
 impl Drop for Binary {
     fn drop(&mut self) {
+        if !self.owned {
+            return;
+        }
         let d = unsafe { &*self.device };
         unsafe {
             (d.f.vkDestroySemaphore.unwrap())(d.handle, self.handle, ptr::null());
@@ -95,6 +103,30 @@ impl Drop for Fence {
         unsafe {
             (d.f.vkDestroyFence.unwrap())(d.handle, self.handle, ptr::null());
         }
+    }
+}
+
+impl Binary {
+    pub(in crate::foundation) fn native_vulkan(&self) -> Result<VulkanSemaphore, Status> {
+        unsafe { &*self.device }.ready()?;
+        Ok(VulkanSemaphore {
+            semaphore: self.handle as u64,
+        })
+    }
+    pub(in crate::foundation) fn import_vulkan(
+        d: &Device,
+        value: VulkanSemaphore,
+        ownership: u32,
+    ) -> Result<Box<Self>, Status> {
+        d.ready()?;
+        if value.semaphore == 0 || ownership > NATIVE_OWN {
+            return Err(INVALID);
+        }
+        Ok(Box::new(Self {
+            device: d,
+            handle: value.semaphore as vk::VkSemaphore,
+            owned: ownership == NATIVE_OWN,
+        }))
     }
 }
 

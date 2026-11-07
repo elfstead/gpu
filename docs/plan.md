@@ -62,7 +62,7 @@ M9 now implements AS operations and ray executables/tables, direct/indirect/gene
 trace commands through C and native Rust. [Explicit emulation diagnostics](results/m9-ray-pipelines-2026-11-07.json)
 pass with two geometry identities and caller-owned preprocessing. Procedural
 geometry/any-hit/intersection and batched builds now pass a [96-ray diagnostic](results/m9-procedural-rays-2026-11-07.json).
-[Clean M9 SDK/contract consolidation](m9-consolidation.md) passes at `ea0f268`; M10 [mixed placement](m10-memory-interop.md) is implemented and locally validated; typed native interoperability follows. Native ray acceptance remains open.
+[Clean M9 SDK/contract consolidation](m9-consolidation.md) passes at `ea0f268`; M10 [mixed placement](m10-memory-interop.md) is implemented and locally validated; typed native interoperability is also implemented with a validated native producer. External-handle composition follows. Native ray acceptance remains open.
 
 The [current design](design.md) describes the model; the
 [implemented surface](foundation-implementation.md) gives exact profiles and

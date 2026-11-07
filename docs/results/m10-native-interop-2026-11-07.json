@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-07",
+  "scope": "Vulkan/Linux mixed backing and native same-device handoff",
+  "foundation_revision": 13,
+  "host_tests": 131,
+  "native_lib_tests": 32,
+  "abi_layout_values": 2513,
+  "surface": {
+    "operations": 228,
+    "records": 188,
+    "constants": 391,
+    "values": 1820
+  },
+  "consumer": {
+    "buffer_words": 32,
+    "image_pixels": 64,
+    "separate_origins": true,
+    "buffer_only": true,
+    "borrowed_instance_device": true,
+    "adopted_resources": true,
+    "timeline_binary_handoff": true,
+    "cpu_payload_handoff": false
+  },
+  "validation_errors": 0,
+  "limits": [
+    "Same physical/logical device; no OS-handle transport accepted yet",
+    "Exact metadata is an unsafe caller obligation",
+    "No Metal/DX12 acceptance or multi-device claim"
+  ],
+  "logs": [
+    "/tmp/ogpu-m10-interop-validation.log",
+    "/tmp/ogpu-m10-native-validation.log",
+    "/tmp/ogpu-m10-native-rust-validation.log",
+    "/tmp/ogpu-m10-c-validation.log",
+    "/tmp/ogpu-m10-interop-host.log",
+    "/tmp/ogpu-m10-interop-clippy.log",
+    "/tmp/ogpu-m10-interop-abi.log",
+    "/tmp/ogpu-m10-interop-surface.log"
+  ]
+}

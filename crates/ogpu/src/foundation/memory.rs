@@ -17,6 +17,9 @@ pub struct Memory {
     size: u64,
     allocated: u64,
     prefix: u64,
+    buffer_offset: u64,
+    buffer_size: u64,
+    ownership: u32,
     address: u64,
     properties: u32,
     mapped: Cell<*mut u8>,
@@ -94,7 +97,7 @@ impl Device {
         }
         (result.memoryRequirements, dedicated)
     }
-    unsafe fn prepare_memory(&self, desc: &MemoryDesc) -> Result<Prepared, Status> {
+    unsafe fn validate_memory(&self, desc: &MemoryDesc) -> Result<(), Status> {
         self.ready()?;
         desc.header.validate::<MemoryDesc>(MEMORY_DESC)?;
         if desc.usage & USAGE_RAY_TABLE != 0 && self.snapshot.features.enabled & RAY_PIPELINE == 0 {
@@ -146,6 +149,16 @@ impl Device {
         if desc.kind == 2 && (desc.usage != 0 || desc.alignment != 1 || concurrent != 0) {
             return Err(INVALID);
         }
+        if desc.kind == MEMORY_LINEAR {
+            buffer_usage(desc.usage)?;
+        }
+        Ok(())
+    }
+    unsafe fn prepare_memory(&self, desc: &MemoryDesc) -> Result<Prepared, Status> {
+        unsafe {
+            self.validate_memory(desc)?;
+        }
+        let concurrent = desc.concurrent_domain_count;
         let mut buffer = vk::VkBufferCreateInfo::default();
         let mut requirements = vk::VkMemoryRequirements {
             size: desc.size,
@@ -258,10 +271,10 @@ impl Drop for Memory {
         unsafe {
             let d = &*self.device;
             self.unmap();
-            if !self.buffer.is_null() {
+            if self.ownership & NATIVE_OWN_BUFFER != 0 && !self.buffer.is_null() {
                 (d.f.vkDestroyBuffer.unwrap())(d.handle, self.buffer, ptr::null());
             }
-            if !self.memory.is_null() {
+            if self.ownership & NATIVE_OWN != 0 && !self.memory.is_null() {
                 (d.f.vkFreeMemory.unwrap())(d.handle, self.memory, ptr::null());
             }
         }
@@ -290,6 +303,9 @@ impl Memory {
             size: desc.size,
             allocated: p.size,
             prefix: 0,
+            buffer_offset: 0,
+            buffer_size: p.buffer.size,
+            ownership: NATIVE_OWN | NATIVE_OWN_BUFFER,
             address: 0,
             properties,
             mapped: Cell::new(ptr::null_mut()),
@@ -385,10 +401,114 @@ impl Memory {
                 return Err(BACKEND_ERROR);
             }
             result.prefix = (desc.alignment - base % desc.alignment) % desc.alignment;
+            result.buffer_offset = result.prefix;
             result.address = base.checked_add(result.prefix).ok_or(BACKEND_ERROR)?;
             result.address.checked_add(desc.size).ok_or(BACKEND_ERROR)?;
         }
         Ok(result)
+    }
+    pub(in crate::foundation) fn native_vulkan(&self) -> Result<VulkanMemory, Status> {
+        unsafe { &*self.device }.ready()?;
+        Ok(VulkanMemory {
+            memory: self.memory as u64,
+            buffer: self.buffer as u64,
+            allocation_size: self.allocated,
+            allocation_offset: self.prefix,
+            buffer_size: self.buffer_size,
+            buffer_offset: self.buffer_offset,
+        })
+    }
+    pub(in crate::foundation) unsafe fn import_vulkan(
+        d: &Device,
+        desc: &MemoryDesc,
+        value: VulkanMemory,
+        ownership: u32,
+    ) -> Result<Box<Self>, Status> {
+        d.ready()?;
+        // Validate the same creation/usage/domain contract, without allocating
+        // or looking up any GPU address in a runtime registry.
+        unsafe {
+            d.validate_memory(desc)?;
+        }
+        if ownership & !(NATIVE_OWN | NATIVE_OWN_BUFFER) != 0
+            || (value.memory == 0 && ownership & NATIVE_OWN != 0)
+            || (value.buffer == 0 && ownership & NATIVE_OWN_BUFFER != 0)
+            || value.allocation_offset > value.allocation_size
+            || (value.memory != 0 && desc.size > value.allocation_size - value.allocation_offset)
+            || (value.memory == 0 && (value.allocation_size != 0 || value.allocation_offset != 0))
+        {
+            return Err(INVALID);
+        }
+        if desc.kind == MEMORY_OPAQUE {
+            if value.memory == 0
+                || value.buffer != 0
+                || value.buffer_size != 0
+                || value.buffer_offset != 0
+            {
+                return Err(INVALID);
+            }
+        } else if value.buffer == 0
+            || value.buffer_offset > value.buffer_size
+            || desc.size > value.buffer_size - value.buffer_offset
+        {
+            return Err(INVALID);
+        }
+        let properties = d
+            .snapshot
+            .memory_types
+            .iter()
+            .find(|m| m.id == desc.memory_type && m.properties & (32 | 64 | 128) == 0)
+            .ok_or(UNSUPPORTED)?
+            .properties;
+        let address = if value.buffer != 0 {
+            let query = vk::VkBufferDeviceAddressInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                buffer: value.buffer as vk::VkBuffer,
+                ..Default::default()
+            };
+            let base = unsafe { (d.f.vkGetBufferDeviceAddress.unwrap())(d.handle, &query) };
+            if base == 0 {
+                return Err(BACKEND_ERROR);
+            }
+            let address = base.checked_add(value.buffer_offset).ok_or(INVALID)?;
+            if address % desc.alignment != 0 {
+                return Err(INVALID);
+            }
+            address.checked_add(desc.size).ok_or(INVALID)?;
+            address
+        } else {
+            0
+        };
+        Ok(Box::new(Self {
+            device: d,
+            buffer: value.buffer as vk::VkBuffer,
+            memory: value.memory as vk::VkDeviceMemory,
+            size: desc.size,
+            allocated: value.allocation_size,
+            prefix: value.allocation_offset,
+            buffer_size: value.buffer_size,
+            buffer_offset: value.buffer_offset,
+            ownership,
+            address,
+            properties,
+            mapped: Cell::new(ptr::null_mut()),
+            usage: desc.usage,
+            domains: if desc.concurrent_domain_count == 0 {
+                Vec::new()
+            } else {
+                unsafe {
+                    std::slice::from_raw_parts(
+                        desc.concurrent_domains,
+                        desc.concurrent_domain_count as usize,
+                    )
+                }
+                .to_vec()
+            },
+            memory_type: desc.memory_type,
+            dedicated_image: ptr::null_mut(),
+            allow_images: value.memory != 0
+                && (desc.kind == MEMORY_OPAQUE || desc.flags & MEMORY_ALLOW_IMAGES != 0),
+        }))
     }
     pub(in crate::foundation) fn info(&self) -> Result<MemoryInfo, Status> {
         unsafe { &*self.device }.ready()?;
@@ -419,7 +539,7 @@ impl Memory {
         offset: u64,
         size: u64,
     ) -> Result<(vk::VkDeviceMemory, u64), Status> {
-        if self.device != device || !self.allow_images {
+        if self.device != device || !self.allow_images || self.memory.is_null() {
             return Err(INVALID);
         }
         let native_offset = self.range(offset, size)?;
@@ -457,6 +577,9 @@ impl Memory {
             size,
             allocated: size,
             prefix: 0,
+            buffer_offset: 0,
+            buffer_size: 0,
+            ownership: NATIVE_OWN,
             address: 0,
             properties,
             mapped: Cell::new(ptr::null_mut()),
@@ -512,9 +635,10 @@ impl Memory {
         if self.device != device || self.buffer.is_null() || self.usage & usage != usage {
             return Err(INVALID);
         }
+        self.range(offset, size)?;
         Ok((
             self.buffer,
-            self.range(offset, size)?,
+            self.buffer_offset.checked_add(offset).ok_or(INVALID)?,
             self.address.checked_add(offset).ok_or(INVALID)?,
         ))
     }
@@ -573,7 +697,7 @@ impl Memory {
         if size == 0 {
             return Err(INVALID);
         }
-        if self.properties & 2 == 0 || self.allocated > isize::MAX as u64 {
+        if self.memory.is_null() || self.properties & 2 == 0 || self.allocated > isize::MAX as u64 {
             return Err(UNSUPPORTED);
         }
         if self.mapped.get().is_null() {
@@ -922,6 +1046,9 @@ mod tests {
             size: 256,
             allocated: 512,
             prefix: 5,
+            buffer_offset: 5,
+            buffer_size: 512,
+            ownership: 0,
             address: 0,
             properties: 0,
             mapped: Cell::new(ptr::null_mut()),

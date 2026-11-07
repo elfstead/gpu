@@ -164,3 +164,9 @@ probe checks the live native contract, one-call batching and scratch rejection,
 and abandons an unused frame with caller scratch. The three-slot scene tracks
 presentation fences from explicit effects. Errors with uncertain effects stop these
 samples without pretending their resources are reusable; recovery policy is external.
+
+The `native` binary demonstrates the unsafe Vulkan interoperability boundary:
+`cargo run --offline --bin native`. A native producer shares a buffer, image and
+semaphores with OGPU, including borrowed device/instance and independently owned
+backing. It uses the same selected Vulkan loader and performs no CPU payload handoff.
+The `ray` binary runs optional M9 profiles; see `../foundation_ray/README.md`.

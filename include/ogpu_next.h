@@ -3643,6 +3643,87 @@ typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*queue_present)(ogpu_next_queue *, const ogpu_next_present_desc *, ogpu_next_present_outcome *);
 } ogpu_next_presentation_functions;
 ogpu_next_status ogpu_next_presentation_api(uint32_t version, uint32_t byte_size, ogpu_next_presentation_functions *);
+
+/* Vulkan-native interoperability. These typed records are a backend escape hatch,
+ * not portable aliases. Dispatchable handles are pointers; non-dispatchable
+ * handles preserve their native uint64_t representation. Use the SAME Vulkan
+ * loader that created the exported instance (OGPU_VULKAN_LIBRARY when selected).
+ * Exports borrow handles: no ownership transfer, native mutation or GPU work.
+ * Native calls share all lifetime, external synchronization, layout, visibility
+ * and queue-family ownership obligations with OGPU. OGPU does not track/restore
+ * native state. Do not externally destroy exported owners or reset their pools.
+ */
+#define OGPU_NEXT_NATIVE_BORROW UINT32_C(0)
+#define OGPU_NEXT_NATIVE_OWN UINT32_C(1)
+#define OGPU_NEXT_NATIVE_OWN_BUFFER UINT32_C(2)
+#define OGPU_NEXT_VULKAN_INSTANCE_WAYLAND UINT32_C(1)
+typedef struct ogpu_next_vulkan_instance {
+    void *instance;
+    uint32_t api_version, flags;
+} ogpu_next_vulkan_instance;
+typedef struct ogpu_next_vulkan_device {
+    void *instance, *physical_device, *device;
+    uint32_t instance_api_version, instance_flags;
+} ogpu_next_vulkan_device;
+typedef struct ogpu_next_vulkan_queue {
+    void *queue;
+    uint32_t domain, index;
+} ogpu_next_vulkan_queue;
+typedef struct ogpu_next_vulkan_memory {
+    uint64_t memory, buffer, allocation_size, allocation_offset, buffer_size, buffer_offset;
+} ogpu_next_vulkan_memory;
+typedef struct ogpu_next_vulkan_image {
+    uint64_t image;
+    uint32_t bound, presentable;
+} ogpu_next_vulkan_image;
+typedef struct ogpu_next_vulkan_semaphore {
+    uint64_t semaphore;
+} ogpu_next_vulkan_semaphore;
+/* Import creates a cold CPU wrapper only. Metadata is trusted: handles must
+ * belong to the supplied native device, with the declared exact creation/usage/
+ * sharing/type/size/offset properties and required features. These imports cover
+ * ordinary nonsparse buffers/images; linear buffers must be fully bound. Import does not copy,
+ * bind, wait, transition, recreate or retain a native object. Initial/final state
+ * stays caller-managed. A bound image import accepts its current native layout;
+ * each recorded use/dependency must specify that layout explicitly.
+ * OWN transfers destruction authority only on OK, using the NULL Vulkan allocator.
+ * BORROW leaves native destruction to the caller; destroy the OGPU wrapper before
+ * its parent/native objects. Constructors clear output on error, no transfer.
+ * memory OWN owns VkDeviceMemory, OWN_BUFFER independently owns VkBuffer. Each
+ * component may have another owner. A linear import may omit VkDeviceMemory
+ * (memory/allocation_size/allocation_offset=0): address commands work, map/placement
+ * do not. Native buffer_offset and allocation_offset may differ; both denote
+ * logical byte zero. No resource registry or GPU-address provenance walk exists.
+ * Native memory must be unmapped when first mapped by OGPU; mapping/unmapping
+ * through any alias requires external exclusion. Destroy unmaps only OGPU's map.
+ * ALLOW_IMAGES requires non-dedicated memory. Opaque imported memory likewise
+ * promises no dedicated association; dedicated-image imports need native binding
+ * before image import. Presentable images must be bound and borrowed. Importing
+ * a binary as a timeline (or vice versa) violates the caller contract.
+ */
+ogpu_next_status ogpu_next_device_native_vulkan(const ogpu_next_device *, ogpu_next_vulkan_device *);
+ogpu_next_status ogpu_next_queue_native_vulkan(const ogpu_next_queue *, ogpu_next_vulkan_queue *);
+ogpu_next_status ogpu_next_memory_native_vulkan(const ogpu_next_memory *, ogpu_next_vulkan_memory *);
+ogpu_next_status ogpu_next_image_native_vulkan(const ogpu_next_image *, ogpu_next_vulkan_image *);
+ogpu_next_status ogpu_next_timeline_native_vulkan(const ogpu_next_timeline *, ogpu_next_vulkan_semaphore *);
+ogpu_next_status ogpu_next_binary_native_vulkan(const ogpu_next_binary *, ogpu_next_vulkan_semaphore *);
+ogpu_next_status ogpu_next_memory_import_vulkan(ogpu_next_device *, const ogpu_next_memory_desc *, const ogpu_next_vulkan_memory *, uint32_t ownership, ogpu_next_memory **);
+ogpu_next_status ogpu_next_image_import_vulkan(ogpu_next_device *, const ogpu_next_image_desc *, const ogpu_next_vulkan_image *, uint32_t ownership, ogpu_next_image **);
+ogpu_next_status ogpu_next_timeline_import_vulkan(ogpu_next_device *, const ogpu_next_vulkan_semaphore *, uint32_t ownership, ogpu_next_timeline **);
+ogpu_next_status ogpu_next_binary_import_vulkan(ogpu_next_device *, const ogpu_next_vulkan_semaphore *, uint32_t ownership, ogpu_next_binary **);
+
+/* Discovery imports borrow the native instance (including on failure); its
+ * caller retains it until all discovery/device children are gone. api_version
+ * describes the instance's application ceiling; flags declares enabled Wayland
+ * surface extensions. Device imports use an adapter from that same instance.
+ * DeviceDesc declares queues and optional features ALREADY created/enabled by
+ * the native caller. OGPU baseline requirements must also already be enabled;
+ * no enabling, shadow device, queue or feature substitution occurs. Other
+ * native features may be enabled and remain available through native handles.
+ * Native ownership uses BORROW/OWN and transfers only on successful import. */
+ogpu_next_status ogpu_next_discovery_import_vulkan(const ogpu_next_vulkan_instance *, ogpu_next_discovery **);
+ogpu_next_status ogpu_next_device_import_vulkan(const ogpu_next_adapter *, const ogpu_next_device_desc *, const ogpu_next_vulkan_device *, uint32_t ownership, ogpu_next_device **);
+
 #ifdef __cplusplus
 }
 #endif

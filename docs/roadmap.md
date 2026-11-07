@@ -712,7 +712,9 @@ as hardware acceptance. Pull M10 backing/interop prerequisites forward if needed
 
 [Implementation brief](m10-memory-interop.md): mixed linear/image placement and
 explicit allocation origin are implemented; local Rust consumer and synchronization
-validation pass. Native interoperability and sparse/virtual coverage follow.
+validation pass. Typed native interoperability now passes a native producer/OGPU
+consumer with borrowed device/instance, resource adoption and explicit timeline/binary
+handoff. External OS-handle composition and sparse/virtual coverage follow.
 
 **Deliver:** mixed buffer/image backing where native placement allows it; typed
 owned/borrowed device/resource handles; external memory and synchronization

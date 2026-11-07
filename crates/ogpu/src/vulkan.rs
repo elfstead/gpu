@@ -76,6 +76,7 @@ pub(crate) struct Instance {
     destroy: Destroy,
     api_version: u32,
     wayland: bool,
+    owned: bool,
     _library: Library,
 }
 
@@ -87,6 +88,9 @@ unsafe impl Sync for Instance {}
 
 impl Drop for Instance {
     fn drop(&mut self) {
+        if !self.owned {
+            return;
+        }
         // SAFETY: this owns a live instance, no device children exist, and the library is
         // retained until after Drop. The same NULL allocator was used for creation.
         unsafe {
@@ -96,6 +100,45 @@ impl Drop for Instance {
 }
 
 impl Instance {
+    /// Borrow a caller-created instance using the explicitly selected loader.
+    /// Caller proves instance API/extension metadata and retains the native parent.
+    pub(crate) unsafe fn import_vulkan(
+        handle: vk::VkInstance,
+        api_version: u32,
+        wayland: bool,
+    ) -> Result<Self, Error> {
+        if handle.is_null() || api_version < V1_1 {
+            return Err(Error::new(
+                UNSUPPORTED,
+                "Native instance requires Vulkan 1.1 or newer",
+            ));
+        }
+        let path =
+            std::env::var_os("OGPU_VULKAN_LIBRARY").unwrap_or_else(|| "libvulkan.so.1".into());
+        let library =
+            unsafe { Library::new(&path) }.map_err(|e| Error::new(LOADER_ERROR, e.to_string()))?;
+        let get = unsafe {
+            *library
+                .get::<vk::PFN_vkGetInstanceProcAddr>(b"vkGetInstanceProcAddr\0")
+                .map_err(|e| Error::new(LOADER_ERROR, e.to_string()))?
+        };
+        let get = get.ok_or_else(|| Error::new(LOADER_ERROR, "Missing vkGetInstanceProcAddr"))?;
+        let destroy: vk::PFN_vkDestroyInstance =
+            unsafe { std::mem::transmute(get(handle, c"vkDestroyInstance".as_ptr())) };
+        Ok(Self {
+            handle,
+            get,
+            destroy: destroy
+                .ok_or_else(|| Error::new(LOADER_ERROR, "Missing vkDestroyInstance"))?,
+            api_version,
+            wayland,
+            owned: false,
+            _library: library,
+        })
+    }
+    pub(crate) fn api_version(&self) -> u32 {
+        self.api_version
+    }
     pub(crate) fn handle(&self) -> vk::VkInstance {
         self.handle
     }
@@ -248,6 +291,7 @@ impl Instance {
             destroy,
             api_version,
             wayland,
+            owned: true,
             _library: library,
         })
     }

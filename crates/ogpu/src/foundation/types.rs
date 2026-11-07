@@ -2526,3 +2526,54 @@ pub const SHADER_CALLABLE: u32 = 2147483654;
 pub const ARGUMENT_CALLABLE: u64 = 137438953472;
 
 pub const GENERATED_TRACE_RAYS: u32 = 13;
+
+// Backend-typed unsafe native handoff. No ownership is implied by an export.
+pub const NATIVE_BORROW: u32 = 0;
+pub const NATIVE_OWN: u32 = 1;
+pub const NATIVE_OWN_BUFFER: u32 = 2;
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct VulkanInstance {
+    pub instance: *mut c_void,
+    pub api_version: u32,
+    pub flags: u32,
+}
+pub const VULKAN_INSTANCE_WAYLAND: u32 = 1;
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct VulkanDevice {
+    pub instance: *mut c_void,
+    pub physical_device: *mut c_void,
+    pub device: *mut c_void,
+    pub instance_api_version: u32,
+    pub instance_flags: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct VulkanQueue {
+    pub queue: *mut c_void,
+    pub domain: u32,
+    pub index: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct VulkanMemory {
+    pub memory: u64,
+    pub buffer: u64,
+    pub allocation_size: u64,
+    pub allocation_offset: u64,
+    pub buffer_size: u64,
+    pub buffer_offset: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct VulkanImage {
+    pub image: u64,
+    pub bound: u32,
+    pub presentable: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct VulkanSemaphore {
+    pub semaphore: u64,
+}

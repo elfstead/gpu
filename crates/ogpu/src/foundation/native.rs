@@ -62,6 +62,9 @@ mod local_read;
 #[path = "shading_rate.rs"]
 mod shading_rate;
 
+#[path = "native_interop.rs"]
+mod native_interop;
+
 #[path = "memory.rs"]
 mod memory;
 pub use memory::Memory;
@@ -880,6 +883,7 @@ pub(super) fn snapshot(
 }
 
 pub struct Device {
+    owned: bool,
     physical: vk::VkPhysicalDevice,
     handle: vk::VkDevice,
     f: Functions,
@@ -915,7 +919,7 @@ unsafe impl Sync for Device {}
 
 impl Drop for Device {
     fn drop(&mut self) {
-        if !self.handle.is_null() {
+        if self.owned && !self.handle.is_null() {
             // SAFETY: C caller has destroyed children and completed all operations.
             unsafe {
                 (self.f.vkDestroyDevice.unwrap())(self.handle, ptr::null());
@@ -924,7 +928,7 @@ impl Drop for Device {
     }
 }
 impl Device {
-    pub(super) fn create(
+    fn prepare(
         adapter: &Adapter,
         requests: &[QueueRequest],
         enabled: FeatureBits,
@@ -949,7 +953,8 @@ impl Device {
             .filter(|q| q.count != 0)
             .map(|q| commands::dependencies::limits(q.domain, q.flags, enabled))
             .collect();
-        let mut result = Box::new(Self {
+        Ok(Box::new(Self {
+            owned: true,
             physical: adapter.physical,
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
@@ -980,7 +985,14 @@ impl Device {
             queues: Vec::new(),
             lost: AtomicBool::new(false),
             _instance: adapter.instance.clone(),
-        });
+        }))
+    }
+    pub(super) fn create(
+        adapter: &Adapter,
+        requests: &[QueueRequest],
+        enabled: FeatureBits,
+    ) -> Result<Box<Self>, Status> {
+        let mut result = Self::prepare(adapter, requests, enabled)?;
         let priorities: Vec<Vec<f32>> = requests
             .iter()
             .map(|r| vec![r.priority; r.count as usize])
@@ -1298,18 +1310,17 @@ impl Device {
             ))?;
         }
         result.handle = handle;
+        result.attach_queues(requests);
+        Ok(result)
+    }
+    fn attach_queues(&mut self, requests: &[QueueRequest]) {
         for r in requests {
             for index in 0..r.count {
                 let mut handle = ptr::null_mut();
                 unsafe {
-                    (result.f.vkGetDeviceQueue.unwrap())(
-                        result.handle,
-                        r.domain,
-                        index,
-                        &mut handle,
-                    );
+                    (self.f.vkGetDeviceQueue.unwrap())(self.handle, r.domain, index, &mut handle);
                 }
-                result.queues.push(Queue {
+                self.queues.push(Queue {
                     handle,
                     device: AtomicPtr::new(ptr::null_mut()),
                     domain: r.domain,
@@ -1317,7 +1328,6 @@ impl Device {
                 });
             }
         }
-        Ok(result)
     }
     pub(super) fn queue(&self, domain: u32, index: u32) -> Option<&Queue> {
         let queue = self
@@ -1349,6 +1359,7 @@ impl Device {
 }
 
 pub struct Timeline {
+    owned: bool,
     // Non-owning. Only unsafe C entry points can construct/use this object.
     device: *const Device,
     handle: vk::VkSemaphore,
@@ -1358,7 +1369,7 @@ impl Drop for Timeline {
         // SAFETY: caller keeps device alive and excludes pending timeline use.
         unsafe {
             let d = &*self.device;
-            if !self.handle.is_null() {
+            if self.owned && !self.handle.is_null() {
                 (d.f.vkDestroySemaphore.unwrap())(d.handle, self.handle, ptr::null());
             }
         }
@@ -1369,6 +1380,7 @@ impl Timeline {
         device.ready()?;
         let mut result = Box::new(Self {
             device,
+            owned: true,
             handle: ptr::null_mut(),
         });
         let timeline = vk::VkSemaphoreTypeCreateInfo {

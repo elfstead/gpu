@@ -10,6 +10,7 @@ default-run = "ogpu-native-rust-consumer"
 [workspace]
 
 [dependencies]
+ogpu-vulkan-sys = { path = "../../crates/vulkan-sys" }
 libloading = "=0.8.9"
 ogpu = { path = "../../crates/ogpu", default-features = false }
 

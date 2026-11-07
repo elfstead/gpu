@@ -1,4 +1,5 @@
 vkGetInstanceProcAddr
+vkGetDeviceProcAddr
 vkEnumerateInstanceExtensionProperties
 vkCreateWaylandSurfaceKHR
 vkGetPhysicalDeviceWaylandPresentationSupportKHR

@@ -68,10 +68,12 @@ mod acceleration;
 pub use acceleration::*;
 mod commands;
 mod generated;
+mod interop;
 mod presentation;
 mod resources;
 pub use commands::*;
 pub use generated::*;
+pub use interop::*;
 pub use presentation::*;
 pub use resources::*;
 

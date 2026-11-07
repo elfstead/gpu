@@ -6403,6 +6403,12 @@ pub type PFN_vkGetInstanceProcAddr = ::std::option::Option<
         pName: *const ::std::os::raw::c_char,
     ) -> PFN_vkVoidFunction,
 >;
+pub type PFN_vkGetDeviceProcAddr = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pName: *const ::std::os::raw::c_char,
+    ) -> PFN_vkVoidFunction,
+>;
 pub type PFN_vkCreateDevice = ::std::option::Option<
     unsafe extern "C" fn(
         physicalDevice: VkPhysicalDevice,

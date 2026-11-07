@@ -415,3 +415,9 @@ next RayTables ogpu_next_ray_tables raygen miss hit callable
 next RayIndirect ogpu_next_ray_indirect raygen_address raygen_size miss_address miss_size miss_stride hit_address hit_size hit_stride callable_address callable_size callable_stride width height depth
 next PlacementLimits ogpu_next_placement_limits buffer_image_granularity
 next MemoryInfo ogpu_next_memory_info size allocation_size allocation_offset memory_type flags
+next VulkanDevice ogpu_next_vulkan_device instance physical_device device instance_api_version instance_flags
+next VulkanQueue ogpu_next_vulkan_queue queue domain index
+next VulkanMemory ogpu_next_vulkan_memory memory buffer allocation_size allocation_offset buffer_size buffer_offset
+next VulkanImage ogpu_next_vulkan_image image bound presentable
+next VulkanSemaphore ogpu_next_vulkan_semaphore semaphore
+next VulkanInstance ogpu_next_vulkan_instance instance api_version flags

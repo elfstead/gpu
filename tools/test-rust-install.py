@@ -86,7 +86,7 @@ def main():
         run([cargo, "build", *common, "--release", "--bins"], "build")
         # Cargo's depfiles expose include_bytes! and build.rs-generated inputs as
         # well as Rust modules. No checkout, SDK library, or old target is allowed.
-        for filename in ("surface", "ogpu-native-rust-consumer", "ray"):
+        for filename in ("surface", "ogpu-native-rust-consumer", "ray", "native"):
             text = (target / "release" / (filename + ".d")).read_text()
             dependencies = shlex.split(text.split(": ", 1)[1].split("\n\n", 1)[0].replace("\\\n", ""))
             require(dependencies and all(Path(p).resolve().is_relative_to(bundle) for p in dependencies),
@@ -102,6 +102,8 @@ def main():
             output = run([headless], "headless", marker="NATIVE_RUST_PASS", timeout=30)
             require("NATIVE_RUST_EXTENDED_PASS" in output and "NATIVE_RUST_SYNC_PASS" in output, "missing headless phases")
             report["runs"].append("headless")
+            run([str(target / "release/native")], "native-interop", marker="NATIVE_INTEROP_PASS", timeout=30)
+            report["runs"].append("native-interop")
         ray = str(target / "release/ray")
         run([ray], "ray-missing-loader", env=dict(environment, OGPU_VULKAN_LIBRARY="/missing-ogpu-loader.so"), success=False, timeout=30)
         report["ray_environment"] = {name: environment.get(name) for name in ("RADV_EXPERIMENTAL", "OGPU_RAY_GENERATED")}

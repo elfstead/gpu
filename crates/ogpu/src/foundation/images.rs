@@ -260,6 +260,8 @@ pub struct Image {
     dedicated: vk::VkMemoryDedicatedRequirements,
     bound: Cell<bool>,
     borrowed: bool,
+    owned: bool,
+    presentable: bool,
 }
 pub struct View {
     device: *const Device,
@@ -485,6 +487,48 @@ impl Device {
     }
 }
 impl Image {
+    pub(in crate::foundation) fn native_vulkan(&self) -> Result<VulkanImage, Status> {
+        unsafe { &*self.device }.ready()?;
+        Ok(VulkanImage {
+            image: self.handle as u64,
+            bound: u32::from(self.bound.get()),
+            presentable: u32::from(self.presentable),
+        })
+    }
+    pub(in crate::foundation) unsafe fn import_vulkan(
+        d: &Device,
+        desc: &ImageDesc,
+        value: VulkanImage,
+        ownership: u32,
+    ) -> Result<Box<Self>, Status> {
+        if value.image == 0
+            || value.bound > 1
+            || value.presentable > 1
+            || ownership > NATIVE_OWN
+            || (value.presentable != 0 && (value.bound == 0 || ownership != NATIVE_BORROW))
+        {
+            return Err(INVALID);
+        }
+        let prepared = unsafe { d.prepare_image(desc)? };
+        // Bound foreign images need no allocation requirements. Unbound imports
+        // query the exact declared native profile for subsequent explicit binding.
+        let (requirements, dedicated) = if value.bound == 0 {
+            d.image_native_requirements(&prepared)?
+        } else {
+            Default::default()
+        };
+        Ok(Box::new(Self {
+            device: d,
+            handle: value.image as vk::VkImage,
+            prepared,
+            requirements,
+            dedicated,
+            bound: Cell::new(value.bound != 0),
+            borrowed: false,
+            owned: ownership == NATIVE_OWN,
+            presentable: value.presentable != 0,
+        }))
+    }
     pub(super) fn from_swapchain(d: &Device, handle: vk::VkImage, prepared: Prepared) -> Self {
         Self {
             device: d,
@@ -494,6 +538,8 @@ impl Image {
             dedicated: Default::default(),
             bound: Cell::new(true),
             borrowed: true,
+            owned: false,
+            presentable: true,
         }
     }
     pub(in crate::foundation) fn is_borrowed(&self) -> bool {
@@ -522,6 +568,8 @@ impl Image {
             dedicated,
             bound: Cell::new(false),
             borrowed: false,
+            owned: true,
+            presentable: false,
         }))
     }
     pub(in crate::foundation) unsafe fn bind(&self, placement: Span) -> Result<(), Status> {
@@ -636,7 +684,9 @@ impl Image {
             STATE_SHADING_RATE if usage & IMAGE_SHADING_RATE != 0 => {
                 Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR)
             }
-            STATE_PRESENT if self.borrowed => Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
+            STATE_PRESENT if self.presentable => {
+                Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+            }
             _ => Err(if state <= STATE_LOCAL_READ {
                 INVALID
             } else {
@@ -1021,7 +1071,7 @@ impl Image {
 }
 impl Drop for Image {
     fn drop(&mut self) {
-        if self.borrowed {
+        if !self.owned {
             return;
         }
         let d = unsafe { &*self.device };
