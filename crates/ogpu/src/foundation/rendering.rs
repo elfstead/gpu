@@ -261,30 +261,23 @@ impl Device {
         v: &ViewportState,
     ) -> Result<(), Status> {
         v.header.validate::<ViewportState>(VIEWPORT_STATE)?;
-        if ![v.x, v.y, v.width, v.height, v.min_depth, v.max_depth]
-            .iter()
-            .all(|f| f.is_finite())
-            || v.width <= 0.0
-            || v.height == 0.0
-            || !(0.0..=1.0).contains(&v.min_depth)
-            || !(0.0..=1.0).contains(&v.max_depth)
-            || v.scissor_x < 0
-            || v.scissor_y < 0
-            || u64::from(v.scissor_width) + v.scissor_x as u64 > i32::MAX as u64
-            || u64::from(v.scissor_height) + v.scissor_y as u64 > i32::MAX as u64
-        {
-            return Err(INVALID);
-        }
-        let p = &self.snapshot.graphics_limits;
-        if v.width > p.max_viewport[0] as f32
-            || v.height.abs() > p.max_viewport[1] as f32
-            || v.x < p.viewport_bounds[0]
-            || v.x + v.width > p.viewport_bounds[1]
-            || v.y.min(v.y + v.height) < p.viewport_bounds[0]
-            || v.y.max(v.y + v.height) > p.viewport_bounds[1]
-        {
-            return Err(UNSUPPORTED);
-        }
+        viewports::viewport(
+            &Viewport {
+                x: v.x,
+                y: v.y,
+                width: v.width,
+                height: v.height,
+                min_depth: v.min_depth,
+                max_depth: v.max_depth,
+            },
+            &self.snapshot.graphics_limits,
+        )?;
+        viewports::scissor(&Scissor {
+            x: v.scissor_x,
+            y: v.scissor_y,
+            width: v.scissor_width,
+            height: v.scissor_height,
+        })?;
         let viewport = vk::VkViewport {
             x: v.x,
             y: v.y,

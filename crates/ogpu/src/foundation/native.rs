@@ -28,6 +28,8 @@ use std::{
 mod core_raster;
 #[path = "extended_raster.rs"]
 mod extended_raster;
+#[path = "viewports.rs"]
+mod viewports;
 
 #[path = "vertex_input.rs"]
 mod vertex_input;
@@ -233,6 +235,8 @@ functions! {
     vkCmdSetRenderingInputAttachmentIndices: PFN_vkCmdSetRenderingInputAttachmentIndices,
     vkCmdEndRendering: PFN_vkCmdEndRendering,
     vkCmdSetViewport: PFN_vkCmdSetViewport,
+    vkCmdSetViewportWithCount: PFN_vkCmdSetViewportWithCount,
+    vkCmdSetScissorWithCount: PFN_vkCmdSetScissorWithCount,
     vkCmdSetScissor: PFN_vkCmdSetScissor,
     vkCmdDraw: PFN_vkCmdDraw,
     vkCmdDrawIndexed: PFN_vkCmdDrawIndexed,
@@ -338,6 +342,7 @@ pub(super) fn snapshot(
     let mut raster_mechanism_limits = RasterMechanismLimits::default();
     let mut sample_location_limits = SampleLocationLimits::default();
     let mut dynamic_raster_limits = DynamicRasterLimits::default();
+    let mut viewport_limits = ViewportLimits::default();
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -488,6 +493,10 @@ pub(super) fn snapshot(
         features.available |= samples;
         sample_location_limits = sample_limits;
         dynamic_raster_limits = core_raster::snapshot(instance, physical, &f)?;
+        viewport_limits = ViewportLimits {
+            max_viewports: properties.properties.limits.maxViewports,
+            subpixel_bits: properties.properties.limits.viewportSubPixelBits,
+        };
 
         for (value, bit) in [
             (root.features.largePoints, LARGE_POINTS),
@@ -628,7 +637,10 @@ pub(super) fn snapshot(
             max_vertex_attributes: p.maxVertexInputAttributes,
             max_vertex_attribute_offset: p.maxVertexInputAttributeOffset,
             max_vertex_stride: p.maxVertexInputBindingStride,
-            dynamic_states: 8191 | core_raster::MASK,
+            dynamic_states: 8191
+                | core_raster::MASK
+                | DYNAMIC_VIEWPORT_COUNT_STATE
+                | DYNAMIC_SCISSOR_COUNT_STATE,
             line_width_range: p.lineWidthRange,
             line_width_granularity: p.lineWidthGranularity,
             max_dual_source_attachments: p.maxFragmentDualSrcAttachments,
@@ -678,6 +690,8 @@ pub(super) fn snapshot(
             (root.features.depthClamp, DEPTH_CLAMP),
             (root.features.depthBiasClamp, DEPTH_BIAS_CLAMP),
             (root.features.fillModeNonSolid, NON_SOLID_FILL),
+            (root.features.multiViewport, MULTI_VIEWPORT),
+            (v12.shaderOutputViewportIndex, SHADER_OUTPUT_VIEWPORT_INDEX),
             (root.features.wideLines, WIDE_LINES),
             (root.features.depthBounds, DEPTH_BOUNDS),
             (root.features.sampleRateShading, SAMPLE_SHADING),
@@ -834,6 +848,7 @@ pub(super) fn snapshot(
         raster_mechanism_limits,
         sample_location_limits,
         dynamic_raster_limits,
+        viewport_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -1035,6 +1050,7 @@ impl Device {
             timelineSemaphore: 1,
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
             shaderOutputLayer: u32::from(enabled & SHADER_OUTPUT_LAYER != 0),
+            shaderOutputViewportIndex: u32::from(enabled & SHADER_OUTPUT_VIEWPORT_INDEX != 0),
             vulkanMemoryModel: u32::from(enabled & VULKAN_MEMORY_MODEL != 0),
             vulkanMemoryModelAvailabilityVisibilityChains: u32::from(
                 enabled & VULKAN_MEMORY_MODEL_CHAINS != 0,
@@ -1082,6 +1098,7 @@ impl Device {
             depthClamp: u32::from(enabled & DEPTH_CLAMP != 0),
             depthBiasClamp: u32::from(enabled & DEPTH_BIAS_CLAMP != 0),
             fillModeNonSolid: u32::from(enabled & NON_SOLID_FILL != 0),
+            multiViewport: u32::from(enabled & MULTI_VIEWPORT != 0),
             wideLines: u32::from(enabled & WIDE_LINES != 0),
             largePoints: u32::from(enabled & LARGE_POINTS != 0),
             depthBounds: u32::from(enabled & DEPTH_BOUNDS != 0),

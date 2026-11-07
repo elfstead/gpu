@@ -1815,6 +1815,34 @@ enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON
  * No current-pipeline tracking: caller establishes each dynamic value before
  * draws and proves topology/stage/restart compatibility, including generated work.
  */
+/* Native viewport/scissor arrays. MULTI_VIEWPORT enables counts/indices beyond
+ * slot zero; SHADER_OUTPUT_VIEWPORT_INDEX independently enables shader output
+ * in stages governed by that feature. Stage-specific artifact requirements apply.
+ * Count state defaults to one of each; chain VIEWPORT_COUNTS to GRAPHICS_STATE.
+ * Dynamic count flags ignore the corresponding static count and use SET_COUNT.
+ * Without SET_COUNT, update [first,first+count) of fixed-count dynamic state.
+ * With SET_COUNT, first must be zero and count nonzero; replaces count + values.
+ * Count/range must fit VIEWPORT_LIMITS and requested MULTI_VIEWPORT capability.
+ * Zero-count range updates are no-ops and allow null. Arrays are borrowed directly.
+ * Every draw must have matching effective viewport/scissor counts and all used
+ * slots set, respecting native invalidation, secondary and shader-index rules.
+ * No active-count/slot tracking. set_graphics_state remains a slot-zero shorthand
+ * for fixed-count viewport and scissor state, not a count-setting operation.
+ */
+#define OGPU_NEXT_FEATURE_MULTI_VIEWPORT UINT32_C(110)
+#define OGPU_NEXT_FEATURE_SHADER_OUTPUT_VIEWPORT_INDEX UINT32_C(111)
+#define OGPU_NEXT_QUERY_VIEWPORT_LIMITS UINT32_C(28)
+#define OGPU_NEXT_VIEWPORT_COUNTS UINT32_C(142)
+#define OGPU_NEXT_SET_COUNT UINT32_C(1)
+#define OGPU_NEXT_DYNAMIC_VIEWPORT_COUNT (UINT64_C(1) << 44)
+#define OGPU_NEXT_DYNAMIC_SCISSOR_COUNT (UINT64_C(1) << 45)
+typedef struct ogpu_next_viewport_limits { uint32_t max_viewports, subpixel_bits; } ogpu_next_viewport_limits;
+typedef struct ogpu_next_viewport_counts { ogpu_next_record header; uint32_t viewports, scissors; } ogpu_next_viewport_counts;
+typedef struct ogpu_next_viewport { float x,y,width,height,min_depth,max_depth; } ogpu_next_viewport;
+typedef struct ogpu_next_scissor { int32_t x,y; uint32_t width,height; } ogpu_next_scissor;
+void ogpu_next_set_viewports(ogpu_next_encoder *,uint32_t first,uint32_t count,const ogpu_next_viewport *,uint32_t flags);
+void ogpu_next_set_scissors(ogpu_next_encoder *,uint32_t first,uint32_t count,const ogpu_next_scissor *,uint32_t flags);
+
 #define OGPU_NEXT_QUERY_DYNAMIC_RASTER_LIMITS UINT32_C(27)
 typedef struct ogpu_next_dynamic_raster_limits {
     uint32_t unrestricted_topology;
@@ -2257,18 +2285,20 @@ typedef struct ogpu_next_draw_desc {
  * Native Vulkan attachment resolves (including depth/stencil) use COLOR stage
  * with COLOR_READ/COLOR_WRITE access, not standalone RESOLVE or DEPTH scopes.
  * Sample shading, masks and alpha coverage are explicit raster options; custom
- * sample positions remain a separate unimplemented profile.
+ * sample positions use the explicit SAMPLE_LOCATIONS profile.
  *
  * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and
  * depth/stencil write permission; shader output types and accesses must match. No per-draw
- * attachment scan/resource registry. Begin/end nesting, missing pipeline/viewport
+ * attachment scan/resource registry. Complete dynamic state (including viewport
+ * arrays/counts) is a caller obligation; no slot-history validation.
+ * Begin/end nesting, missing pipeline
  * and invalid command scope poison the list. Transfers/dispatch are outside
  * rendering. LOCAL_READ permits explicit framebuffer-region barriers inside.
  * Graphics/compute bind points are independent. Viewport/scissor and byte state
  * persist across compatible binds/scopes, reset to undefined by command begin.
  * Dynamic viewport allows negative height and reversed depth endpoints within
- * [0,1]. set_graphics_state accepts VIEWPORT_STATE and the declared dynamic
- * blend/stencil records. Draw requires
+ * [0,1]. set_graphics_state accepts VIEWPORT_STATE as a slot-zero shorthand;
+ * blend/stencil controls have their own setters. Draw requires
  * vertex_offset=0 and passes all count/first/instance values directly to native.
  */
 ogpu_next_status ogpu_next_render_scratch_requirements(uint32_t color_count, ogpu_next_host_requirements *);

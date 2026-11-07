@@ -382,3 +382,7 @@ vk VkMultisamplePropertiesEXT sType pNext maxSampleLocationGridSize
 next DynamicRasterLimits ogpu_next_dynamic_raster_limits unrestricted_topology
 
 next BlendEquation ogpu_next_blend_equation src_color dst_color color_op src_alpha dst_alpha alpha_op
+next ViewportLimits ogpu_next_viewport_limits max_viewports subpixel_bits
+next ViewportCounts ogpu_next_viewport_counts header viewports scissors
+next Viewport ogpu_next_viewport x y width height min_depth max_depth
+next Scissor ogpu_next_scissor x y width height

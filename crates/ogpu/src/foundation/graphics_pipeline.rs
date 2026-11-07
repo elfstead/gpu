@@ -672,14 +672,20 @@ pub(super) unsafe fn prepare(
         ..Default::default()
     };
     let raster_chain = mechanisms.raster_chain();
+    let viewport_counts = viewports::counts(
+        extensions.viewports,
+        desc.dynamic_state,
+        d.snapshot.features.enabled,
+        &d.snapshot.viewport_limits,
+    )?;
     let viewport = vk::VkPipelineViewportStateCreateInfo {
         pNext: mechanisms
             .convention
             .as_ref()
             .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        viewportCount: 1,
-        scissorCount: 1,
+        viewportCount: viewport_counts[0],
+        scissorCount: viewport_counts[1],
         ..Default::default()
     };
     let raster = vk::VkPipelineRasterizationStateCreateInfo {
@@ -746,8 +752,16 @@ pub(super) unsafe fn prepare(
         ..Default::default()
     };
     let mut dynamic_states = [0; 45];
-    dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
-    dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
+    dynamic_states[0] = if desc.dynamic_state & DYNAMIC_VIEWPORT_COUNT_STATE != 0 {
+        vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT
+    } else {
+        vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT
+    };
+    dynamic_states[1] = if desc.dynamic_state & DYNAMIC_SCISSOR_COUNT_STATE != 0 {
+        vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT
+    } else {
+        vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR
+    };
     let mut dynamic_count = 2;
     for (mask, state) in [
         (

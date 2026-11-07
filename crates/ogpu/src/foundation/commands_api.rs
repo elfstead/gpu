@@ -1337,3 +1337,33 @@ pub unsafe extern "C" fn ogpu_next_set_color_blend_equation(
         encode(encoder, |e| e.color_equations(first, count, values));
     }
 }
+
+/// # Safety
+/// Live recording encoder and valid array; caller establishes all consumed dynamic slots/counts.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_viewports(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    values: *const Viewport,
+    flags: u32,
+) {
+    unsafe {
+        encode(encoder, |e| e.viewports(first, count, values, flags));
+    }
+}
+
+/// # Safety
+/// Live recording encoder and valid array; caller establishes all consumed dynamic slots/counts.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ogpu_next_set_scissors(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    values: *const Scissor,
+    flags: u32,
+) {
+    unsafe {
+        encode(encoder, |e| e.scissors(first, count, values, flags));
+    }
+}

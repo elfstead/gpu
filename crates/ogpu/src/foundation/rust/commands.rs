@@ -165,3 +165,7 @@ record!(fn set_color_blend_enable(list, first: u32, values: &[u32]) |e| e.color_
 record!(fn set_color_write_mask(list, first: u32, values: &[u32]) |e| e.color_values(DYNAMIC_COLOR_WRITE_MASK_STATE, first, count(values.len())?, values.as_ptr()));
 
 record!(fn set_color_blend_equation(list, first: u32, values: &[BlendEquation]) |e| e.color_equations(first, count(values.len())?, values.as_ptr()));
+
+record!(fn set_viewports(list, first:u32, values:&[Viewport], flags:u32) |e| e.viewports(first,count(values.len())?,values.as_ptr(),flags));
+
+record!(fn set_scissors(list, first:u32, values:&[Scissor], flags:u32) |e| e.scissors(first,count(values.len())?,values.as_ptr(),flags));

@@ -133,6 +133,7 @@
     "ogpu_next_set_sample_locations",
     "ogpu_next_set_sample_locations_enable",
     "ogpu_next_set_sample_mask",
+    "ogpu_next_set_scissors",
     "ogpu_next_set_shading_rate",
     "ogpu_next_set_stencil_compare_mask",
     "ogpu_next_set_stencil_ops",
@@ -141,6 +142,7 @@
     "ogpu_next_set_stencil_write_mask",
     "ogpu_next_set_topology",
     "ogpu_next_set_vertex_input",
+    "ogpu_next_set_viewports",
     "ogpu_next_split_acquire",
     "ogpu_next_split_create",
     "ogpu_next_split_destroy",
@@ -460,7 +462,14 @@
     "OGPU_NEXT_FEATURE_DYNAMIC_COLOR_WRITE_MASK": "feature_ids::DYNAMIC_COLOR_WRITE_MASK",
     "OGPU_NEXT_DYNAMIC_COLOR_WRITE_MASK": "DYNAMIC_COLOR_WRITE_MASK_STATE",
     "OGPU_NEXT_FEATURE_DYNAMIC_LOGIC_OP": "feature_ids::DYNAMIC_LOGIC_OP",
-    "OGPU_NEXT_DYNAMIC_LOGIC_OP": "DYNAMIC_LOGIC_OP_STATE"
+    "OGPU_NEXT_DYNAMIC_LOGIC_OP": "DYNAMIC_LOGIC_OP_STATE",
+    "OGPU_NEXT_FEATURE_MULTI_VIEWPORT": "feature_ids::MULTI_VIEWPORT",
+    "OGPU_NEXT_FEATURE_SHADER_OUTPUT_VIEWPORT_INDEX": "feature_ids::SHADER_OUTPUT_VIEWPORT_INDEX",
+    "OGPU_NEXT_QUERY_VIEWPORT_LIMITS": "VIEWPORT_LIMITS",
+    "OGPU_NEXT_VIEWPORT_COUNTS": "VIEWPORT_COUNTS",
+    "OGPU_NEXT_SET_COUNT": "SET_COUNT",
+    "OGPU_NEXT_DYNAMIC_VIEWPORT_COUNT": "DYNAMIC_VIEWPORT_COUNT_STATE",
+    "OGPU_NEXT_DYNAMIC_SCISSOR_COUNT": "DYNAMIC_SCISSOR_COUNT_STATE"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

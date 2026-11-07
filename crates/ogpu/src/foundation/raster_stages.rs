@@ -20,6 +20,7 @@ pub(super) fn enables(enabled: FeatureBits, stages: u64, views: u32) -> Result<(
 pub(super) struct Extensions {
     pub mapping: Option<RenderMapping>,
     pub tessellation: Option<TessellationState>,
+    pub viewports: Option<ViewportCounts>,
 }
 /// At most one of each known extension, in either order. Parent validation
 /// preserves size/version/flags rules while parsing each next pointer here.
@@ -28,7 +29,7 @@ pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Stat
     let mut count = 0;
     while !p.is_null() {
         count += 1;
-        if count > 2 {
+        if count > 3 {
             return Err(INVALID);
         }
         let header = unsafe { &*p };
@@ -41,6 +42,13 @@ pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Stat
                     unsafe { *local_read::parent::<RenderMapping>(p, RENDER_MAPPING)? };
                 mapping.header.next = ptr::null();
                 result.mapping = Some(mapping);
+            }
+            VIEWPORT_COUNTS => {
+                if result.viewports.is_some() {
+                    return Err(INVALID);
+                }
+                result.viewports =
+                    Some(unsafe { *local_read::parent::<ViewportCounts>(p, VIEWPORT_COUNTS)? });
             }
             TESSELLATION_STATE => {
                 if result.tessellation.is_some() {
@@ -255,6 +263,9 @@ mod tests {
             };
             for bit in [
                 0,
+                MULTI_VIEWPORT,
+                SHADER_OUTPUT_VIEWPORT_INDEX,
+                MULTI_VIEWPORT | SHADER_OUTPUT_VIEWPORT_INDEX,
                 DYNAMIC_DEPTH_CLAMP,
                 DYNAMIC_POLYGON_MODE,
                 DYNAMIC_RASTERIZATION_SAMPLES,
@@ -307,7 +318,14 @@ mod tests {
                 }
                 let d = result.unwrap();
                 assert_eq!(d.snapshot.features.enabled, required);
-                if bit == 0 || bit & (extended_raster::EDS3_FEATURES | DYNAMIC_LOGIC_OP) != 0 {
+                if bit == 0
+                    || bit
+                        & (extended_raster::EDS3_FEATURES
+                            | DYNAMIC_LOGIC_OP
+                            | MULTI_VIEWPORT
+                            | SHADER_OUTPUT_VIEWPORT_INDEX)
+                        != 0
+                {
                     let ad = ArenaDesc {
                         header: Record::new::<ArenaDesc>(ARENA_DESC),
                         domain: request[0].domain,
@@ -427,6 +445,38 @@ mod tests {
                             Err(UNSUPPORTED)
                         );
                     }
+                    let v = Viewport {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 8.0,
+                        height: 8.0,
+                        min_depth: 0.0,
+                        max_depth: 1.0,
+                    };
+                    let sc = Scissor {
+                        x: 0,
+                        y: 0,
+                        width: 8,
+                        height: 8,
+                    };
+                    assert_eq!(unsafe { list.viewports(0, 1, &v, SET_COUNT) }, Ok(()));
+                    assert_eq!(unsafe { list.scissors(0, 1, &sc, SET_COUNT) }, Ok(()));
+                    assert_eq!(
+                        unsafe { list.viewports(1, 1, &v, 0) },
+                        if bit & MULTI_VIEWPORT != 0 {
+                            Ok(())
+                        } else {
+                            Err(UNSUPPORTED)
+                        }
+                    );
+                    assert_eq!(
+                        unsafe { list.scissors(1, 1, &sc, 0) },
+                        if bit & MULTI_VIEWPORT != 0 {
+                            Ok(())
+                        } else {
+                            Err(UNSUPPORTED)
+                        }
+                    );
                     list.end().unwrap();
                 }
 

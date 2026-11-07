@@ -10620,6 +10620,20 @@ pub type PFN_vkCmdSetPrimitiveTopology = ::std::option::Option<
         primitiveTopology: VkPrimitiveTopology,
     ),
 >;
+pub type PFN_vkCmdSetViewportWithCount = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        viewportCount: u32,
+        pViewports: *const VkViewport,
+    ),
+>;
+pub type PFN_vkCmdSetScissorWithCount = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        scissorCount: u32,
+        pScissors: *const VkRect2D,
+    ),
+>;
 pub type PFN_vkCmdSetDepthTestEnable = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthTestEnable: VkBool32),
 >;

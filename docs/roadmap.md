@@ -642,7 +642,9 @@ passes at `a16805c`. [Extended dynamic raster controls](extended-dynamic-raster.
 now add eleven independent capabilities for clamp, polygon, multisample and
 blend/logic/write state, with [local and clean installed C/native Rust evidence](results/m8-extended-raster-2026-11-07.md)
 at `ebf6abb`.
-Next: viewport arrays, extended depth/color-write controls in the [remaining groups](m8-coverage.md#remaining-raster-control-groups) and the
+[Viewport/scissor arrays](viewport-arrays.md) now add explicit range/count updates
+and shader routing, with local 1/4-sample output checks.
+Next: extended depth/color-write controls in the [remaining groups](m8-coverage.md#remaining-raster-control-groups) and the
 extension-format inventory. Geometry capture/dynamic patch and consolidation follow before M9.
 Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.

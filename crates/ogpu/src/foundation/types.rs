@@ -28,6 +28,8 @@ pub mod image_formats {
 pub const VERSION: u32 = 12;
 /// Opaque optional-feature identifiers. They are not bit flags.
 pub mod feature_ids {
+    pub const MULTI_VIEWPORT: u32 = 110;
+    pub const SHADER_OUTPUT_VIEWPORT_INDEX: u32 = 111;
     pub const DYNAMIC_DEPTH_CLAMP: u32 = 99;
     pub const DYNAMIC_POLYGON_MODE: u32 = 100;
     pub const DYNAMIC_RASTERIZATION_SAMPLES: u32 = 101;
@@ -2121,4 +2123,42 @@ pub struct BlendEquation {
     pub src_alpha: u32,
     pub dst_alpha: u32,
     pub alpha_op: u32,
+}
+
+/// Physical array capacity; dimensions and coordinate bounds are in GraphicsLimits.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ViewportLimits {
+    pub max_viewports: u32,
+    pub subpixel_bits: u32,
+}
+pub const VIEWPORT_LIMITS: u32 = 28;
+pub const VIEWPORT_COUNTS: u32 = 142;
+pub const SET_COUNT: u32 = 1;
+pub const DYNAMIC_VIEWPORT_COUNT_STATE: u64 = 1 << 44;
+pub const DYNAMIC_SCISSOR_COUNT_STATE: u64 = 1 << 45;
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ViewportCounts {
+    pub header: Record,
+    pub viewports: u32,
+    pub scissors: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Viewport {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub min_depth: f32,
+    pub max_depth: f32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Scissor {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
 }

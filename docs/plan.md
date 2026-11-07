@@ -367,8 +367,9 @@ cover topology/restart, discard, line width and depth bias/bounds without pipeli
 replacement, including a query for the native topology-class restriction.
 [Extended dynamic raster controls](extended-dynamic-raster.md) now cover clamp,
 polygon, sample count/mask, alpha coverage/one and blend/logic/write state with
-independent enabling and local static/dynamic output evidence. Viewport arrays,
-extended depth behavior and the color-write-enable audit are next. Geometry capture,
+independent enabling and local static/dynamic output evidence. [Viewport arrays](viewport-arrays.md)
+now implement range/count updates and shader routing. Extended depth behavior and
+the color-write-enable audit are next. Geometry capture,
 dynamic patch and contract/composition consolidation follow before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows

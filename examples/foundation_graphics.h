@@ -520,7 +520,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         ogpu_next_render_begin(encoder,&render);
         if (bad != 5) ogpu_next_bind_executable(encoder,pipelines[0]);
-        if (bad != 4) ogpu_next_set_graphics_state(encoder,&vp.header);
+        if (bad == 4) { ogpu_next_viewport invalid={0,0,0,8,0,1}; ogpu_next_set_viewports(encoder,0,1,&invalid,0); }
+        else ogpu_next_set_graphics_state(encoder,&vp.header);
         if (bad == 0) ogpu_next_draw_indexed(encoder,&draw); /* No index binding. */
         else if (bad == 1) {
             ogpu_next_bind_indices(encoder,(ogpu_next_span){host,256,6},OGPU_NEXT_INDEX_U16);
@@ -529,7 +530,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
             ogpu_next_indirect invalid = {{host,272,64},bad == 2 ? 4 : 32,2,
                 {bad == 3 ? host : NULL,bad == 3 ? 384 : 0,bad == 3 ? 2 : 0}};
             ogpu_next_draw_indirect(encoder,&invalid); /* Bad stride or count span. */
-        } else ogpu_next_draw(encoder,&draw); /* Missing viewport or executable. */
+        } else ogpu_next_draw(encoder,&draw); /* Rejected viewport value or missing executable. */
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
     }
     for (uint32_t bad = 0; bad < 7; ++bad) {

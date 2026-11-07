@@ -70,7 +70,9 @@ topology/restart, discard, line width and depth bias/bounds with native topology
 discovery. [Extended dynamic raster controls](extended-dynamic-raster.md) now
 add independent capabilities and direct setters for clamp, polygon, multisample
 and blend/logic/write state. Local 1/4-sample, two-target and programmable-position
-composition passes. Viewport arrays, extended depth and other named M8 mechanisms
+composition passes. [Viewport arrays](viewport-arrays.md) now expose range/count
+updates and shader-index capabilities; complete dynamic state is caller-owned
+without the old viewport-history flag. Extended depth and other named M8 mechanisms
 remain in the [implementation sequence](m8-coverage.md).
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)

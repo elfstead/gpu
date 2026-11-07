@@ -51,7 +51,9 @@ remains execution debt:
    topology/class discovery, restart, discard, line width and independent bias/bounds
    values and enables. [Extended dynamic raster controls](extended-dynamic-raster.md)
    now cover depth clamp, polygon mode, sample count/mask, alpha coverage/one and
-   per-attachment blend/logic/write state. **Next:** viewport arrays and extended
+   per-attachment blend/logic/write state. [Viewport/scissor arrays](viewport-arrays.md)
+   now expose range and count updates, native limits and shader index enabling.
+   **Next:** extended
    depth/color-write control groups listed below, then
    the pinned registry's extension-specific raster-format inventory. These remain in this batch, not
    silently deferred to M9. No draw-time synthesis or shader substitute for a
@@ -90,7 +92,7 @@ Before leaving this M8 batch, add or explicitly resolve these ordinary raster ga
 
 | Group | Required disposition |
 |---|---|
-| Multiple viewports/scissors | Counted/ranged native state, physical limits and shader viewport-index capability. The current single-viewport operation is not the universal hardware limit; do not multiply draws to emulate arrays. |
+| Multiple viewports/scissors | Implemented: [arrays and independent counts](viewport-arrays.md), physical limits and shader viewport-index capability. Local VS routing passes at 1/4 samples; other stage/secondary/generated composition remains acceptance debt. |
 | Extended depth behavior | Explicit unrestricted depth-range, depth-clamp range/control and depth-bias representation/exactness profiles where native capabilities support them. Preserve numerical units and clamping behavior; do not substitute shader depth writes. |
 | Color write control | Audit the independent native color-write enable against write masks, retaining one public mechanism when it can express both without losing a native execution path or cost advantage. |
 | Tessellation controls | Dynamic patch count and domain origin belong with step 3; they are concrete work before M9, not a later unspecified extension. |

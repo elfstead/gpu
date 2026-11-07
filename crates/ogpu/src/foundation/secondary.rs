@@ -217,7 +217,6 @@ impl List {
         // Native state is not inherited/restored. Do not pretend a stale bind is live.
         self.executable.set(ptr::null());
         self.graphics.set(ptr::null());
-        self.viewport_set.set(false);
         self.index_count.set(None);
         Ok(())
     }

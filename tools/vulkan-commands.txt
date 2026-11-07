@@ -181,3 +181,6 @@ vkCmdSetColorBlendEnableEXT
 vkCmdSetColorBlendEquationEXT
 vkCmdSetColorWriteMaskEXT
 vkCmdSetLogicOpEXT
+
+vkCmdSetViewportWithCount
+vkCmdSetScissorWithCount

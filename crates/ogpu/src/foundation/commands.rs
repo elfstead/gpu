@@ -71,7 +71,6 @@ pub struct List {
     rendering: Cell<bool>,
     view_mask: Cell<u32>,
     render_colors: Cell<u32>,
-    viewport_set: Cell<bool>,
     index_count: Cell<Option<u64>>,
     active_queries: [Cell<Option<ActiveQuery>>; 2],
 }
@@ -158,7 +157,6 @@ impl Arena {
                 rendering: Cell::new(false),
                 view_mask: Cell::new(0),
                 render_colors: Cell::new(0),
-                viewport_set: Cell::new(false),
                 index_count: Cell::new(None),
                 active_queries: [const { Cell::new(None) }; 2],
             }));
@@ -275,7 +273,6 @@ impl Arena {
         slot.inherited_query_flags = inheritance.queryFlags;
         slot.inherited_statistics = u64::from(inheritance.pipelineStatistics);
         slot.inherited_heaps = inherited_heaps;
-        slot.viewport_set.set(false);
         slot.index_count.set(None);
         for query in &slot.active_queries {
             query.set(None);
@@ -985,7 +982,87 @@ impl List {
         let d = self.recording()?;
         stages(d, self.domain, 24, false)?;
         d.viewport(self.command, state)?;
-        self.viewport_set.set(true);
+        Ok(())
+    }
+
+    pub(in crate::foundation) unsafe fn viewports(
+        &self,
+        first: u32,
+        count: u32,
+        values: *const Viewport,
+        flags: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        viewports::range(
+            first,
+            count,
+            flags,
+            d.snapshot.features.enabled,
+            &d.snapshot.viewport_limits,
+        )?;
+        let values = unsafe { slice(values, count)? };
+        for v in values {
+            viewports::viewport(v, &d.snapshot.graphics_limits)?;
+        }
+        if count != 0 {
+            unsafe {
+                if flags & SET_COUNT != 0 {
+                    (d.f.vkCmdSetViewportWithCount.unwrap())(
+                        self.command,
+                        count,
+                        values.as_ptr().cast(),
+                    );
+                } else {
+                    (d.f.vkCmdSetViewport.unwrap())(
+                        self.command,
+                        first,
+                        count,
+                        values.as_ptr().cast(),
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn scissors(
+        &self,
+        first: u32,
+        count: u32,
+        values: *const Scissor,
+        flags: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        viewports::range(
+            first,
+            count,
+            flags,
+            d.snapshot.features.enabled,
+            &d.snapshot.viewport_limits,
+        )?;
+        let values = unsafe { slice(values, count)? };
+        for v in values {
+            viewports::scissor(v)?;
+        }
+        if count != 0 {
+            unsafe {
+                if flags & SET_COUNT != 0 {
+                    (d.f.vkCmdSetScissorWithCount.unwrap())(
+                        self.command,
+                        count,
+                        values.as_ptr().cast(),
+                    );
+                } else {
+                    (d.f.vkCmdSetScissor.unwrap())(
+                        self.command,
+                        first,
+                        count,
+                        values.as_ptr().cast(),
+                    );
+                }
+            }
+        }
         Ok(())
     }
     pub(in crate::foundation) unsafe fn vertex_input(
@@ -1368,7 +1445,6 @@ impl List {
         }
         if !self.rendering.get()
             || self.secondary_contents.get()
-            || !self.viewport_set.get()
             || (indexed && self.index_count.get().is_none())
         {
             return Err(INVALID);
@@ -1381,7 +1457,6 @@ impl List {
             || executable.stages & MESH_STAGE == 0
             || !self.rendering.get()
             || self.secondary_contents.get()
-            || !self.viewport_set.get()
         {
             return Err(INVALID);
         }
